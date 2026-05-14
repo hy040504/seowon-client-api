@@ -45,6 +45,10 @@ const DEFAULT_BASE_URL = "https://ecampus.seowon.ac.kr";
 const VIEW_ATCL_PATH = "/bbs/bbsLect/Form/viewAtclForm";
 const VIEW_ASMNT_PATH = "/asmnt/asmntLect/Form/asmntStuMain";
 
+/**
+ * 비어 있는 강의실 목록 묶음을 생성한다
+ * @returns {EcampusClassroomResources} 비어 있는 공지사항, 과제, 강의자료실 묶음
+ */
 export function createEmptyEcampusClassroomResources(): EcampusClassroomResources {
   return {
     notices: [],
@@ -53,6 +57,12 @@ export function createEmptyEcampusClassroomResources(): EcampusClassroomResource
   };
 }
 
+/**
+ * 공지사항 HTML에서 목록을 추출한다
+ * @param {string} html - 공지사항 목록 HTML
+ * @param {EcampusClassroomResourceOptions} options - 강의실 코드와 기본 URL 옵션
+ * @returns {EcampusClassroomItem[]} 공지사항 목록
+ */
 export function parseEcampusNoticeListHtml(
   html: string,
   options: EcampusClassroomResourceOptions = {}
@@ -60,6 +70,12 @@ export function parseEcampusNoticeListHtml(
   return parseBbsListHtml(html, "notices", options);
 }
 
+/**
+ * 강의자료실 HTML에서 목록을 추출한다
+ * @param {string} html - 강의자료실 목록 HTML
+ * @param {EcampusClassroomResourceOptions} options - 강의실 코드와 기본 URL 옵션
+ * @returns {EcampusClassroomItem[]} 강의자료실 목록
+ */
 export function parseEcampusMaterialListHtml(
   html: string,
   options: EcampusClassroomResourceOptions = {}
@@ -67,6 +83,12 @@ export function parseEcampusMaterialListHtml(
   return parseBbsListHtml(html, "materials", options);
 }
 
+/**
+ * 과제 HTML에서 목록을 추출한다
+ * @param {string} html - 과제 목록 HTML
+ * @param {EcampusClassroomResourceOptions} options - 강의실 코드와 기본 URL 옵션
+ * @returns {EcampusClassroomItem[]} 과제 목록
+ */
 export function parseEcampusAssignmentListHtml(
   html: string,
   options: EcampusClassroomResourceOptions = {}
@@ -108,6 +130,12 @@ export function parseEcampusAssignmentListHtml(
     .filter((item) => item.id && item.title);
 }
 
+/**
+ * SAZ 패킷에서 공지사항, 과제, 강의자료실을 모두 추출한다
+ * @param {Uint8Array} sazFile - Fiddler SAZ 파일 바이너리
+ * @param {EcampusClassroomResourceOptions} options - 강의실 코드와 기본 URL 옵션
+ * @returns {EcampusClassroomResources} 세 영역의 목록 묶음
+ */
 export function parseEcampusClassroomResourcesFromSaz(
   sazFile: Uint8Array,
   options: EcampusClassroomResourceOptions = {}
@@ -150,6 +178,12 @@ export function parseEcampusClassroomResourcesFromSaz(
   return resources;
 }
 
+/**
+ * SAZ 패킷에서 공지사항만 추출한다
+ * @param {Uint8Array} sazFile - Fiddler SAZ 파일 바이너리
+ * @param {EcampusClassroomResourceOptions} options - 강의실 코드와 기본 URL 옵션
+ * @returns {EcampusClassroomItem[]} 공지사항 목록
+ */
 export function parseEcampusNoticeListFromSaz(
   sazFile: Uint8Array,
   options: EcampusClassroomResourceOptions = {}
@@ -157,6 +191,12 @@ export function parseEcampusNoticeListFromSaz(
   return parseEcampusClassroomResourcesFromSaz(sazFile, options).notices;
 }
 
+/**
+ * SAZ 패킷에서 과제만 추출한다
+ * @param {Uint8Array} sazFile - Fiddler SAZ 파일 바이너리
+ * @param {EcampusClassroomResourceOptions} options - 강의실 코드와 기본 URL 옵션
+ * @returns {EcampusClassroomItem[]} 과제 목록
+ */
 export function parseEcampusAssignmentListFromSaz(
   sazFile: Uint8Array,
   options: EcampusClassroomResourceOptions = {}
@@ -164,6 +204,12 @@ export function parseEcampusAssignmentListFromSaz(
   return parseEcampusClassroomResourcesFromSaz(sazFile, options).assignments;
 }
 
+/**
+ * SAZ 패킷에서 강의자료실만 추출한다
+ * @param {Uint8Array} sazFile - Fiddler SAZ 파일 바이너리
+ * @param {EcampusClassroomResourceOptions} options - 강의실 코드와 기본 URL 옵션
+ * @returns {EcampusClassroomItem[]} 강의자료실 목록
+ */
 export function parseEcampusMaterialListFromSaz(
   sazFile: Uint8Array,
   options: EcampusClassroomResourceOptions = {}
@@ -171,14 +217,31 @@ export function parseEcampusMaterialListFromSaz(
   return parseEcampusClassroomResourcesFromSaz(sazFile, options).materials;
 }
 
+/**
+ * 강의실 목록 묶음을 JSON 문자열로 변환한다
+ * @param {EcampusClassroomResources} resources - 공지사항, 과제, 강의자료실 묶음
+ * @returns {string} 들여쓰기된 JSON 문자열
+ */
 export function stringifyEcampusClassroomResources(resources: EcampusClassroomResources): string {
   return JSON.stringify(resources, null, 2);
 }
 
+/**
+ * 강의실 목록 배열을 JSON 문자열로 변환한다
+ * @param {EcampusClassroomItem[]} items - 단일 목록 배열
+ * @returns {string} 들여쓰기된 JSON 문자열
+ */
 export function stringifyEcampusClassroomItems(items: EcampusClassroomItem[]): string {
   return JSON.stringify(items, null, 2);
 }
 
+/**
+ * 공지사항 또는 강의자료실 HTML에서 공통 목록을 추출한다
+ * @param {string} html - 게시판 목록 HTML
+ * @param {Exclude<EcampusClassroomSection, "assignments">} section - 대상 영역
+ * @param {EcampusClassroomResourceOptions} options - 강의실 코드와 기본 URL 옵션
+ * @returns {EcampusClassroomItem[]} 게시판 목록
+ */
 function parseBbsListHtml(
   html: string,
   section: Exclude<EcampusClassroomSection, "assignments">,
@@ -220,6 +283,11 @@ function parseBbsListHtml(
     .filter((item) => item.id && item.title);
 }
 
+/**
+ * Fiddler SAZ 파일을 세션 단위로 파싱한다
+ * @param {Uint8Array} sazFile - Fiddler SAZ 파일 바이너리
+ * @returns {RawHttpSession[]} 요청과 응답이 묶인 세션 배열
+ */
 function parseFiddlerSazSessions(sazFile: Uint8Array): RawHttpSession[] {
   const zip = new AdmZip(Buffer.from(sazFile));
   const decoder = new TextDecoder("utf-8");
@@ -262,6 +330,11 @@ function parseFiddlerSazSessions(sazFile: Uint8Array): RawHttpSession[] {
     .filter((session): session is RawHttpSession => Boolean(session));
 }
 
+/**
+ * 세션이 어떤 목록 영역인지 판별한다
+ * @param {RawHttpSession} session - 파싱된 요청/응답 세션
+ * @returns {EcampusClassroomSection | undefined} 대응되는 영역 또는 미확인 상태
+ */
 function classifySession(session: RawHttpSession): EcampusClassroomSection | undefined {
   const requestUrl = new URL(session.request.url);
   const path = requestUrl.pathname;
@@ -284,6 +357,11 @@ function classifySession(session: RawHttpSession): EcampusClassroomSection | und
   return undefined;
 }
 
+/**
+ * HTTP 메시지를 헤더와 본문으로 나눈다
+ * @param {string} message - 전체 HTTP 메시지
+ * @returns {[string, string]} 헤더와 본문
+ */
 function splitHttpMessage(message: string): [string, string] {
   const crlfIndex = message.indexOf("\r\n\r\n");
   if (crlfIndex >= 0) {
@@ -298,6 +376,11 @@ function splitHttpMessage(message: string): [string, string] {
   return [message, ""];
 }
 
+/**
+ * form-urlencoded 본문을 객체로 변환한다
+ * @param {string} body - form body 문자열
+ * @returns {Record<string, string>} key/value 객체
+ */
 function parseFormBody(body: string): Record<string, string> {
   const params = new URLSearchParams(body.trim());
   const result: Record<string, string> = {};
@@ -309,6 +392,12 @@ function parseFormBody(body: string): Record<string, string> {
   return result;
 }
 
+/**
+ * 폼 내부의 hidden/input 값을 읽어온다
+ * @param {cheerio.CheerioAPI} $ - cheerio 파서 인스턴스
+ * @param {string} selector - 폼 선택자
+ * @returns {Record<string, string>} input name/value 객체
+ */
 function getFormValues($: cheerio.CheerioAPI, selector: string): Record<string, string> {
   const values: Record<string, string> = {};
 
@@ -324,6 +413,11 @@ function getFormValues($: cheerio.CheerioAPI, selector: string): Record<string, 
   return values;
 }
 
+/**
+ * JavaScript 함수 호출 문자열에서 인자를 분리한다
+ * @param {string} source - 예: javascript:viewAtcl('A','B')
+ * @returns {string[]} 추출된 인자 배열
+ */
 function parseFunctionArguments(source: string): string[] {
   const match = source.match(/\((.*)\)/);
   if (!match?.[1]) {
@@ -341,23 +435,50 @@ function parseFunctionArguments(source: string): string[] {
   return args;
 }
 
+/**
+ * 게시판 ID에서 강의실 코드를 추출한다
+ * @param {string} bbsId - 게시판 ID
+ * @returns {string} 추출된 강의실 코드
+ */
 function extractCrsCreCdFromBbsId(bbsId: string): string {
   const match = bbsId.match(/^BBS_(.+)_[A-Z]$/);
   return match?.[1] ?? "";
 }
 
+/**
+ * 본문에서 날짜 문자열을 추출한다
+ * @param {string} text - 검색 대상 문자열
+ * @returns {string | undefined} 찾은 날짜 문자열
+ */
 function extractDate(text: string): string | undefined {
   return text.match(/\b20\d{2}\.\d{2}\.\d{2}\b/)?.[0];
 }
 
+/**
+ * 텍스트의 중복 공백을 하나로 정리한다
+ * @param {string} value - 정리할 문자열
+ * @returns {string} 공백이 정리된 문자열
+ */
 function normalizeSpace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+/**
+ * 상대 경로를 절대 URL로 변환한다
+ * @param {string} pathOrUrl - 상대 경로나 절대 URL
+ * @param {string} baseUrl - 기준 URL
+ * @returns {string} 절대 URL 문자열
+ */
 function absoluteUrl(pathOrUrl: string, baseUrl: string): string {
   return new URL(pathOrUrl, baseUrl).toString();
 }
 
+/**
+ * 중복 세션에서 더 많은 정보를 가진 항목으로 병합한다
+ * @param {EcampusClassroomItem} current - 기존 항목
+ * @param {EcampusClassroomItem} next - 새로 파싱한 항목
+ * @returns {EcampusClassroomItem} 병합된 항목
+ */
 function mergeItem(current: EcampusClassroomItem, next: EcampusClassroomItem): EcampusClassroomItem {
   return {
     ...current,

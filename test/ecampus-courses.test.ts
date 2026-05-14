@@ -81,6 +81,11 @@ describe("EcampusClient 과목 조회", () => {
   });
 });
 
+/**
+ * 저장된 로그인 후 메인 HTML 파일을 찾는다
+ * @returns {string} 메인 HTML 파일 경로
+ * @throws {Error} 파일을 찾지 못한 경우
+ */
 function findSavedMainHtml(): string {
   const filesRoot = join(process.cwd(), "files");
   const found = findFile(
@@ -95,6 +100,12 @@ function findSavedMainHtml(): string {
   return found;
 }
 
+/**
+ * 디렉터리 트리에서 조건에 맞는 파일을 찾는다
+ * @param {string} directory - 탐색할 기준 디렉터리
+ * @param {(fileName: string) => boolean} predicate - 파일 이름 판별 함수
+ * @returns {string | undefined} 찾은 파일 경로
+ */
 function findFile(directory: string, predicate: (fileName: string) => boolean): string | undefined {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const entryPath = join(directory, entry.name);

@@ -2,6 +2,11 @@ import axios, { type AxiosInstance } from "axios";
 import { wrapper } from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
 import {
+  isCookieJarUsable,
+  loadCookieJarFromFile,
+  saveCookieJarToFile
+} from "./cookies";
+import {
   createEmptyEcampusClassroomResources,
   parseEcampusAssignmentListHtml,
   parseEcampusMaterialListHtml,
@@ -24,6 +29,8 @@ import type { EcampusCourseGroups } from "./courses";
 export interface EcampusClientOptions {
   baseUrl?: string;
   axios?: AxiosInstance;
+  cookieFilePath?: string;
+  loginCredentials?: LoginCredentials;
 }
 
 export interface LoginCredentials extends LoginEncryptOptions {
@@ -84,14 +91,25 @@ const LOGIN_PAGE_PATH = "/home/mainPop/popup/login";
 const LOGIN_API_PATH = "/user/userHome/login";
 const MAIN_PAGE_PATH = "/home/mainHome/Form/main";
 
+/**
+ * e-campus 세션과 로그인/목록 조회를 담당하는 클라이언트
+ */
 export class EcampusClient {
   readonly baseUrl: string;
   readonly cookieJar: CookieJar;
   private readonly http: AxiosInstance;
+  private readonly cookieFilePath?: string;
+  private loginCredentials?: LoginCredentials;
 
+  /**
+   * 클라이언트를 초기화한다
+   * @param {EcampusClientOptions} options - 기본 URL과 axios 인스턴스를 덮어쓸 옵션
+   */
   constructor(options: EcampusClientOptions = {}) {
     this.baseUrl = normalizeBaseUrl(options.baseUrl ?? DEFAULT_BASE_URL);
-    this.cookieJar = new CookieJar();
+    this.cookieFilePath = options.cookieFilePath;
+    this.loginCredentials = options.loginCredentials;
+    this.cookieJar = this.loadCookieJar();
     this.http =
       options.axios ??
       wrapper(
@@ -108,15 +126,72 @@ export class EcampusClient {
       );
   }
 
+  /**
+   * 쿠키 파일이 있으면 불러오고, 없으면 새 저장소를 만든다
+   * @returns {CookieJar} 사용 가능한 쿠키 저장소
+   */
+  private loadCookieJar(): CookieJar {
+    if (!this.cookieFilePath) {
+      return new CookieJar();
+    }
+
+    const loaded = loadCookieJarFromFile(this.cookieFilePath);
+    return loaded ?? new CookieJar();
+  }
+
+  /**
+   * 쿠키 파일이 설정되어 있으면 현재 저장소를 파일에 기록한다
+   * @returns {Promise<void>} 저장 완료를 기다리는 Promise
+   */
+  private async persistCookieJar(): Promise<void> {
+    if (!this.cookieFilePath) {
+      return;
+    }
+
+    saveCookieJarToFile(this.cookieFilePath, this.cookieJar);
+  }
+
+  /**
+   * 쿠키가 유효하면 그대로 쓰고, 만료되었으면 저장된 계정으로 다시 로그인한다
+   * @returns {Promise<void>} 사용 가능한 세션이 확보될 때까지 기다리는 Promise
+   * @throws {Error} 저장된 계정 정보가 없는데 재로그인이 필요한 경우
+   */
+  private async ensureAuthenticated(): Promise<void> {
+    if (!this.cookieFilePath && !this.loginCredentials) {
+      return;
+    }
+
+    if (isCookieJarUsable(this.cookieJar)) {
+      return;
+    }
+
+    if (!this.loginCredentials) {
+      throw new Error("쿠키가 만료되었고 재로그인할 계정 정보가 없습니다.");
+    }
+
+    await this.login(this.loginCredentials);
+  }
+
+  /**
+   * 로그인에 필요한 초기 세션을 준비한다
+   * @returns {Promise<void>} 세션 준비 완료를 기다리는 Promise
+   */
   async prepareLoginSession(): Promise<void> {
     await this.http.get(LOGIN_PAGE_PATH, {
       headers: {
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
       }
     });
+    await this.persistCookieJar();
   }
 
+  /**
+   * 계정 정보로 암호화 문자열을 만들어 로그인한다
+   * @param {LoginCredentials} credentials - 로그인에 필요한 계정 정보
+   * @returns {Promise<LoginResult>} 로그인 결과
+   */
   async login(credentials: LoginCredentials): Promise<LoginResult> {
+    this.loginCredentials = credentials;
     const encryptData = createLoginEncryptData(credentials.userId, credentials.password, {
       reason: credentials.reason,
       foreigner: credentials.foreigner
@@ -125,6 +200,11 @@ export class EcampusClient {
     return this.loginWithEncryptData({ encryptData });
   }
 
+  /**
+   * 암호화 문자열을 이용해 로그인한다
+   * @param {LoginWithEncryptDataOptions} options - 서버로 보낼 encryptData
+   * @returns {Promise<LoginResult>} 로그인 결과
+   */
   async loginWithEncryptData(options: LoginWithEncryptDataOptions): Promise<LoginResult> {
     await this.prepareLoginSession();
 
@@ -141,39 +221,68 @@ export class EcampusClient {
       }
     });
 
-    return parseLoginResponse(response.data);
+    const result = parseLoginResponse(response.data);
+    await this.persistCookieJar();
+    return result;
   }
 
+  /**
+   * 로그인 후 메인 페이지 HTML을 가져온다
+   * @returns {Promise<string>} 메인 페이지 HTML
+   */
   async getMainPageHtml(): Promise<string> {
+    await this.ensureAuthenticated();
     const response = await this.http.get<string>(MAIN_PAGE_PATH, {
       headers: {
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
       }
     });
 
+    await this.persistCookieJar();
     return response.data;
   }
 
+  /**
+   * 메인 페이지에서 교과와 비교과 그룹 정보를 추출한다
+   * @returns {Promise<EcampusCourseGroups>} 교과와 비교과 그룹 정보
+   */
   async getCourseGroups(): Promise<EcampusCourseGroups> {
     const html = await this.getMainPageHtml();
     return parseEcampusCourseGroups(html);
   }
 
+  /**
+   * 메인 페이지에서 과목 목록 배열을 가져온다
+   * @returns {Promise<EcampusCourseListItem[]>} 과목명, 강의실 코드, 과목 타입 배열
+   */
   async getCourseList(): Promise<EcampusCourseListItem[]> {
     const html = await this.getMainPageHtml();
     return parseEcampusCourseList(html);
   }
 
+  /**
+   * 메인 페이지 과목 목록을 JSON 문자열로 가져온다
+   * @returns {Promise<string>} 과목 목록 JSON 문자열
+   */
   async getCourseListJson(): Promise<string> {
     const html = await this.getMainPageHtml();
     return parseEcampusCourseListJson(html);
   }
 
+  /**
+   * 과목 목록 JSON을 기존 호환 이름으로 가져온다
+   * @returns {Promise<string>} 과목 목록 JSON 문자열
+   */
   async getCourseNamesJson(): Promise<string> {
     const html = await this.getMainPageHtml();
     return parseEcampusCourseNamesJson(html);
   }
 
+  /**
+   * 강의실의 공지사항, 강의자료실, 과제 목록을 한 번에 조회한다
+   * @param {GetClassroomResourcesOptions} options - 강의실 조회에 필요한 식별 정보
+   * @returns {Promise<EcampusClassroomResources>} 세 영역의 목록 묶음
+   */
   async getClassroomResources(
     options: GetClassroomResourcesOptions
   ): Promise<EcampusClassroomResources> {
@@ -191,10 +300,20 @@ export class EcampusClient {
     return resources;
   }
 
+  /**
+   * 강의실 목록 묶음을 JSON 문자열로 반환한다
+   * @param {GetClassroomResourcesOptions} options - 강의실 조회에 필요한 식별 정보
+   * @returns {Promise<string>} 공지사항, 강의자료실, 과제 JSON 문자열
+   */
   async getClassroomResourcesJson(options: GetClassroomResourcesOptions): Promise<string> {
     return stringifyEcampusClassroomResources(await this.getClassroomResources(options));
   }
 
+  /**
+   * 강의실 공지사항 목록을 조회한다
+   * @param {GetClassroomBoardListOptions} options - 강의실 코드와 목록 크기
+   * @returns {Promise<EcampusClassroomItem[]>} 공지사항 목록
+   */
   async getNoticeList(options: GetClassroomBoardListOptions): Promise<EcampusClassroomItem[]> {
     const html = await this.postBoardList(options, "NOTICE", `BBS_${options.crsCreCd}_N`);
     return parseEcampusNoticeListHtml(html, {
@@ -203,10 +322,20 @@ export class EcampusClient {
     });
   }
 
+  /**
+   * 강의실 공지사항 목록을 JSON 문자열로 반환한다
+   * @param {GetClassroomBoardListOptions} options - 강의실 코드와 목록 크기
+   * @returns {Promise<string>} 공지사항 JSON 문자열
+   */
   async getNoticeListJson(options: GetClassroomBoardListOptions): Promise<string> {
     return stringifyEcampusClassroomItems(await this.getNoticeList(options));
   }
 
+  /**
+   * 강의실 강의자료실 목록을 조회한다
+   * @param {GetClassroomBoardListOptions} options - 강의실 코드와 목록 크기
+   * @returns {Promise<EcampusClassroomItem[]>} 강의자료실 목록
+   */
   async getMaterialList(options: GetClassroomBoardListOptions): Promise<EcampusClassroomItem[]> {
     const html = await this.postBoardList(options, "PDS", `BBS_${options.crsCreCd}_P`);
     return parseEcampusMaterialListHtml(html, {
@@ -215,10 +344,20 @@ export class EcampusClient {
     });
   }
 
+  /**
+   * 강의실 강의자료실 목록을 JSON 문자열로 반환한다
+   * @param {GetClassroomBoardListOptions} options - 강의실 코드와 목록 크기
+   * @returns {Promise<string>} 강의자료실 JSON 문자열
+   */
   async getMaterialListJson(options: GetClassroomBoardListOptions): Promise<string> {
     return stringifyEcampusClassroomItems(await this.getMaterialList(options));
   }
 
+  /**
+   * 강의실 과제 목록을 조회한다
+   * @param {GetClassroomAssignmentListOptions} options - 강의실 코드와 사용자 정보
+   * @returns {Promise<EcampusClassroomItem[]>} 과제 목록
+   */
   async getAssignmentList(
     options: GetClassroomAssignmentListOptions
   ): Promise<EcampusClassroomItem[]> {
@@ -237,10 +376,22 @@ export class EcampusClient {
     });
   }
 
+  /**
+   * 강의실 과제 목록을 JSON 문자열로 반환한다
+   * @param {GetClassroomAssignmentListOptions} options - 강의실 코드와 사용자 정보
+   * @returns {Promise<string>} 과제 목록 JSON 문자열
+   */
   async getAssignmentListJson(options: GetClassroomAssignmentListOptions): Promise<string> {
     return stringifyEcampusClassroomItems(await this.getAssignmentList(options));
   }
 
+  /**
+   * 게시판 목록 조회용 POST 요청을 보낸다
+   * @param {GetClassroomBoardListOptions} options - 강의실 코드와 목록 크기
+   * @param {"NOTICE" | "PDS"} bbsCd - 게시판 구분 코드
+   * @param {string} bbsId - 게시판 식별자
+   * @returns {Promise<string>} HTML 응답 본문
+   */
   private async postBoardList(
     options: GetClassroomBoardListOptions,
     bbsCd: "NOTICE" | "PDS",
@@ -260,7 +411,14 @@ export class EcampusClient {
     });
   }
 
+  /**
+   * form POST 요청을 공통 헤더로 전송한다
+   * @param {string} path - 요청 경로
+   * @param {Record<string, string>} body - form body
+   * @returns {Promise<string>} HTML 응답 본문
+   */
   private async postForm(path: string, body: Record<string, string>): Promise<string> {
+    await this.ensureAuthenticated();
     const params = new URLSearchParams(body);
     const response = await this.http.post<string>(path, params, {
       headers: {
@@ -271,14 +429,25 @@ export class EcampusClient {
       }
     });
 
+    await this.persistCookieJar();
     return response.data;
   }
 }
 
+/**
+ * e-campus 클라이언트를 생성한다
+ * @param {EcampusClientOptions} options - 기본 URL과 axios 인스턴스를 덮어쓸 옵션
+ * @returns {EcampusClient} e-campus 클라이언트
+ */
 export function createEcampusClient(options: EcampusClientOptions = {}): EcampusClient {
   return new EcampusClient(options);
 }
 
+/**
+ * 로그인 응답을 결과 타입으로 변환한다
+ * @param {EcampusLoginResponse} data - 로그인 응답 객체
+ * @returns {LoginResult} redirect, reload, error 중 하나의 결과
+ */
 export function parseLoginResponse(data: EcampusLoginResponse): LoginResult {
   if (!data.redirectUrl) {
     return {
@@ -312,6 +481,11 @@ export function parseLoginResponse(data: EcampusLoginResponse): LoginResult {
   };
 }
 
+/**
+ * 기본 URL을 패키지 내부 규칙에 맞게 정규화한다
+ * @param {string} baseUrl - 정규화할 기본 URL
+ * @returns {string} 끝에 슬래시가 맞춰진 정규화된 URL
+ */
 function normalizeBaseUrl(baseUrl: string): string {
   const url = new URL(baseUrl);
   url.pathname = url.pathname.replace(/\/?$/, "/");

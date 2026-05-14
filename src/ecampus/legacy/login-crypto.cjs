@@ -1,6 +1,9 @@
-// 이 파일은 files/ecam/ecamjs의 NICE 원본 스크립트 3개에서 로그인 암호화에 필요한 코드만 복사해 만든 레거시 모듈입니다.
-// 직접 수정하지 말고 scripts/build-legacy-crypto.cjs를 수정한 뒤 다시 생성하세요.
+// files/ecam/ecamjs의 NICE 원본 스크립트 3개에서 로그인 암호화에 필요한 코드만 추려 만든 모듈입니다.
+// 원본 파일은 건드리지 않고, 이 스크립트를 수정한 뒤 다시 생성해야 합니다.
 
+/**
+ * 로그인 암호화에 필요한 레거시 crypto 객체를 묶는다
+ */
 var cryptoObject = new Object();
 cryptoObject.KeyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
@@ -283,6 +286,9 @@ cryptoObject.getRandomKey = function( digits )
 var CRNDSIZE = "24";
 var strDelimeter = "!#!";
 
+/**
+ * 서버 메시지 코드 S96을 위한 메시지 분기 함수를 만든다
+ */
 function getCheckMessage(msgCode)
 {
 	if (msgCode == "S96")
@@ -295,11 +301,21 @@ function getCheckMessage(msgCode)
 	return "알 수 없는 오류가 발생했습니다.";
 }
 
+/**
+ * 문자열을 Base64 형태로 인코딩한다
+ * @param {string} data - 인코딩할 문자열
+ * @returns {string} 인코딩된 문자열
+ */
 function encode( data )
 {
 	return encodeURIComponent( data );
 }
 
+/**
+ * 로그인 전송 정보를 만든다
+ * @param {Array} dataValues - 암호화에 사용할 값 배열
+ * @returns {string} 전송 정보 문자열
+ */
 function makeEncryptInfo( dataValues )
 {
 	var CRndValue = cryptoObject.getRandomKey( CRNDSIZE );
@@ -327,6 +343,14 @@ function makeEncryptInfo( dataValues )
 	return CDESValue;
 }
 
+/**
+ * 최종 로그인 전송 문자열을 만든다
+ * @param {string} strNm - 이름 또는 아이디
+ * @param {string} strNo - 학번 또는 번호
+ * @param {string} strRsn - 사유 값
+ * @param {string} strForeigner - 외국인 여부
+ * @returns {string} 로그인 전송 문자열
+ */
 function makeSendInfo( strNm, strNo, strRsn, strForeigner )
 {
 	//	Format : Name + resIdNo + InqRsn + Foreigner
