@@ -29,7 +29,7 @@ npm install
 
 ```env
 # 서원대학교 e-campus 로그인에 사용하는 학번 또는 아이디입니다.
-SEOWON_ID=202300000
+SEOWON_ID=202612345
 
 # 서원대학교 e-campus 로그인에 사용하는 비밀번호입니다.
 SEOWON_PASSWORD=your-password
@@ -37,7 +37,7 @@ SEOWON_PASSWORD=your-password
 
 | 변수 | 의미 | 예시 |
 | --- | --- | --- |
-| `SEOWON_ID` | e-campus 로그인 학번/아이디 | `202311420` |
+| `SEOWON_ID` | e-campus 로그인 학번/아이디 | `202612345` |
 | `SEOWON_PASSWORD` | e-campus 로그인 비밀번호 | `********` |
 
 주의:
@@ -123,7 +123,7 @@ console.log(result.type);
 ```ts
 import { createLoginEncryptData } from "seowon-client-api";
 
-const encryptData = createLoginEncryptData("202300000", "password");
+const encryptData = createLoginEncryptData("202612345", "password");
 console.log(encryptData);
 ```
 
