@@ -1,0 +1,67 @@
+{
+  "name": "seowon-client-api",
+  "version": "1.0.0",
+  "description": "서원대학교 e-campus 연동을 위한 TypeScript 클라이언트 API 패키지입니다.",
+  "type": "module",
+  "sideEffects": false,
+  "packageManager": "npm@11.13.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build-legacy-crypto.cjs && tsup src/index.ts --format esm,cjs --dts --clean --shims && node scripts/copy-legacy.cjs",
+    "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "prepack": "npm run build",
+    "pretest": "node scripts/build-legacy-crypto.cjs",
+    "test": "vitest run test/index.test.ts test/ecampus-login.test.ts test/ecampus-courses.test.ts test/ecampus-assignments.test.ts test/ecampus-materials.test.ts test/ecampus-notices.test.ts",
+    "test:login": "node scripts/build-legacy-crypto.cjs && vitest run test/ecampus-login.integration.test.ts --reporter verbose",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "seowon",
+    "ecampus",
+    "client",
+    "api"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/adm-zip": "^0.5.8",
+    "@types/node": "^25.7.0",
+    "dotenv": "^17.4.2",
+    "eslint": "^10.3.0",
+    "prettier": "^3.8.3",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.3",
+    "vitest": "^4.1.6"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.17",
+    "axios": "^1.16.1",
+    "axios-cookiejar-support": "^7.0.0",
+    "cheerio": "^1.2.0",
+    "tough-cookie": "^6.0.1"
+  }
+}
