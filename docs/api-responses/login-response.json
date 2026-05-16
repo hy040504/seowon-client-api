@@ -1,0 +1,30 @@
+{
+  "success": {
+    "type": "reload",
+    "data": {
+      "redirectUrl": "/home/mainHome/Form/main",
+      "otpLogin": "N",
+      "userId": "202612345",
+      "userNo": "202612345"
+    }
+  },
+  "otp_required": {
+    "type": "redirect",
+    "data": {
+      "redirectUrl": "/otp/otpLogin/Form/otpForm",
+      "otpLogin": "Y",
+      "otpUserYn": "Y",
+      "otpUserType": "CLASS_LEARNER",
+      "userId": "202612345",
+      "userNo": "202612345"
+    },
+    "url": "https://ecampus.seowon.ac.kr/otp/otpLogin/Form/otpForm?userId=202612345&userNo=202612345"
+  },
+  "error": {
+    "type": "error",
+    "data": {
+      "message": "아이디 또는 비밀번호가 맞지 않습니다."
+    },
+    "message": "아이디 또는 비밀번호가 맞지 않습니다."
+  }
+}

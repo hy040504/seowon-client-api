@@ -22,7 +22,11 @@ const EXPECTED_COURSES = [
   { title: "2026년 디지털 성범죄 예방교육", crsCreCd: "CE_260304T150917_e19254b", crsTypeCd: "CO" },
   { title: "2026년 폭력예방교육(학부생)", crsCreCd: "CE_260304T151041_e192573", crsTypeCd: "CO" },
   { title: "2026학년도 리턴 프로젝트", crsCreCd: "CE_260318T135047_06c2007", crsTypeCd: "CO" },
-  { title: "2026학년도 비교과 교육과정 설명회", crsCreCd: "CE_260318T135212_06c202a", crsTypeCd: "CO" },
+  {
+    title: "2026학년도 비교과 교육과정 설명회",
+    crsCreCd: "CE_260318T135212_06c202a",
+    crsTypeCd: "CO"
+  },
   { title: "사이버 도박중독 예방교육", crsCreCd: "CE_260316T092356_ac926ef", crsTypeCd: "CO" },
   { title: "연구실 안전교육(저위험)", crsCreCd: "CE_260312T174427_caf325a", crsTypeCd: "CO" },
   { title: "지능정보서비스과의존 예방교육", crsCreCd: "CE_260316T103621_5955ed2", crsTypeCd: "CO" }

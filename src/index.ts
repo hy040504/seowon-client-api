@@ -42,13 +42,15 @@ export {
   createEcampusClient,
   parseLoginResponse,
   type EcampusClientOptions,
+  type GetElearningLessonListOptions,
   type GetClassroomAssignmentListOptions,
   type GetClassroomBoardListOptions,
   type GetClassroomResourcesOptions,
   type EcampusLoginResponse,
   type LoginCredentials,
   type LoginResult,
-  type LoginWithEncryptDataOptions
+  type LoginWithEncryptDataOptions,
+  type OpenElearningLessonOptions
 } from "./ecampus/login";
 
 export {
@@ -73,6 +75,33 @@ export {
   type EcampusCourseNamesJson,
   type EcampusCourseGroups
 } from "./ecampus/courses";
+
+export {
+  createLessonStudyWindowRequest,
+  createLessonViewRequest,
+  createStudyRecordRequest,
+  createEcampusLessonRequestBundle,
+  parseEcampusLessonListFromSaz,
+  parseEcampusLessonListHtml,
+  parseEcampusLessonSchedulesFromSaz,
+  parseEcampusLessonSchedulesHtml,
+  parseEcampusLessonStudyWindowHtml,
+  parseEcampusLessonStudyWindowsFromSaz,
+  parseStudyRecordSnapshot,
+  stringifyEcampusLessons,
+  type EcampusLessonGetRequest,
+  type EcampusLessonItem,
+  type EcampusLessonParseOptions,
+  type EcampusLessonPostRequest,
+  type EcampusLessonRequestBundle,
+  type EcampusLessonRequestBundleOptions,
+  type EcampusLessonRecordOptions,
+  type EcampusLessonSchedule,
+  type EcampusLessonStudyStatus,
+  type EcampusStudyRecordSnapshot,
+  type EcampusStudyRecordSnapshotInput,
+  type EcampusLessonStudyWindow
+} from "./ecampus/elearning";
 
 export {
   createEmptyEcampusClassroomResources,

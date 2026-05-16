@@ -16,9 +16,15 @@ const output = [
   "/**",
   " * 로그인 암호화에 필요한 레거시 crypto 객체를 묶는다",
   " */",
-  extractBetween(cryptoSource, "var cryptoObject = new Object();", "cryptoObject.md5 = function"),
-  extractBetween(cryptoSource, "cryptoObject.des = function", "//\r\n//\tPrint Hex Array"),
-  extractBetween(cryptoSource, "cryptoObject.getRandomKey = function", null),
+  annotateLegacyCryptoFunctions(
+    extractBetween(cryptoSource, "var cryptoObject = new Object();", "cryptoObject.md5 = function")
+  ),
+  annotateLegacyCryptoFunctions(
+    extractBetween(cryptoSource, "cryptoObject.des = function", "//\r\n//\tPrint Hex Array")
+  ),
+  annotateLegacyCryptoFunctions(
+    extractBetween(cryptoSource, "cryptoObject.getRandomKey = function", null)
+  ),
   "",
   'var CRNDSIZE = "24";',
   'var strDelimeter = "!#!";',
@@ -71,6 +77,86 @@ function readSource(fileName) {
 }
 
 /**
+ * 원본 코드에 남아 있는 설명용 라인 주석을 제거한다
+ * @param {string} source - 원본 코드 조각
+ * @returns {string} 라인 주석이 제거된 코드
+ */
+function stripLineComments(source) {
+  return source
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s*\/\/.*$/, ""))
+    .join("\n");
+}
+
+/**
+ * 레거시 암호화 함수에 한국어 JSDoc을 덧붙인다
+ * @param {string} source - 주석을 덧붙일 코드 조각
+ * @returns {string} JSDoc이 추가된 코드
+ */
+function annotateLegacyCryptoFunctions(source) {
+  return source
+    .replace(
+      "cryptoObject.decode64 = function( input )",
+      [
+        "/**",
+        " * Base64 문자열을 디코딩한다",
+        " * @param {string} input - 디코딩할 Base64 문자열",
+        " * @returns {string} 디코딩된 문자열",
+        " */",
+        "cryptoObject.decode64 = function( input )"
+      ].join("\n")
+    )
+    .replace(
+      "cryptoObject.encode64 = function( input )",
+      [
+        "/**",
+        " * 문자열을 Base64로 인코딩한다",
+        " * @param {string} input - 인코딩할 문자열",
+        " * @returns {string} Base64 문자열",
+        " */",
+        "cryptoObject.encode64 = function( input )"
+      ].join("\n")
+    )
+    .replace(
+      "cryptoObject.des = function( key, message, encrypt, mode, iv )",
+      [
+        "/**",
+        " * DES 암호화 또는 복호화 연산을 수행한다",
+        " * @param {string} key - 비밀 키",
+        " * @param {string} message - 처리할 메시지",
+        " * @param {boolean} encrypt - 암호화 여부",
+        " * @param {number} mode - 동작 모드",
+        " * @param {string} iv - 초기화 벡터",
+        " * @returns {string} 처리된 문자열",
+        " */",
+        "cryptoObject.des = function( key, message, encrypt, mode, iv )"
+      ].join("\n")
+    )
+    .replace(
+      "function des_createKeys( key )",
+      [
+        "\t/**",
+        "\t * DES 하위 키를 생성한다",
+        "\t * @param {string} key - 원본 키 문자열",
+        "\t * @returns {Array<number>} 생성된 하위 키 배열",
+        "\t */",
+        "\tfunction des_createKeys( key )"
+      ].join("\n")
+    )
+    .replace(
+      "cryptoObject.getRandomKey = function( digits )",
+      [
+        "/**",
+        " * 로그인용 무작위 키를 생성한다",
+        " * @param {number} digits - 생성 길이",
+        " * @returns {string} 생성된 키 문자열",
+        " */",
+        "cryptoObject.getRandomKey = function( digits )"
+      ].join("\n")
+    );
+}
+
+/**
  * 원본 문자열에서 시작/종료 마커 사이를 잘라낸다
  * @param {string} source - 원본 문자열
  * @param {string} startMarker - 시작 마커
@@ -89,7 +175,7 @@ function extractBetween(source, startMarker, endMarker) {
     throw new Error(`종료 마커를 찾을 수 없습니다: ${endMarker}`);
   }
 
-  return source.slice(start, end).trim();
+  return stripLineComments(source.slice(start, end).trim());
 }
 
 /**
@@ -119,7 +205,7 @@ function extractFunction(source, functionName) {
     } else if (char === "}") {
       depth -= 1;
       if (depth === 0) {
-        return source.slice(start, index + 1).trim();
+        return stripLineComments(source.slice(start, index + 1).trim());
       }
     }
   }

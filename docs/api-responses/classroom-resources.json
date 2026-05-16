@@ -1,0 +1,86 @@
+{
+  "notices": [
+    {
+      "id": "ATCL_260227T191603_351003f",
+      "title": "강의시간 변경 공지",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "request": {
+        "method": "POST",
+        "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+        "body": {
+          "bbsId": "BBS_2026_1_736078_01_N",
+          "atclId": "ATCL_260227T191603_351003f",
+          "crsCreCd": "2026_1_736078_01"
+        }
+      },
+      "date": "2026.02.27",
+      "hasAttachment": false
+    }
+  ],
+  "assignments": [
+    {
+      "id": "ASMNT_260507T125246_87067da",
+      "title": "강의노트 1",
+      "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+      "request": {
+        "method": "POST",
+        "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+        "body": {
+          "asmntCd": "ASMNT_260507T125246_87067da",
+          "crsCreCd": "2026_1_736078_01"
+        }
+      },
+      "period": "2026.05.07 ~ 2026.05.14",
+      "status": "과제를 제출하였습니다"
+    },
+    {
+      "id": "ASMNT_260514T102030_a1b2c3d",
+      "title": "강의노트 2",
+      "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+      "request": {
+        "method": "POST",
+        "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+        "body": {
+          "asmntCd": "ASMNT_260514T102030_a1b2c3d",
+          "crsCreCd": "2026_1_736078_01"
+        }
+      },
+      "period": "2026.05.14 ~ 2026.05.21",
+      "status": "미제출"
+    }
+  ],
+  "materials": [
+    {
+      "id": "ATCL_260511T144458_33d02b9",
+      "title": "13강 강의노트",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "request": {
+        "method": "POST",
+        "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+        "body": {
+          "bbsId": "BBS_2026_1_736078_01_P",
+          "atclId": "ATCL_260511T144458_33d02b9",
+          "crsCreCd": "2026_1_736078_01"
+        }
+      },
+      "date": "2026.05.11",
+      "hasAttachment": true
+    },
+    {
+      "id": "ATCL_260510T093215_44e13ca",
+      "title": "12강 강의노트",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "request": {
+        "method": "POST",
+        "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+        "body": {
+          "bbsId": "BBS_2026_1_736078_01_P",
+          "atclId": "ATCL_260510T093215_44e13ca",
+          "crsCreCd": "2026_1_736078_01"
+        }
+      },
+      "date": "2026.05.10",
+      "hasAttachment": true
+    }
+  ]
+}

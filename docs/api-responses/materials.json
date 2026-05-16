@@ -1,0 +1,130 @@
+[
+  {
+    "id": "ATCL_260511T144458_33d02b9",
+    "title": "13강 강의노트",
+    "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "body": {
+        "bbsId": "BBS_2026_1_736078_01_P",
+        "atclId": "ATCL_260511T144458_33d02b9",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "date": "2026.05.11",
+    "hasAttachment": true
+  },
+  {
+    "id": "ATCL_260510T093215_44e13ca",
+    "title": "12강 강의노트",
+    "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "body": {
+        "bbsId": "BBS_2026_1_736078_01_P",
+        "atclId": "ATCL_260510T093215_44e13ca",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "date": "2026.05.10",
+    "hasAttachment": true
+  },
+  {
+    "id": "ATCL_260509T165044_55f24db",
+    "title": "11강 강의노트",
+    "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "body": {
+        "bbsId": "BBS_2026_1_736078_01_P",
+        "atclId": "ATCL_260509T165044_55f24db",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "date": "2026.05.09",
+    "hasAttachment": true
+  },
+  {
+    "id": "ATCL_260508T110630_66g35ec",
+    "title": "10강 강의노트",
+    "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "body": {
+        "bbsId": "BBS_2026_1_736078_01_P",
+        "atclId": "ATCL_260508T110630_66g35ec",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "date": "2026.05.08",
+    "hasAttachment": true
+  },
+  {
+    "id": "ATCL_260507T152821_77h46fd",
+    "title": "9강 강의노트",
+    "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "body": {
+        "bbsId": "BBS_2026_1_736078_01_P",
+        "atclId": "ATCL_260507T152821_77h46fd",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "date": "2026.05.07",
+    "hasAttachment": true
+  },
+  {
+    "id": "ATCL_260506T134512_88i57ge",
+    "title": "8강 강의노트",
+    "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "body": {
+        "bbsId": "BBS_2026_1_736078_01_P",
+        "atclId": "ATCL_260506T134512_88i57ge",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "date": "2026.05.06",
+    "hasAttachment": true
+  },
+  {
+    "id": "ATCL_260505T101745_99j68hf",
+    "title": "7강 강의노트",
+    "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "body": {
+        "bbsId": "BBS_2026_1_736078_01_P",
+        "atclId": "ATCL_260505T101745_99j68hf",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "date": "2026.05.05",
+    "hasAttachment": false
+  },
+  {
+    "id": "ATCL_260504T143020_aak79ig",
+    "title": "6강 강의노트",
+    "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "body": {
+        "bbsId": "BBS_2026_1_736078_01_P",
+        "atclId": "ATCL_260504T143020_aak79ig",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "date": "2026.05.04",
+    "hasAttachment": true
+  }
+]

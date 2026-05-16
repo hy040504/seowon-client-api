@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  parseEcampusNoticeListFromSaz,
-  stringifyEcampusClassroomItems
-} from "../src/index";
+import { parseEcampusNoticeListFromSaz, stringifyEcampusClassroomItems } from "../src/index";
 import { readLogicCircuitSaz } from "./ecampus-classroom-fixture";
 
 describe("논리회로 공지사항 목록", () => {

@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { normalizeSpace } from "./utils";
 
 export type EcampusCourseCategory = "curricular" | "extracurricular";
 export type EcampusCourseTypeCode = "UNI" | "CO" | string;
@@ -110,13 +111,13 @@ function parseEcampusCourses(html: string): EcampusCourse[] {
 
     const crsCreCd = match.groups.crsCreCd;
     const crsTypeCd = match.groups.crsTypeCd;
-    const title = normalizeText(item.find("span").first().text());
+    const title = normalizeSpace(item.find("span").first().text());
 
     if (!title || !crsCreCd || !crsTypeCd) {
       return;
     }
 
-    const label = normalizeText(item.find("label.ui.mini.basic.label.mr5").first().text());
+    const label = normalizeSpace(item.find("label.ui.mini.basic.label.mr5").first().text());
     const category = resolveCourseCategory(crsTypeCd, label);
     const course: EcampusCourse = {
       id: crsCreCd,
@@ -128,7 +129,7 @@ function parseEcampusCourses(html: string): EcampusCourse[] {
       rawTypeCode: crsTypeCd
     };
 
-    const section = normalizeText(item.find("label.c-miniLabel").first().text());
+    const section = normalizeSpace(item.find("label.c-miniLabel").first().text());
     if (section) {
       course.section = section;
     }
@@ -151,13 +152,4 @@ function resolveCourseCategory(typeCode: string, label: string): EcampusCourseCa
   }
 
   return "curricular";
-}
-
-/**
- * 화면 텍스트의 공백을 정리한다
- * @param {string} value - 정리할 문자열
- * @returns {string} 공백이 정리된 문자열
- */
-function normalizeText(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
 }

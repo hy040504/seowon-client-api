@@ -1,5 +1,5 @@
 seowon-client-api 인수인계 문서
-작성일: 2026-05-15
+작성일: 2026-05-16
 작업 폴더: C:\Users\Coding\Desktop\seowon
 
 1. 프로젝트 개요
@@ -115,6 +115,22 @@ seowon-client-api 인수인계 문서
 - `parseEcampusMaterialListFromSaz()`
 - `parseEcampusClassroomResourcesFromSaz()`
 
+3-5. e-learning
+
+온라인 강의 화면은 읽기 전용 분석 흐름으로 정리되어 있다.
+
+- 강의 목록 파싱: `parseEcampusLessonSchedulesHtml()`, `parseEcampusLessonListHtml()`
+- 강의 창 파싱: `parseEcampusLessonStudyWindowHtml()`
+- SAZ 복원: `parseEcampusLessonSchedulesFromSaz()`, `parseEcampusLessonListFromSaz()`, `parseEcampusLessonStudyWindowsFromSaz()`
+- 요청 생성: `createLessonViewRequest()`, `createLessonStudyWindowRequest()`, `createStudyRecordRequest()`
+- 읽기 전용 스냅샷: `parseStudyRecordSnapshot()`
+- 묶음 생성: `createEcampusLessonRequestBundle()`
+
+중요한 경계:
+
+- 실제 학습기록을 사람처럼 자동 전송하는 기능은 구현하지 않는다.
+- 현재 기능은 요청 구조를 분석하고, 필요한 값과 JSON 형태를 정리하는 데 초점이 있다.
+
 4. 쿠키 저장 방식
 
 현재 쿠키는 메모리만 쓰는 방식이 아니라 파일 저장을 지원한다.
@@ -149,7 +165,7 @@ seowon-client-api 인수인계 문서
 - `npx vitest run test/ecampus-materials.test.ts --reporter verbose`
 - `npx vitest run test/ecampus-notices.test.ts --reporter verbose`
 
-현재 테스트는 총 7개 파일, 15개 테스트 기준으로 관리 중이다.
+현재 테스트는 총 8개 파일, 21개 테스트 기준으로 관리 중이다.
 
 6. 테스트 목록
 
@@ -167,6 +183,8 @@ seowon-client-api 인수인계 문서
   - 공지사항 JSON
 - `test/ecampus-cookie-persistence.test.ts`
   - 쿠키 저장/복원/자동 재로그인
+- `test/ecampus-elearning.test.ts`
+  - e-learning 강의 목록, 강의 창, 읽기 전용 학습기록 스냅샷, 요청 묶음
 
 실제 로그인 통합 테스트는 별도다.
 
@@ -225,10 +243,11 @@ seowon-client-api 인수인계 문서
 - 쿠키 파일 저장 경로 기본값 정리
 - 비교과(`CO`) 강의실에 대한 추가 화면 파싱
 - 패킷 복원 시 더 많은 게시판 타입 지원
+- e-learning 읽기 전용 스냅샷을 로컬 분석 로그로 저장하는 보조 API
 
 11. 주의사항
 
 - 실제 로그인 계정 정보는 `.env` 밖으로 노출하지 않는다.
 - 쿠키 파일은 민감 정보이므로 저장 위치를 git 추적 대상에서 제외하는 편이 좋다.
 - 패키지 테스트는 `node test/*.ts`가 아니라 `vitest` 기준으로 실행해야 한다.
-
+- 학습기록 자동 전송이나 출결 조작 기능은 추가하지 않는다.

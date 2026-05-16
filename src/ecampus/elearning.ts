@@ -1,0 +1,732 @@
+import AdmZip from "adm-zip";
+import * as cheerio from "cheerio";
+import {
+  absoluteUrl,
+  escapeRegExp,
+  normalizeSpace,
+  parseFormBody,
+  parseFunctionArguments,
+  splitHttpMessage
+} from "./utils";
+
+export type EcampusLessonStudyStatus = "STUDY" | "COMPLETE" | string;
+
+export interface EcampusLessonPostRequest {
+  method: "POST";
+  url: string;
+  body: Record<string, string>;
+}
+
+export interface EcampusLessonGetRequest {
+  method: "GET";
+  url: string;
+  query: Record<string, string>;
+}
+
+export interface EcampusLessonItem {
+  lessonScheduleId: string;
+  lessonCntsId: string;
+  title: string;
+  typeLabel?: string;
+  period?: string;
+  extraPeriod?: string;
+  durationText?: string;
+  durationSeconds?: number;
+  attendanceStatus?: string;
+  lessonStartDttm?: string;
+  viewRequest: EcampusLessonPostRequest;
+  studyWindowRequest: EcampusLessonPostRequest;
+}
+
+export interface EcampusLessonSchedule {
+  lessonScheduleId: string;
+  title: string;
+  period?: string;
+  summary?: string;
+  lessons: EcampusLessonItem[];
+}
+
+export interface EcampusLessonStudyWindow {
+  crsCreCd: string;
+  lessonCntsId: string;
+  stdNo?: string;
+  studyDetailId?: string;
+  currentStudyStatusCd?: EcampusLessonStudyStatus;
+  contentUrl?: string;
+  contentKind: "mp4" | "hls" | "youtube" | "ted" | "doczoom" | "url" | "unknown";
+  recordRequest?: EcampusLessonGetRequest;
+}
+
+export interface EcampusStudyRecordSnapshotInput {
+  baseUrl?: string;
+  crsCreCd?: string;
+  lessonCntsId?: string;
+  contentUrl?: string;
+  contentKind?: EcampusLessonStudyWindow["contentKind"];
+  lessonScheduleId?: string;
+  stdNo?: string;
+  studyDetailId?: string;
+  studyStatusCd?: EcampusLessonStudyStatus;
+  studyTotalTm?: number | string;
+  studyAfterTm?: number | string;
+  studySessionLoc?: number | string;
+  studyMaxLoc?: number | string;
+  playerTm?: number | string;
+  progressTm?: number | string;
+}
+
+export interface EcampusStudyRecordSnapshot {
+  baseUrl: string;
+  lessonScheduleId?: string;
+  lessonCntsId: string;
+  crsCreCd: string;
+  stdNo?: string;
+  studyDetailId?: string;
+  currentStudyStatusCd?: EcampusLessonStudyStatus;
+  contentUrl?: string;
+  contentKind: EcampusLessonStudyWindow["contentKind"];
+  recordRequest?: EcampusLessonGetRequest;
+}
+
+export interface EcampusLessonRecordOptions {
+  crsCreCd: string;
+  lessonCntsId: string;
+  stdNo: string;
+  studyDetailId?: string;
+  studyTotalTm?: number | string;
+  studyAfterTm?: number | string;
+  studyStatusCd?: EcampusLessonStudyStatus;
+  studySessionLoc?: number | string;
+  studyMaxLoc?: number | string;
+  playerTm?: number | string;
+  progressTm?: number | string;
+}
+
+export interface EcampusLessonParseOptions {
+  baseUrl?: string;
+  crsCreCd?: string;
+  progressTypeCd?: string;
+}
+
+export interface EcampusLessonRequestBundleOptions extends EcampusStudyRecordSnapshotInput {
+  baseUrl?: string;
+  progressTypeCd?: string;
+}
+
+export interface EcampusLessonRequestBundle {
+  viewRequest: EcampusLessonPostRequest;
+  studyWindowRequest: EcampusLessonPostRequest;
+  recordRequest?: EcampusLessonGetRequest;
+  snapshot: EcampusStudyRecordSnapshot;
+}
+
+interface RawHttpSession {
+  request: {
+    method: string;
+    url: string;
+    body: Record<string, string>;
+  };
+  responseBody: string;
+}
+
+const DEFAULT_BASE_URL = "https://ecampus.seowon.ac.kr";
+const DEFAULT_PROGRESS_TYPE_CD = "WEEK";
+const LESSON_VIEW_PATH = "/lesson/lessonLect/Form/mainLesson";
+const LESSON_WINDOW_PATH = "/lesson/lessonOpen/lessonNewWindow";
+const ADD_STUDY_RECORD_PATH = "/lesson/lessonHome/addStudyRecord";
+
+/**
+ * e-learning 강의 목록 HTML에서 주차와 차시 목록을 추출한다
+ * @param {string} html - 온라인 강의 목록 HTML
+ * @param {EcampusLessonParseOptions} options - 기본 URL, 강의실 코드, 진도 방식 옵션
+ * @returns {EcampusLessonSchedule[]} 주차별 강의 목록
+ */
+export function parseEcampusLessonSchedulesHtml(
+  html: string,
+  options: EcampusLessonParseOptions = {}
+): EcampusLessonSchedule[] {
+  const $ = cheerio.load(html);
+  const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
+  const crsCreCd =
+    options.crsCreCd ??
+    extractFirstValue(html, /crsCreCd["']?\s*(?:value=|:)\s*["']([^"']+)/) ??
+    "";
+  const progressTypeCd =
+    options.progressTypeCd ??
+    extractFirstValue(html, /progressTypeCd["']?\s*(?:value=|:)\s*["']([^"']+)/) ??
+    DEFAULT_PROGRESS_TYPE_CD;
+  const schedules: EcampusLessonSchedule[] = [];
+
+  $(".title.header[id^='dropdown_']").each((_, element) => {
+    const header = $(element);
+    const lessonScheduleId = (header.attr("id") ?? "").replace(/^dropdown_/, "");
+    const content = $(`#${escapeCssId(lessonScheduleId)}`);
+
+    if (!lessonScheduleId || content.length === 0) {
+      return;
+    }
+
+    const schedule: EcampusLessonSchedule = {
+      lessonScheduleId,
+      title: normalizeSpace(header.find("section").first().text()),
+      period: extractLabeledText(header.text(), "기간"),
+      summary: extractLabeledText(header.text(), "수업내용"),
+      lessons: []
+    };
+
+    content.find(".card").each((__, cardElement) => {
+      const card = $(cardElement);
+      const href = card.find("a.header").first().attr("href") ?? "";
+      const buttonOnclick = card.find("button[onclick]").first().attr("onclick") ?? "";
+      const viewArgs = parseFunctionArguments(href);
+      const buttonArgs = parseFunctionArguments(buttonOnclick);
+      const lessonCntsId = viewArgs[1] ?? buttonArgs[0] ?? "";
+
+      if (!lessonCntsId) {
+        return;
+      }
+
+      const text = normalizeSpace(card.text());
+      const durationText = extractDurationText(text);
+      const item: EcampusLessonItem = {
+        lessonScheduleId,
+        lessonCntsId,
+        title: normalizeSpace(card.find("a.header").first().text()),
+        typeLabel: normalizeSpace(card.find(".title-box label").first().text()) || undefined,
+        period: extractLabeledText(text, "기간"),
+        extraPeriod: extractLabeledText(text, "기간 외 학습기간"),
+        durationText,
+        durationSeconds: parseDurationSeconds(durationText),
+        attendanceStatus: extractLabeledText(text, "출결상태"),
+        lessonStartDttm: buttonArgs[2],
+        viewRequest: createLessonViewRequest(
+          baseUrl,
+          crsCreCd,
+          lessonScheduleId,
+          lessonCntsId,
+          progressTypeCd
+        ),
+        studyWindowRequest: createLessonStudyWindowRequest(
+          baseUrl,
+          crsCreCd,
+          lessonCntsId,
+          progressTypeCd
+        )
+      };
+
+      schedule.lessons.push(removeUndefinedValues(item));
+    });
+
+    schedules.push(schedule);
+  });
+
+  return schedules;
+}
+
+/**
+ * e-learning 강의 목록 HTML에서 차시 목록만 평탄화해서 반환한다
+ * @param {string} html - 온라인 강의 목록 HTML
+ * @param {EcampusLessonParseOptions} options - 기본 URL, 강의실 코드, 진도 방식 옵션
+ * @returns {EcampusLessonItem[]} 모든 주차의 차시 목록
+ */
+export function parseEcampusLessonListHtml(
+  html: string,
+  options: EcampusLessonParseOptions = {}
+): EcampusLessonItem[] {
+  return parseEcampusLessonSchedulesHtml(html, options).flatMap((schedule) => schedule.lessons);
+}
+
+/**
+ * 강의 재생 창 HTML에서 콘텐츠 URL과 학습기록 요청 정보를 추출한다
+ * @param {string} html - lessonNewWindow 응답 HTML
+ * @param {EcampusLessonParseOptions} options - 기본 URL과 강의실 코드 옵션
+ * @returns {EcampusLessonStudyWindow} 강의 창 메타데이터
+ */
+export function parseEcampusLessonStudyWindowHtml(
+  html: string,
+  options: EcampusLessonParseOptions = {}
+): EcampusLessonStudyWindow {
+  const $ = cheerio.load(html);
+  const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
+  const crsCreCd = options.crsCreCd ?? extractFirstValue(html, /"crsCreCd"\s*:\s*"([^"]+)"/) ?? "";
+  const lessonCntsId = extractFirstValue(html, /"lessonCntsId"\s*:\s*"([^"]+)"/) ?? "";
+  const stdNo = extractFirstValue(html, /"stdNo"\s*:\s*"([^"]+)"/);
+  const studyDetailId =
+    $("#studyDetailId").attr("value") ||
+    extractFirstValue(html, /studyDetailId["']?\s*:\s*["']([^"']+)/);
+  const currentStudyStatusCd = extractFirstValue(html, /curStudyStatusCd\s*=\s*"([^"]+)"/);
+  const contentUrl = extractFirstValue(html, /var\s+cntsUrl\s*=\s*"([^"]*)"/);
+  const recordRequest =
+    crsCreCd && lessonCntsId && stdNo
+      ? createStudyRecordRequest(baseUrl, {
+          crsCreCd,
+          lessonCntsId,
+          stdNo,
+          studyDetailId,
+          studyTotalTm: extractFirstValue(html, /"studyTotalTm"\s*:\s*"([^"]*)"/) ?? "0",
+          studyAfterTm: extractFirstValue(html, /"studyAfterTm"\s*:\s*"([^"]*)"/) ?? "0",
+          studyStatusCd: currentStudyStatusCd ?? "STUDY"
+        })
+      : undefined;
+
+  return removeUndefinedValues({
+    crsCreCd,
+    lessonCntsId,
+    stdNo,
+    studyDetailId,
+    currentStudyStatusCd,
+    contentUrl,
+    contentKind: classifyContentUrl(contentUrl),
+    recordRequest
+  });
+}
+
+/**
+ * 학습기록 요청에 필요한 핵심 값만 읽기 전용으로 정리한다
+ * @param {EcampusStudyRecordSnapshotInput | EcampusLessonStudyWindow} input - 학습기록 원본 값
+ * @returns {EcampusStudyRecordSnapshot} 학습기록 스냅샷
+ */
+export function parseStudyRecordSnapshot(
+  input: EcampusStudyRecordSnapshotInput | EcampusLessonStudyWindow
+): EcampusStudyRecordSnapshot {
+  const baseUrl = "baseUrl" in input && input.baseUrl ? input.baseUrl : DEFAULT_BASE_URL;
+  const currentStudyStatusCd =
+    "currentStudyStatusCd" in input
+      ? input.currentStudyStatusCd
+      : "studyStatusCd" in input
+        ? input.studyStatusCd
+        : undefined;
+  const contentUrl = "contentUrl" in input ? input.contentUrl : undefined;
+  const contentKind =
+    ("contentKind" in input && input.contentKind) || classifyContentUrl(contentUrl);
+  const snapshot: EcampusStudyRecordSnapshot = {
+    baseUrl,
+    lessonScheduleId: "lessonScheduleId" in input ? input.lessonScheduleId : undefined,
+    lessonCntsId: input.lessonCntsId ?? "",
+    crsCreCd: input.crsCreCd ?? "",
+    stdNo: input.stdNo,
+    studyDetailId: input.studyDetailId,
+    currentStudyStatusCd,
+    contentUrl,
+    contentKind
+  };
+
+  if (snapshot.crsCreCd && snapshot.lessonCntsId && snapshot.stdNo) {
+    snapshot.recordRequest = createStudyRecordRequest(baseUrl, {
+      crsCreCd: snapshot.crsCreCd,
+      lessonCntsId: snapshot.lessonCntsId,
+      stdNo: snapshot.stdNo,
+      studyDetailId: snapshot.studyDetailId,
+      studyTotalTm: "studyTotalTm" in input ? input.studyTotalTm : "0",
+      studyAfterTm: "studyAfterTm" in input ? input.studyAfterTm : "0",
+      studyStatusCd: currentStudyStatusCd ?? "STUDY",
+      studySessionLoc: "studySessionLoc" in input ? input.studySessionLoc : undefined,
+      studyMaxLoc: "studyMaxLoc" in input ? input.studyMaxLoc : undefined,
+      playerTm: "playerTm" in input ? input.playerTm : undefined,
+      progressTm: "progressTm" in input ? input.progressTm : undefined
+    });
+  }
+
+  return snapshot;
+}
+
+/**
+ * 차시 객체 하나만 넣어서 화면 진입, 재생 창, 학습기록 요청을 한 번에 묶는다
+ * @param {EcampusLessonItem} lesson - 주차와 차시가 이미 파싱된 레슨 객체
+ * @param {EcampusLessonRequestBundleOptions} options - 학습기록 스냅샷에 필요한 값
+ * @returns {EcampusLessonRequestBundle} 세 종류의 요청과 스냅샷
+ */
+export function createEcampusLessonRequestBundle(
+  lesson: EcampusLessonItem,
+  options: EcampusLessonRequestBundleOptions
+): EcampusLessonRequestBundle {
+  const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
+  const snapshot = parseStudyRecordSnapshot({
+    baseUrl,
+    lessonScheduleId: lesson.lessonScheduleId,
+    lessonCntsId: lesson.lessonCntsId,
+    crsCreCd: options.crsCreCd,
+    stdNo: options.stdNo,
+    studyDetailId: options.studyDetailId,
+    studyStatusCd: options.studyStatusCd,
+    studyTotalTm: options.studyTotalTm,
+    studyAfterTm: options.studyAfterTm,
+    studySessionLoc: options.studySessionLoc,
+    studyMaxLoc: options.studyMaxLoc,
+    playerTm: options.playerTm,
+    progressTm: options.progressTm,
+    contentUrl: options.contentUrl,
+    contentKind: options.contentKind
+  });
+
+  return {
+    viewRequest: lesson.viewRequest,
+    studyWindowRequest: lesson.studyWindowRequest,
+    recordRequest: snapshot.recordRequest,
+    snapshot
+  };
+}
+
+/**
+ * SAZ 패킷에서 e-learning 주차와 차시 목록을 추출한다
+ * @param {Uint8Array} sazFile - Fiddler SAZ 파일 바이트
+ * @param {EcampusLessonParseOptions} options - 기본 URL, 강의실 코드, 진도 방식 옵션
+ * @returns {EcampusLessonSchedule[]} 주차별 강의 목록
+ */
+export function parseEcampusLessonSchedulesFromSaz(
+  sazFile: Uint8Array,
+  options: EcampusLessonParseOptions = {}
+): EcampusLessonSchedule[] {
+  const merged = new Map<string, EcampusLessonSchedule>();
+
+  for (const session of parseFiddlerSazSessions(sazFile)) {
+    if (!isLessonListResponse(session)) {
+      continue;
+    }
+
+    const crsCreCd = options.crsCreCd ?? session.request.body.crsCreCd;
+    const schedules = parseEcampusLessonSchedulesHtml(session.responseBody, {
+      ...options,
+      crsCreCd
+    });
+
+    for (const schedule of schedules) {
+      const current = merged.get(schedule.lessonScheduleId);
+      if (!current) {
+        merged.set(schedule.lessonScheduleId, schedule);
+        continue;
+      }
+
+      const seen = new Set(current.lessons.map((lesson) => lesson.lessonCntsId));
+      current.lessons.push(...schedule.lessons.filter((lesson) => !seen.has(lesson.lessonCntsId)));
+    }
+  }
+
+  return Array.from(merged.values());
+}
+
+/**
+ * SAZ 패킷에서 e-learning 차시 목록만 평탄화해서 추출한다
+ * @param {Uint8Array} sazFile - Fiddler SAZ 파일 바이트
+ * @param {EcampusLessonParseOptions} options - 기본 URL, 강의실 코드, 진도 방식 옵션
+ * @returns {EcampusLessonItem[]} 모든 주차의 차시 목록
+ */
+export function parseEcampusLessonListFromSaz(
+  sazFile: Uint8Array,
+  options: EcampusLessonParseOptions = {}
+): EcampusLessonItem[] {
+  return parseEcampusLessonSchedulesFromSaz(sazFile, options).flatMap(
+    (schedule) => schedule.lessons
+  );
+}
+
+/**
+ * SAZ 패킷에서 강의 재생 창 정보를 추출한다
+ * @param {Uint8Array} sazFile - Fiddler SAZ 파일 바이트
+ * @param {EcampusLessonParseOptions} options - 기본 URL과 강의실 코드 옵션
+ * @returns {EcampusLessonStudyWindow[]} 강의 재생 창 정보 목록
+ */
+export function parseEcampusLessonStudyWindowsFromSaz(
+  sazFile: Uint8Array,
+  options: EcampusLessonParseOptions = {}
+): EcampusLessonStudyWindow[] {
+  return parseFiddlerSazSessions(sazFile)
+    .filter((session) => new URL(session.request.url).pathname === LESSON_WINDOW_PATH)
+    .map((session) =>
+      parseEcampusLessonStudyWindowHtml(session.responseBody, {
+        ...options,
+        crsCreCd:
+          options.crsCreCd ?? new URL(session.request.url).searchParams.get("crsCreCd") ?? undefined
+      })
+    );
+}
+
+/**
+ * 강의 목록을 JSON 문자열로 변환한다
+ * @param {EcampusLessonItem[] | EcampusLessonSchedule[]} lessons - 강의 또는 주차 목록
+ * @returns {string} 들여쓰기된 JSON 문자열
+ */
+export function stringifyEcampusLessons(
+  lessons: EcampusLessonItem[] | EcampusLessonSchedule[]
+): string {
+  return JSON.stringify(lessons, null, 2);
+}
+
+/**
+ * 강의 상세 화면 진입 요청 정보를 만든다
+ * @param {string} baseUrl - e-campus 기본 URL
+ * @param {string} crsCreCd - 강의실 코드
+ * @param {string} lessonScheduleId - 주차 코드
+ * @param {string} lessonCntsId - 차시 콘텐츠 코드
+ * @param {string} progressTypeCd - 진도 방식 코드
+ * @returns {EcampusLessonPostRequest} 상세 화면 POST 요청 정보
+ */
+export function createLessonViewRequest(
+  baseUrl: string,
+  crsCreCd: string,
+  lessonScheduleId: string,
+  lessonCntsId: string,
+  progressTypeCd: string = DEFAULT_PROGRESS_TYPE_CD
+): EcampusLessonPostRequest {
+  return {
+    method: "POST",
+    url: absoluteUrl(LESSON_VIEW_PATH, baseUrl),
+    body: {
+      crsCreCd,
+      lessonScheduleId,
+      crsOperTypeCd: "",
+      progressTypeCd,
+      lessonCntsId,
+      goUrl: "",
+      subParam: ""
+    }
+  };
+}
+
+/**
+ * 강의 재생 창 요청 정보를 만든다
+ * @param {string} baseUrl - e-campus 기본 URL
+ * @param {string} crsCreCd - 강의실 코드
+ * @param {string} lessonCntsId - 차시 콘텐츠 코드
+ * @param {string} progressTypeCd - 진도 방식 코드
+ * @returns {EcampusLessonPostRequest} 강의 재생 창 POST 요청 정보
+ */
+export function createLessonStudyWindowRequest(
+  baseUrl: string,
+  crsCreCd: string,
+  lessonCntsId: string,
+  progressTypeCd: string = DEFAULT_PROGRESS_TYPE_CD
+): EcampusLessonPostRequest {
+  return {
+    method: "POST",
+    url: absoluteUrl(`${LESSON_WINDOW_PATH}?crsCreCd=${encodeURIComponent(crsCreCd)}`, baseUrl),
+    body: {
+      lessonCntsId,
+      seekFile: "",
+      downloadYn: "",
+      progressTypeCd
+    }
+  };
+}
+
+/**
+ * 학습기록 저장 요청 정보를 만든다
+ * @param {string} baseUrl - e-campus 기본 URL
+ * @param {EcampusLessonRecordOptions} options - 학습기록 저장에 필요한 값
+ * @returns {EcampusLessonGetRequest} 학습기록 GET 요청 정보
+ */
+export function createStudyRecordRequest(
+  baseUrl: string,
+  options: EcampusLessonRecordOptions
+): EcampusLessonGetRequest {
+  const rawQuery: Record<string, string | undefined> = {
+    lessonCntsId: options.lessonCntsId,
+    stdNo: options.stdNo,
+    studyDetailId: options.studyDetailId,
+    studySessionLoc: stringifyOptional(options.studySessionLoc),
+    studyMaxLoc: stringifyOptional(options.studyMaxLoc),
+    studyTotalTm: stringifyOptional(options.studyTotalTm ?? 0),
+    studyAfterTm: stringifyOptional(options.studyAfterTm ?? 0),
+    playerTm: stringifyOptional(options.playerTm),
+    studyStatusCd: options.studyStatusCd ?? "STUDY",
+    progressTm: stringifyOptional(options.progressTm),
+    crsCreCd: options.crsCreCd
+  };
+  const query = Object.fromEntries(
+    Object.entries(rawQuery).filter((entry): entry is [string, string] => entry[1] !== undefined)
+  );
+
+  return {
+    method: "GET",
+    url: absoluteUrl(ADD_STUDY_RECORD_PATH, baseUrl),
+    query
+  };
+}
+
+/**
+ * 콘텐츠 URL 종류를 분류한다
+ * @param {string | undefined} contentUrl - 강의 콘텐츠 URL
+ * @returns {EcampusLessonStudyWindow["contentKind"]} 콘텐츠 종류
+ */
+function classifyContentUrl(
+  contentUrl: string | undefined
+): EcampusLessonStudyWindow["contentKind"] {
+  if (!contentUrl) {
+    return "unknown";
+  }
+
+  const lower = contentUrl.toLowerCase();
+  if (lower.endsWith(".mp4")) {
+    return "mp4";
+  }
+
+  if (lower.endsWith(".m3u8")) {
+    return "hls";
+  }
+
+  if (lower.includes("youtube.com") || lower.includes("youtu.be")) {
+    return "youtube";
+  }
+
+  if (lower.includes("ted.com")) {
+    return "ted";
+  }
+
+  if (lower.includes("doczoomsharehub")) {
+    return "doczoom";
+  }
+
+  return "url";
+}
+
+/**
+ * SAZ 파일을 HTTP 세션 배열로 변환한다
+ * @param {Uint8Array} sazFile - Fiddler SAZ 파일 바이트
+ * @returns {RawHttpSession[]} 요청과 응답 본문 목록
+ */
+function parseFiddlerSazSessions(sazFile: Uint8Array): RawHttpSession[] {
+  const zip = new AdmZip(Buffer.from(sazFile));
+  const decoder = new TextDecoder("utf-8");
+  const entries = new Map(
+    zip.getEntries().map((entry) => [entry.entryName.replace(/\\/g, "/"), entry])
+  );
+  const numbers = Array.from(entries.keys())
+    .map((name) => name.match(/^raw\/(\d+)_c\.txt$/)?.[1])
+    .filter((number): number is string => Boolean(number))
+    .sort((a, b) => Number(a) - Number(b));
+
+  return numbers
+    .map((number) => {
+      const requestEntry = entries.get(`raw/${number}_c.txt`);
+      const responseEntry = entries.get(`raw/${number}_s.txt`);
+
+      if (!requestEntry || !responseEntry) {
+        return undefined;
+      }
+
+      const requestRaw = decoder.decode(requestEntry.getData());
+      const responseRaw = decoder.decode(responseEntry.getData());
+      const [requestHeader, requestBody] = splitHttpMessage(requestRaw);
+      const [, responseBody] = splitHttpMessage(responseRaw);
+      const requestLine = requestHeader.split(/\r?\n/)[0] ?? "";
+      const [method = "", url = ""] = requestLine.split(" ");
+
+      if (!url.startsWith("http")) {
+        return undefined;
+      }
+
+      return {
+        request: {
+          method,
+          url,
+          body: parseFormBody(requestBody)
+        },
+        responseBody
+      };
+    })
+    .filter((session): session is RawHttpSession => Boolean(session));
+}
+
+/**
+ * 세션이 강의 목록 응답인지 확인한다
+ * @param {RawHttpSession} session - SAZ에서 복원한 HTTP 세션
+ * @returns {boolean} 강의 목록 응답이면 true
+ */
+function isLessonListResponse(session: RawHttpSession): boolean {
+  const path = new URL(session.request.url).pathname;
+  return (
+    path === "/lesson/lessonLect/Form/lessonListForm" ||
+    path === "/lesson/lessonLect/lessonList" ||
+    path === "/lesson/lessonOpen/lessonList"
+  );
+}
+
+/**
+ * 정규식 첫 번째 캡처 값을 추출한다
+ * @param {string} source - 검색할 문자열
+ * @param {RegExp} pattern - 첫 번째 캡처가 있는 정규식
+ * @returns {string | undefined} 찾은 값
+ */
+function extractFirstValue(source: string, pattern: RegExp): string | undefined {
+  return source.match(pattern)?.[1];
+}
+
+/**
+ * 라벨 뒤에 붙은 화면 텍스트를 짧게 추출한다
+ * @param {string} text - 카드나 헤더 전체 텍스트
+ * @param {string} label - 찾을 라벨명
+ * @returns {string | undefined} 라벨에 해당하는 값
+ */
+function extractLabeledText(text: string, label: string): string | undefined {
+  const normalized = normalizeSpace(text);
+  const labels = [
+    "기간 외 학습기간",
+    "기간",
+    "수업내용",
+    "강의시간",
+    "출결상태",
+    "온라인 강의",
+    "강의보기"
+  ];
+  const otherLabels = labels
+    .filter((candidate) => candidate !== label)
+    .map(escapeRegExp)
+    .join("|");
+  const pattern = new RegExp(`${escapeRegExp(label)}\\s*(.*?)(?=\\s*(?:${otherLabels})\\s*|$)`);
+  const value = normalized.match(pattern)?.[1]?.trim();
+  return value || undefined;
+}
+
+/**
+ * 강의시간 텍스트를 추출한다
+ * @param {string} text - 카드 전체 텍스트
+ * @returns {string | undefined} 강의시간 텍스트
+ */
+function extractDurationText(text: string): string | undefined {
+  return text
+    .match(/강의시간\s*([0-9]+\s*분(?:\s*[0-9]+\s*초)?|[0-9]+\s*초)/)?.[1]
+    ?.replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * 강의시간 텍스트를 초 단위로 변환한다
+ * @param {string | undefined} durationText - 강의시간 텍스트
+ * @returns {number | undefined} 초 단위 시간
+ */
+function parseDurationSeconds(durationText: string | undefined): number | undefined {
+  if (!durationText) {
+    return undefined;
+  }
+
+  const minutes = Number(durationText.match(/(\d+)\s*분/)?.[1] ?? 0);
+  const seconds = Number(durationText.match(/(\d+)\s*초/)?.[1] ?? 0);
+  return minutes * 60 + seconds;
+}
+
+/**
+ * CSS id 선택자에 들어갈 값을 이스케이프한다
+ * @param {string} value - id 값
+ * @returns {string} 이스케이프된 id 값
+ */
+function escapeCssId(value: string): string {
+  return value.replace(/([ #;?%&,.+*~':"!^$[\]()=>|/@])/g, "\\$1");
+}
+
+/**
+ * 값을 문자열로 변환하되 비어 있는 값은 제외한다
+ * @param {number | string | undefined} value - 변환할 값
+ * @returns {string | undefined} 문자열 값
+ */
+function stringifyOptional(value: number | string | undefined): string | undefined {
+  return value === undefined ? undefined : String(value);
+}
+
+/**
+ * undefined 값을 가진 속성을 제거한다
+ * @param {T} value - 정리할 객체
+ * @returns {T} undefined 속성이 제거된 객체
+ */
+function removeUndefinedValues<T extends object>(value: T): T {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
+}

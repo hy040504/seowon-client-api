@@ -1,0 +1,18 @@
+[
+  {
+    "id": "ATCL_260227T191603_351003f",
+    "title": "강의시간 변경 공지",
+    "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "body": {
+        "bbsId": "BBS_2026_1_736078_01_N",
+        "atclId": "ATCL_260227T191603_351003f",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "date": "2026.02.27",
+    "hasAttachment": false
+  }
+]

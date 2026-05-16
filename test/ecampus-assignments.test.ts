@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  parseEcampusAssignmentListFromSaz,
-  stringifyEcampusClassroomItems
-} from "../src/index";
+import { parseEcampusAssignmentListFromSaz, stringifyEcampusClassroomItems } from "../src/index";
 import { readLogicCircuitSaz } from "./ecampus-classroom-fixture";
 
 describe("논리회로 과제 목록", () => {

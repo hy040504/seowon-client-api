@@ -32,7 +32,7 @@
     "lint": "eslint .",
     "prepack": "npm run build",
     "pretest": "node scripts/build-legacy-crypto.cjs",
-    "test": "vitest run test/index.test.ts test/ecampus-login.test.ts test/ecampus-courses.test.ts test/ecampus-assignments.test.ts test/ecampus-materials.test.ts test/ecampus-notices.test.ts test/ecampus-cookie-persistence.test.ts",
+    "test": "vitest run test/index.test.ts test/ecampus-login.test.ts test/ecampus-courses.test.ts test/ecampus-assignments.test.ts test/ecampus-materials.test.ts test/ecampus-notices.test.ts test/ecampus-cookie-persistence.test.ts test/ecampus-elearning.test.ts",
     "test:login": "node scripts/build-legacy-crypto.cjs && vitest run test/ecampus-login.integration.test.ts --reporter verbose",
     "typecheck": "tsc --noEmit"
   },

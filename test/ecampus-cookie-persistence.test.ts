@@ -18,7 +18,9 @@ describe("쿠키 저장소", () => {
     try {
       const jar = new CookieJar();
       await jar.setCookie(
-        Cookie.parse("session=live; Domain=ecampus.seowon.ac.kr; Path=/; Expires=Tue, 21 Oct 2099 00:00:00 GMT")!,
+        Cookie.parse(
+          "session=live; Domain=ecampus.seowon.ac.kr; Path=/; Expires=Tue, 21 Oct 2099 00:00:00 GMT"
+        )!,
         "https://ecampus.seowon.ac.kr"
       );
 
@@ -39,7 +41,9 @@ describe("쿠키 저장소", () => {
     try {
       const jar = new CookieJar();
       await jar.setCookie(
-        Cookie.parse("session=dead; Domain=ecampus.seowon.ac.kr; Path=/; Expires=Tue, 21 Oct 2000 00:00:00 GMT")!,
+        Cookie.parse(
+          "session=dead; Domain=ecampus.seowon.ac.kr; Path=/; Expires=Tue, 21 Oct 2000 00:00:00 GMT"
+        )!,
         "https://ecampus.seowon.ac.kr"
       );
 
@@ -62,7 +66,9 @@ describe("자동 재로그인", () => {
     try {
       const expiredJar = new CookieJar();
       await expiredJar.setCookie(
-        Cookie.parse("session=dead; Domain=ecampus.seowon.ac.kr; Path=/; Expires=Tue, 21 Oct 2000 00:00:00 GMT")!,
+        Cookie.parse(
+          "session=dead; Domain=ecampus.seowon.ac.kr; Path=/; Expires=Tue, 21 Oct 2000 00:00:00 GMT"
+        )!,
         "https://ecampus.seowon.ac.kr"
       );
       saveCookieJarToFile(filePath, expiredJar);
@@ -88,7 +94,9 @@ describe("자동 재로그인", () => {
         loginCount += 1;
         expect(credentials.userId).toBe("202612345");
         await client.cookieJar.setCookie(
-          Cookie.parse("session=renewed; Domain=ecampus.seowon.ac.kr; Path=/; Expires=Tue, 21 Oct 2099 00:00:00 GMT")!,
+          Cookie.parse(
+            "session=renewed; Domain=ecampus.seowon.ac.kr; Path=/; Expires=Tue, 21 Oct 2099 00:00:00 GMT"
+          )!,
           client.baseUrl
         );
         return {
@@ -101,7 +109,9 @@ describe("자동 재로그인", () => {
 
       expect(loginCount).toBe(1);
       expect(isCookieJarUsable(client.cookieJar)).toBe(true);
-      expect(isSerializedCookieJarUsable(loadCookieJarFromFile(filePath)?.serializeSync())).toBe(true);
+      expect(isSerializedCookieJarUsable(loadCookieJarFromFile(filePath)?.serializeSync())).toBe(
+        true
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

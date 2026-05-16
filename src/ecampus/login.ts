@@ -1,11 +1,7 @@
 import axios, { type AxiosInstance } from "axios";
 import { wrapper } from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
-import {
-  isCookieJarUsable,
-  loadCookieJarFromFile,
-  saveCookieJarToFile
-} from "./cookies";
+import { isCookieJarUsable, loadCookieJarFromFile, saveCookieJarToFile } from "./cookies";
 import {
   createEmptyEcampusClassroomResources,
   parseEcampusAssignmentListHtml,
@@ -24,6 +20,15 @@ import {
   type EcampusCourseListItem
 } from "./courses";
 import { createLoginEncryptData, type LoginEncryptOptions } from "./crypto";
+import {
+  createStudyRecordRequest,
+  parseEcampusLessonListHtml,
+  parseEcampusLessonStudyWindowHtml,
+  stringifyEcampusLessons,
+  type EcampusLessonItem,
+  type EcampusLessonRecordOptions,
+  type EcampusLessonStudyWindow
+} from "./elearning";
 import type { EcampusCourseGroups } from "./courses";
 
 export interface EcampusClientOptions {
@@ -59,6 +64,20 @@ export interface GetClassroomAssignmentListOptions extends GetClassroomBoardList
   userName?: string;
 }
 
+export interface GetElearningLessonListOptions {
+  crsCreCd: string;
+  mcd?: string;
+  progressTypeCd?: string;
+}
+
+export interface OpenElearningLessonOptions {
+  crsCreCd: string;
+  lessonCntsId: string;
+  progressTypeCd?: string;
+  seekFile?: string;
+  downloadYn?: string;
+}
+
 export type LoginResult =
   | {
       type: "redirect";
@@ -90,6 +109,8 @@ const DEFAULT_BASE_URL = "https://ecampus.seowon.ac.kr";
 const LOGIN_PAGE_PATH = "/home/mainPop/popup/login";
 const LOGIN_API_PATH = "/user/userHome/login";
 const MAIN_PAGE_PATH = "/home/mainHome/Form/main";
+const DEFAULT_LESSON_MENU_CODE = "MH_210504T143020d03000a";
+const DEFAULT_PROGRESS_TYPE_CD = "WEEK";
 
 /**
  * e-campus 세션과 로그인/목록 조회를 담당하는 클라이언트
@@ -383,6 +404,97 @@ export class EcampusClient {
    */
   async getAssignmentListJson(options: GetClassroomAssignmentListOptions): Promise<string> {
     return stringifyEcampusClassroomItems(await this.getAssignmentList(options));
+  }
+
+  /**
+   * e-learning 온라인 강의 목록을 조회한다
+   * @param {GetElearningLessonListOptions} options - 강의실 코드와 메뉴/진도 옵션
+   * @returns {Promise<EcampusLessonItem[]>} 온라인 강의 차시 목록
+   */
+  async getElearningLessonList(
+    options: GetElearningLessonListOptions
+  ): Promise<EcampusLessonItem[]> {
+    const html = await this.getElearningLessonListHtml(options);
+    return parseEcampusLessonListHtml(html, {
+      baseUrl: this.baseUrl,
+      crsCreCd: options.crsCreCd,
+      progressTypeCd: options.progressTypeCd ?? DEFAULT_PROGRESS_TYPE_CD
+    });
+  }
+
+  /**
+   * e-learning 온라인 강의 목록을 JSON 문자열로 조회한다
+   * @param {GetElearningLessonListOptions} options - 강의실 코드와 메뉴/진도 옵션
+   * @returns {Promise<string>} 온라인 강의 차시 목록 JSON
+   */
+  async getElearningLessonListJson(options: GetElearningLessonListOptions): Promise<string> {
+    return stringifyEcampusLessons(await this.getElearningLessonList(options));
+  }
+
+  /**
+   * 온라인 강의 목록 화면 HTML을 가져온다
+   * @param {GetElearningLessonListOptions} options - 강의실 코드와 메뉴/진도 옵션
+   * @returns {Promise<string>} 온라인 강의 목록 HTML
+   */
+  async getElearningLessonListHtml(options: GetElearningLessonListOptions): Promise<string> {
+    await this.ensureAuthenticated();
+    const url = new URL("/lesson/lessonLect/Form/lessonListForm", this.baseUrl);
+    url.searchParams.set("mcd", options.mcd ?? DEFAULT_LESSON_MENU_CODE);
+    url.searchParams.set("crsCreCd", options.crsCreCd);
+
+    const response = await this.http.get<string>(url.pathname + url.search, {
+      headers: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+      }
+    });
+
+    await this.persistCookieJar();
+    return response.data;
+  }
+
+  /**
+   * 온라인 강의 재생 창을 열고 콘텐츠 정보를 파싱한다
+   * @param {OpenElearningLessonOptions} options - 강의실 코드와 차시 콘텐츠 코드
+   * @returns {Promise<EcampusLessonStudyWindow>} 강의 재생 창 메타데이터
+   */
+  async openElearningLesson(
+    options: OpenElearningLessonOptions
+  ): Promise<EcampusLessonStudyWindow> {
+    const html = await this.postForm(
+      `/lesson/lessonOpen/lessonNewWindow?crsCreCd=${encodeURIComponent(options.crsCreCd)}`,
+      {
+        lessonCntsId: options.lessonCntsId,
+        seekFile: options.seekFile ?? "",
+        downloadYn: options.downloadYn ?? "",
+        progressTypeCd: options.progressTypeCd ?? DEFAULT_PROGRESS_TYPE_CD
+      }
+    );
+
+    return parseEcampusLessonStudyWindowHtml(html, {
+      baseUrl: this.baseUrl,
+      crsCreCd: options.crsCreCd,
+      progressTypeCd: options.progressTypeCd ?? DEFAULT_PROGRESS_TYPE_CD
+    });
+  }
+
+  /**
+   * e-campus가 사용하는 학습기록 저장 API를 호출한다
+   * @param {EcampusLessonRecordOptions} options - 실제 학습 창에서 확보한 학습기록 값
+   * @returns {Promise<unknown>} 서버의 JSON 응답
+   */
+  async addElearningStudyRecord(options: EcampusLessonRecordOptions): Promise<unknown> {
+    await this.ensureAuthenticated();
+    const request = createStudyRecordRequest(this.baseUrl, options);
+    const response = await this.http.get<unknown>(new URL(request.url).pathname, {
+      params: request.query,
+      headers: {
+        Accept: "application/json, text/javascript, */*; q=0.01",
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    });
+
+    await this.persistCookieJar();
+    return response.data;
   }
 
   /**

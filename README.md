@@ -8,6 +8,8 @@
 - e-campus 로그인 요청
 - 로그인 후 메인 페이지에서 과목 목록 추출
 - 강의실의 공지사항, 과제, 강의자료실 목록 추출
+- e-learning 온라인 강의 목록과 강의 창 정보 추출
+- 학습기록 스냅샷과 요청 묶음 생성
 - Fiddler SAZ 패킷에서 목록 복원
 - 쿠키 파일 저장 및 만료 시 자동 재로그인
 
@@ -40,16 +42,10 @@ SEOWON_PASSWORD=비밀번호를입력하세요
 
 ```ts
 import "dotenv/config";
-import {
-  createEcampusClient,
-  createLoginEncryptData
-} from "seowon-client-api";
+import { createEcampusClient, createLoginEncryptData } from "seowon-client-api";
 
 const client = createEcampusClient();
-const encryptData = createLoginEncryptData(
-  process.env.SEOWON_ID!,
-  process.env.SEOWON_PASSWORD!
-);
+const encryptData = createLoginEncryptData(process.env.SEOWON_ID!, process.env.SEOWON_PASSWORD!);
 
 const result = await client.loginWithEncryptData({ encryptData });
 console.log(result.type);
@@ -60,10 +56,7 @@ console.log(result.type);
 ### 1. encryptData 생성
 
 ```ts
-const encryptData = createLoginEncryptData(
-  process.env.SEOWON_ID!,
-  process.env.SEOWON_PASSWORD!
-);
+const encryptData = createLoginEncryptData(process.env.SEOWON_ID!, process.env.SEOWON_PASSWORD!);
 ```
 
 ### 2. 로그인 요청
@@ -187,6 +180,74 @@ const client = createEcampusClient({
 - `isCookieJarUsable(cookieJar)`
 - `isSerializedCookieJarUsable(serialized)`
 
+## e-learning 온라인 강의
+
+온라인 강의 화면에서 주차별 차시 목록을 가져올 수 있습니다.
+
+```ts
+const lessons = await client.getElearningLessonList({
+  crsCreCd: "2026_1_008620_01"
+});
+
+console.log(lessons);
+```
+
+JSON 문자열이 필요하면 아래 메서드를 사용합니다.
+
+```ts
+const json = await client.getElearningLessonListJson({
+  crsCreCd: "2026_1_008620_01"
+});
+```
+
+강의 창 입장 요청도 모듈화되어 있습니다.
+
+```ts
+const windowInfo = await client.openElearningLesson({
+  crsCreCd: "2026_1_008620_01",
+  lessonCntsId: "CNTS_260305T142100_e19520c"
+});
+
+console.log(windowInfo.contentUrl);
+console.log(windowInfo.recordRequest);
+```
+
+학습기록 저장 요청은 실제 강의 창에서 확보한 `studyDetailId`, `stdNo`, 시간 값을 기준으로 호출해야 합니다.
+
+```ts
+await client.addElearningStudyRecord({
+  crsCreCd: "2026_1_008620_01",
+  lessonCntsId: "CNTS_260305T142100_e19520c",
+  stdNo: "2026_1_008620_01_202612345",
+  studyDetailId: "STUDY_...",
+  studyTotalTm: 60,
+  studyAfterTm: 60,
+  studyStatusCd: "STUDY"
+});
+```
+
+이 기능은 e-campus가 실제 강의 창에서 호출하는 학습기록 API 구조를 그대로 다룹니다.
+
+읽기 전용으로만 확인하고 싶으면 `parseStudyRecordSnapshot()`을 쓰면 됩니다. 이 함수는 서버에 아무 요청도 보내지 않고, 학습기록에 필요한 핵심 값과 `recordRequest` 형태만 정리합니다.
+
+강의 객체 하나만 가지고 입장 요청, 재생 창 요청, 학습기록 스냅샷을 같이 만들고 싶으면 `createEcampusLessonRequestBundle()`을 사용합니다.
+
+```ts
+const bundle = createEcampusLessonRequestBundle(lessons[0], {
+  crsCreCd: "2026_1_008620_01",
+  stdNo: "2026_1_008620_01_202612345",
+  studyDetailId: "STUDY_...",
+  studyStatusCd: "STUDY"
+});
+
+console.log(bundle.viewRequest);
+console.log(bundle.studyWindowRequest);
+console.log(bundle.recordRequest);
+console.log(bundle.snapshot);
+```
+
+이 패키지는 실제 학습기록을 사람처럼 자동 전송하는 기능은 제공하지 않습니다. 현재 범위는 요청 구조를 읽기 전용으로 정리하고, 디버깅과 분석에 필요한 스냅샷을 만드는 수준입니다.
+
 ## SAZ 패킷 분석
 
 Fiddler SAZ 파일에서 강의실 목록을 복원할 수 있습니다.
@@ -232,7 +293,10 @@ npx vitest run test/ecampus-assignments.test.ts --reporter verbose
 npx vitest run test/ecampus-materials.test.ts --reporter verbose
 npx vitest run test/ecampus-notices.test.ts --reporter verbose
 npx vitest run test/ecampus-cookie-persistence.test.ts --reporter verbose
+npx vitest run test/ecampus-elearning.test.ts --reporter verbose
 ```
+
+`test/ecampus-elearning.test.ts`는 온라인 강의 목록, 강의 창, 읽기 전용 학습기록 스냅샷, 요청 묶음을 함께 검증합니다.
 
 ### 실제 로그인 테스트
 
@@ -276,6 +340,33 @@ npm run test:login
 - `parseEcampusClassroomResourcesFromSaz()`
 - `stringifyEcampusClassroomItems()`
 - `stringifyEcampusClassroomResources()`
+- `parseEcampusLessonSchedulesHtml()`
+- `parseEcampusLessonListHtml()`
+- `parseEcampusLessonStudyWindowHtml()`
+- `parseEcampusLessonSchedulesFromSaz()`
+- `parseEcampusLessonListFromSaz()`
+- `parseEcampusLessonStudyWindowsFromSaz()`
+- `createLessonViewRequest()`
+- `createLessonStudyWindowRequest()`
+- `createStudyRecordRequest()`
+- `parseStudyRecordSnapshot()`
+- `createEcampusLessonRequestBundle()`
+- `stringifyEcampusLessons()`
+
+### e-learning
+
+- `parseEcampusLessonSchedulesHtml()`
+- `parseEcampusLessonListHtml()`
+- `parseEcampusLessonStudyWindowHtml()`
+- `parseEcampusLessonSchedulesFromSaz()`
+- `parseEcampusLessonListFromSaz()`
+- `parseEcampusLessonStudyWindowsFromSaz()`
+- `createLessonViewRequest()`
+- `createLessonStudyWindowRequest()`
+- `createStudyRecordRequest()`
+- `parseStudyRecordSnapshot()`
+- `createEcampusLessonRequestBundle()`
+- `stringifyEcampusLessons()`
 
 ### 쿠키
 
@@ -283,6 +374,13 @@ npm run test:login
 - `saveCookieJarToFile()`
 - `isCookieJarUsable()`
 - `isSerializedCookieJarUsable()`
+
+## 현재 상태와 개선 방향
+
+- 로그인, 과목 목록, 강의실 목록, e-learning 목록과 강의 창, 쿠키 저장/자동 재로그인은 모듈화되어 있습니다.
+- `parseStudyRecordSnapshot()`과 `createEcampusLessonRequestBundle()`은 읽기 전용 분석과 요청 구조 정리에만 사용합니다.
+- 실제 학습기록을 사람처럼 자동 전송하거나 출결을 조작하는 기능은 넣지 않았습니다.
+- 다음 개선 후보는 과목명 기반 편의 조회, 비교과 화면 추가 파싱, 강의실 상세 첨부파일 URL 보강, 쿠키 파일 기본 경로 정리입니다.
 
 ## 핵심 값
 
@@ -317,4 +415,3 @@ files/
 - 실제 계정 정보는 `.env`에만 둡니다.
 - 쿠키 파일은 민감 정보이므로 git에 올리지 않는 편이 좋습니다.
 - `node test/*.ts`가 아니라 `vitest`로 테스트를 실행해야 합니다.
-

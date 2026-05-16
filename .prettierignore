@@ -4,3 +4,5 @@ coverage/
 package-lock.json
 files/
 src/ecampus/legacy/
+docs/api-responses/
+README.handover.md

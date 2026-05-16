@@ -1,0 +1,122 @@
+[
+  {
+    "id": "ASMNT_260507T125246_87067da",
+    "title": "강의노트 1",
+    "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+      "body": {
+        "asmntCd": "ASMNT_260507T125246_87067da",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "period": "2026.05.07 ~ 2026.05.14",
+    "status": "과제를 제출하였습니다"
+  },
+  {
+    "id": "ASMNT_260514T102030_a1b2c3d",
+    "title": "강의노트 2",
+    "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+      "body": {
+        "asmntCd": "ASMNT_260514T102030_a1b2c3d",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "period": "2026.05.14 ~ 2026.05.21",
+    "status": "미제출"
+  },
+  {
+    "id": "ASMNT_260521T145600_b2c3d4e",
+    "title": "강의노트 3",
+    "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+      "body": {
+        "asmntCd": "ASMNT_260521T145600_b2c3d4e",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "period": "2026.05.21 ~ 2026.05.28",
+    "status": "진행중"
+  },
+  {
+    "id": "ASMNT_260528T093015_c3d4e5f",
+    "title": "강의노트 4",
+    "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+      "body": {
+        "asmntCd": "ASMNT_260528T093015_c3d4e5f",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "period": "2026.05.28 ~ 2026.06.04",
+    "status": "종료"
+  },
+  {
+    "id": "ASMNT_260604T110845_d4e5f6g",
+    "title": "강의노트 5",
+    "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+      "body": {
+        "asmntCd": "ASMNT_260604T110845_d4e5f6g",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "period": "2026.06.04 ~ 2026.06.11",
+    "status": "미제출"
+  },
+  {
+    "id": "ASMNT_260611T155230_e5f6g7h",
+    "title": "강의노트 6",
+    "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+      "body": {
+        "asmntCd": "ASMNT_260611T155230_e5f6g7h",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "period": "2026.06.11 ~ 2026.06.18",
+    "status": "과제를 제출하였습니다"
+  },
+  {
+    "id": "ASMNT_260618T083500_f6g7h8i",
+    "title": "강의노트 7",
+    "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+      "body": {
+        "asmntCd": "ASMNT_260618T083500_f6g7h8i",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "period": "2026.06.18 ~ 2026.06.25",
+    "status": "진행중"
+  },
+  {
+    "id": "ASMNT_260625T142245_g7h8i9j",
+    "title": "강의노트 8",
+    "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+    "request": {
+      "method": "POST",
+      "url": "https://ecampus.seowon.ac.kr/asmnt/asmntLect/Form/asmntStuMain",
+      "body": {
+        "asmntCd": "ASMNT_260625T142245_g7h8i9j",
+        "crsCreCd": "2026_1_736078_01"
+      }
+    },
+    "period": "2026.06.25 ~ 2026.07.02",
+    "status": "미제출"
+  }
+]
