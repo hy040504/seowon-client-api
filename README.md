@@ -13,6 +13,8 @@
 - Fiddler SAZ 패킷에서 목록 복원
 - 쿠키 파일 저장 및 만료 시 자동 재로그인
 
+공통 문자열/HTTP 유틸은 `src/ecampus/utils.ts`로 분리했고, 대표 응답 예시는 `docs/api-responses/`에 보관합니다.
+
 ## 설치
 
 ```bash
@@ -151,6 +153,13 @@ const materialJson = await client.getMaterialListJson({ crsCreCd: "2026_1_736078
 - `hasAttachment`
 
 `url`은 상세 진입용 주소이고, `request`에는 실제 전송해야 하는 `method`와 `body`가 함께 들어갑니다.
+
+## 현재 상태와 개선 방향
+
+- 로그인, 과목 목록, 강의실 목록, e-learning 목록과 강의 창, 쿠키 저장/자동 재로그인은 모듈화되어 있습니다.
+- `parseStudyRecordSnapshot()`과 `createEcampusLessonRequestBundle()`은 읽기 전용 분석과 요청 구조 정리에만 사용합니다.
+- 실제 학습기록을 사람처럼 자동 전송하거나 출결을 조작하는 기능은 넣지 않았습니다.
+- 다음 개선 후보는 과목명 기반 편의 조회, 비교과 화면 추가 파싱, 강의실 상세 첨부파일 URL 보강, 쿠키 파일 기본 경로 정리입니다.
 
 ## 쿠키 저장과 자동 재로그인
 
@@ -340,18 +349,6 @@ npm run test:login
 - `parseEcampusClassroomResourcesFromSaz()`
 - `stringifyEcampusClassroomItems()`
 - `stringifyEcampusClassroomResources()`
-- `parseEcampusLessonSchedulesHtml()`
-- `parseEcampusLessonListHtml()`
-- `parseEcampusLessonStudyWindowHtml()`
-- `parseEcampusLessonSchedulesFromSaz()`
-- `parseEcampusLessonListFromSaz()`
-- `parseEcampusLessonStudyWindowsFromSaz()`
-- `createLessonViewRequest()`
-- `createLessonStudyWindowRequest()`
-- `createStudyRecordRequest()`
-- `parseStudyRecordSnapshot()`
-- `createEcampusLessonRequestBundle()`
-- `stringifyEcampusLessons()`
 
 ### e-learning
 
@@ -375,12 +372,14 @@ npm run test:login
 - `isCookieJarUsable()`
 - `isSerializedCookieJarUsable()`
 
-## 현재 상태와 개선 방향
+### 공통 유틸
 
-- 로그인, 과목 목록, 강의실 목록, e-learning 목록과 강의 창, 쿠키 저장/자동 재로그인은 모듈화되어 있습니다.
-- `parseStudyRecordSnapshot()`과 `createEcampusLessonRequestBundle()`은 읽기 전용 분석과 요청 구조 정리에만 사용합니다.
-- 실제 학습기록을 사람처럼 자동 전송하거나 출결을 조작하는 기능은 넣지 않았습니다.
-- 다음 개선 후보는 과목명 기반 편의 조회, 비교과 화면 추가 파싱, 강의실 상세 첨부파일 URL 보강, 쿠키 파일 기본 경로 정리입니다.
+- `normalizeSpace()`
+- `absoluteUrl()`
+- `splitHttpMessage()`
+- `parseFormBody()`
+- `parseFunctionArguments()`
+- `escapeRegExp()`
 
 ## 핵심 값
 
@@ -403,8 +402,12 @@ src/
     cookies.ts
     courses.ts
     crypto.ts
+    elearning.ts
     login.ts
+    utils.ts
     legacy/
+docs/
+  api-responses/
 scripts/
 test/
 files/
