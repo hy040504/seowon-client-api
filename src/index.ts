@@ -89,6 +89,8 @@ export {
   parseEcampusLessonStudyWindowsFromSaz,
   parseStudyRecordSnapshot,
   stringifyEcampusLessons,
+  getElearningMp4Url,
+  downloadElearningMp4,
   type EcampusLessonGetRequest,
   type EcampusLessonItem,
   type EcampusLessonParseOptions,
@@ -100,7 +102,9 @@ export {
   type EcampusLessonStudyStatus,
   type EcampusStudyRecordSnapshot,
   type EcampusStudyRecordSnapshotInput,
-  type EcampusLessonStudyWindow
+  type EcampusLessonStudyWindow,
+  type ElearningMp4UrlResult,
+  type ElearningDownloadResult
 } from "./ecampus/elearning";
 
 export {

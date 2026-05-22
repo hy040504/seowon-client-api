@@ -1,7 +1,9 @@
 import axios, { type AxiosInstance } from "axios";
 import { wrapper } from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
+import * as cheerio from "cheerio";
 import { isCookieJarUsable, loadCookieJarFromFile, saveCookieJarToFile } from "./cookies";
+import util from "node:util";
 import {
   createEmptyEcampusClassroomResources,
   parseEcampusAssignmentListHtml,
@@ -22,12 +24,16 @@ import {
 import { createLoginEncryptData, type LoginEncryptOptions } from "./crypto";
 import {
   createStudyRecordRequest,
+  createViewLessonStudyDetailRequest,
+  downloadElearningMp4 as downloadElearningMp4File,
   parseEcampusLessonListHtml,
   parseEcampusLessonStudyWindowHtml,
   stringifyEcampusLessons,
   type EcampusLessonItem,
   type EcampusLessonRecordOptions,
-  type EcampusLessonStudyWindow
+  type EcampusLessonStudyWindow,
+  type ElearningMp4UrlResult,
+  type ElearningDownloadResult
 } from "./elearning";
 import type { EcampusCourseGroups } from "./courses";
 
@@ -121,6 +127,13 @@ export class EcampusClient {
   private readonly http: AxiosInstance;
   private readonly cookieFilePath?: string;
   private loginCredentials?: LoginCredentials;
+
+  // 학습 자동화 상태 관리
+  private studyInterval: NodeJS.Timeout | null = null;
+  private currentStudyDetailId: string | null = null;
+  private currentStudyTotalTm = 0;
+  private isWatching = false;
+  private stdNo: string | null = null;
 
   /**
    * 클라이언트를 초기화한다
@@ -517,7 +530,7 @@ export class EcampusClient {
    * @param {OpenElearningLessonOptions} options - 강의실 코드와 차시 콘텐츠 코드
    * @returns {Promise<EcampusLessonStudyWindow>} 강의 재생 창 메타데이터
    */
-  async openElearningLesson(
+  async openLessonWindow(
     options: OpenElearningLessonOptions
   ): Promise<EcampusLessonStudyWindow> {
     const html = await this.postForm(
@@ -538,13 +551,266 @@ export class EcampusClient {
   }
 
   /**
+   * 초기 학습 기록을 생성하고 studyDetailId를 확보한다
+   * @param {string} lessonCntsId - 차시 콘텐츠 코드
+   * @param {string} crsCreCd - 강의실 코드
+   * @param {string} [stdNo] - 학번 (선택 사항, 지정하지 않으면 openLessonWindow 결과에서 추출)
+   * @returns {Promise<EcampusLessonStudyWindow>} 학습 창 메타데이터
+   */
+  async createInitialStudyRecord(
+    lessonCntsId: string,
+    crsCreCd: string,
+    stdNo?: string
+  ): Promise<EcampusLessonStudyWindow> {
+    const windowInfo = await this.openLessonWindow({ crsCreCd, lessonCntsId });
+    if (stdNo) {
+      windowInfo.stdNo = stdNo;
+    }
+    return windowInfo;
+  }
+
+  /**
+   * 실제 사람이 강의를 보는 것처럼 자연스럽게 학습 인증 시작
+   * @param {string} lessonCntsId - 차시 콘텐츠 코드
+   * @param {string} crsCreCd - 강의실 코드
+   * @param {string} [stdNo] - 학번
+   * @returns {Promise<void>}
+   */
+  public async startWatchingLesson(
+    lessonCntsId: string,
+    crsCreCd: string,
+    stdNo?: string
+  ): Promise<void> {
+    if (this.isWatching) {
+      console.log("[이미 학습 중] stopWatchingLesson 먼저 호출하세요.");
+      return;
+    }
+
+    console.log(`[학습 시작] lessonCntsId=${lessonCntsId}, crsCreCd=${crsCreCd}`);
+
+    // 1. lessonNewWindow 호출 (동영상 재생 창 열기) 및 studyDetailId 확보
+    const initialRecord = await this.createInitialStudyRecord(lessonCntsId, crsCreCd, stdNo);
+    
+    this.currentStudyDetailId = initialRecord.studyDetailId ?? null;
+    this.stdNo = initialRecord.stdNo ?? null;
+    this.currentStudyTotalTm = Number(initialRecord.recordRequest?.query.studyTotalTm) || 0;
+    this.isWatching = true;
+
+    if (!this.currentStudyDetailId) {
+      console.warn("[경고] studyDetailId를 확보하지 못했습니다. 학습 기록이 누락될 수 있습니다.");
+    }
+
+    console.log(`[학습 인증 시작] studyDetailId = ${this.currentStudyDetailId}`);
+
+    // 3. 자연스러운 주기로 학습 기록 전송 (60초 ± 랜덤)
+    this.studyInterval = setInterval(() => {
+      this.sendStudyRecordWithNaturalDelay(lessonCntsId, crsCreCd);
+    }, 60000);
+  }
+
+  /**
+   * 사람처럼 5~15초 사이 랜덤 딜레이 후 학습 기록 전송
+   */
+  private async sendStudyRecordWithNaturalDelay(lessonCntsId: string, crsCreCd: string) {
+    if (!this.isWatching) return;
+
+    const randomDelayMs = Math.floor(Math.random() * 10000) + 5000; // 5~15초
+    await new Promise((r) => setTimeout(r, randomDelayMs));
+
+    if (!this.isWatching) return;
+
+    this.currentStudyTotalTm += 60;
+
+    await this.addStudyRecord({
+      lessonCntsId,
+      stdNo: this.stdNo!,
+      studyDetailId: this.currentStudyDetailId!,
+      studyTotalTm: this.currentStudyTotalTm,
+      studyAfterTm: 0,
+      studyStatusCd: "STUDY",
+      crsCreCd
+    });
+
+    // 학습 이력이 제대로 쌓이는지 확인
+    await this.viewLessonStudyDetail(lessonCntsId, crsCreCd);
+  }
+
+  /**
+   * 학습 종료 (타이머 정리 + 최종 로그)
+   */
+  public async stopWatchingLesson(): Promise<void> {
+    if (this.studyInterval) {
+      clearInterval(this.studyInterval);
+      this.studyInterval = null;
+    }
+    this.isWatching = false;
+
+    console.log(
+      `[학습 종료] 총 학습 시간: ${this.currentStudyTotalTm}초 (studyDetailId: ${this.currentStudyDetailId})`
+    );
+  }
+
+  /**
+   * 특정 e-learning 강의의 MP4 URL을 가져온다
+   * @param {string} crsCreCd - 강의실 코드
+   * @param {string} lessonCntsId - 차시 콘텐츠 코드
+   * @returns {Promise<ElearningMp4UrlResult>} MP4 URL 추출 결과
+   */
+  async getElearningMp4Url(
+    crsCreCd: string,
+    lessonCntsId: string
+  ): Promise<ElearningMp4UrlResult> {
+    try {
+      const openResult = await this.openLessonWindow({ crsCreCd, lessonCntsId });
+      const contentUrl = openResult?.contentUrl;
+      if (!contentUrl) {
+        return {
+          success: false,
+          message: "contentUrl을 찾을 수 없습니다.",
+          debugInfo: openResult
+        };
+      }
+
+      const response = await axios.get(contentUrl, {
+        headers: { "User-Agent": "Mozilla/5.0" },
+        withCredentials: true
+      });
+
+      const html = response.data as string;
+      const $ = cheerio.load(html);
+
+      // 1순위: <source> 태그
+      let mp4Url =
+        $('source[type="video/mp4"]').first()?.attr("src") || $("source#lessonVodSrc")?.attr("src");
+
+      // 2순위: regex 직접 검색
+      if (!mp4Url) {
+        const regexMatch = html.match(
+          /https:\/\/eplus\.seowon\.ac\.kr\/WebContentStorage\/[^"\s]+\.mp4\?tsdata=[^"\s]+/
+        );
+        if (regexMatch) mp4Url = regexMatch[0];
+      }
+
+      // 3순위: base64 JSON fallback (VideoPlayerWidgetViewModel)
+      if (!mp4Url) {
+        const viewModelMatch = html.match(/new VideoPlayerWidgetViewModel\('([^']+)'/);
+        if (viewModelMatch?.[1]) {
+          try {
+            const jsonStr = Buffer.from(viewModelMatch[1], "base64").toString("utf8");
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.videoUrl) mp4Url = parsed.videoUrl;
+          } catch (e) {
+            // base64 파싱 실패 무시
+          }
+        }
+      }
+
+      if (mp4Url) {
+        return { success: true, mp4Url };
+      }
+
+      // 실패 시 상세 디버그
+      return {
+        success: false,
+        message: "실제 MP4 URL을 찾지 못했습니다.",
+        debugInfo: {
+          crsCreCd,
+          lessonCntsId,
+          status: response.status,
+          statusText: response.statusText,
+          contentType: response.headers["content-type"],
+          bodyLength: html.length,
+          bodySnippet: html.substring(0, 6000)
+        }
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: "MP4 URL 추출 중 오류 발생",
+        debugInfo: {
+          crsCreCd,
+          lessonCntsId,
+          error: error.message,
+          stack: error.stack
+        }
+      };
+    }
+  }
+
+  /**
+   * 특정 e-learning 강의 MP4를 다운로드한다
+   * @param {string} crsCreCd - 강의실 코드
+   * @param {string} lessonCntsId - 차시 콘텐츠 코드
+   * @param {string} downloadDir - 저장할 폴더 경로
+   * @param {Function} onProgress - 진행 상황 콜백
+   * @returns {Promise<ElearningDownloadResult>} 다운로드 결과
+   */
+  async downloadElearningMp4(
+    crsCreCd: string,
+    lessonCntsId: string,
+    courseTitle: string,
+    lessonTitle: string,
+    baseDir: string = "./downloads",
+    progressCallback?: (progress: { percent: number; loaded: number }) => void
+  ): Promise<ElearningDownloadResult> {
+    try {
+      const urlResult = await this.getElearningMp4Url(crsCreCd, lessonCntsId);
+      if (!urlResult.success || !urlResult.mp4Url) {
+        return {
+          success: false,
+          message: urlResult.message || "MP4 URL을 추출하지 못했습니다."
+        };
+      }
+
+      return await downloadElearningMp4File(
+        this.http,
+        urlResult.mp4Url,
+        this.sanitizeFilename(courseTitle),
+        this.sanitizeFilename(lessonTitle),
+        baseDir,
+        progressCallback
+      );
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : util.inspect(error)
+      };
+    }
+  }
+
+  private sanitizeFilename(name: string): string {
+    return name.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, " ").trim().substring(0, 100);
+  }
+
+  /**
    * e-campus가 사용하는 학습기록 저장 API를 호출한다
    * @param {EcampusLessonRecordOptions} options - 실제 학습 창에서 확보한 학습기록 값
    * @returns {Promise<unknown>} 서버의 JSON 응답
    */
-  async addElearningStudyRecord(options: EcampusLessonRecordOptions): Promise<unknown> {
+  async addStudyRecord(options: EcampusLessonRecordOptions): Promise<unknown> {
     await this.ensureAuthenticated();
     const request = createStudyRecordRequest(this.baseUrl, options);
+    const response = await this.http.get<unknown>(new URL(request.url).pathname, {
+      params: request.query,
+      headers: {
+        Accept: "application/json, text/javascript, */*; q=0.01",
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    });
+
+    await this.persistCookieJar();
+    return response.data;
+  }
+
+  /**
+   * 학습 이력 상세 정보를 조회한다 (학습 이력 적재 확인용)
+   * @param {string} lessonCntsId - 차시 콘텐츠 코드
+   * @param {string} crsCreCd - 강의실 코드
+   * @returns {Promise<unknown>} 서버 응답
+   */
+  async viewLessonStudyDetail(lessonCntsId: string, crsCreCd: string): Promise<unknown> {
+    await this.ensureAuthenticated();
+    const request = createViewLessonStudyDetailRequest(this.baseUrl, lessonCntsId, crsCreCd);
     const response = await this.http.get<unknown>(new URL(request.url).pathname, {
       params: request.query,
       headers: {

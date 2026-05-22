@@ -9,6 +9,11 @@ import {
   splitHttpMessage
 } from "./utils";
 
+import util from "node:util";
+import fs from "node:fs";
+import path from "node:path";
+import type { AxiosInstance } from "axios";
+
 export type EcampusLessonStudyStatus = "STUDY" | "COMPLETE" | string;
 
 export interface EcampusLessonPostRequest {
@@ -120,6 +125,26 @@ export interface EcampusLessonRequestBundle {
   snapshot: EcampusStudyRecordSnapshot;
 }
 
+export interface ElearningMp4UrlResult {
+  success: boolean;
+  mp4Url?: string;
+  message?: string;
+  debugInfo?: {
+    crsCreCd: string;
+    lessonCntsId: string;
+    contentUrl?: string;
+    contentKind?: string;
+    htmlSnippets?: string[];
+    [key: string]: any;
+  };
+}
+
+export interface ElearningDownloadResult {
+  success: boolean;
+  filePath?: string;
+  message?: string;
+}
+
 interface RawHttpSession {
   request: {
     method: string;
@@ -134,6 +159,7 @@ const DEFAULT_PROGRESS_TYPE_CD = "WEEK";
 const LESSON_VIEW_PATH = "/lesson/lessonLect/Form/mainLesson";
 const LESSON_WINDOW_PATH = "/lesson/lessonOpen/lessonNewWindow";
 const ADD_STUDY_RECORD_PATH = "/lesson/lessonHome/addStudyRecord";
+const VIEW_STUDY_DETAIL_PATH = "/lesson/lessonLect/viewLessonStudyDetail";
 
 /**
  * e-learning 강의 목록 HTML에서 주차와 차시 목록을 추출한다
@@ -544,6 +570,28 @@ export function createStudyRecordRequest(
 }
 
 /**
+ * 학습 이력 상세 조회 요청 정보를 만든다
+ * @param {string} baseUrl - e-campus 기본 URL
+ * @param {string} lessonCntsId - 차시 콘텐츠 코드
+ * @param {string} crsCreCd - 강의실 코드
+ * @returns {EcampusLessonGetRequest} 학습 이력 상세 조회 GET 요청 정보
+ */
+export function createViewLessonStudyDetailRequest(
+  baseUrl: string,
+  lessonCntsId: string,
+  crsCreCd: string
+): EcampusLessonGetRequest {
+  return {
+    method: "GET",
+    url: absoluteUrl(VIEW_STUDY_DETAIL_PATH, baseUrl),
+    query: {
+      lessonCntsId,
+      crsCreCd
+    }
+  };
+}
+
+/**
  * 콘텐츠 URL 종류를 분류한다
  * @param {string | undefined} contentUrl - 강의 콘텐츠 URL
  * @returns {EcampusLessonStudyWindow["contentKind"]} 콘텐츠 종류
@@ -729,4 +777,170 @@ function stringifyOptional(value: number | string | undefined): string | undefin
  */
 function removeUndefinedValues<T extends object>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
+}
+
+/**
+ * 특정 e-learning 강의의 실제 MP4 URL을 추출한다
+ * @param {AxiosInstance} http - axios 인스턴스
+ * @param {string} contentUrl - 분석할 콘텐츠 페이지 URL
+ * @returns {Promise<ElearningMp4UrlResult>} 추출 결과
+ */
+export async function getElearningMp4Url(
+  http: AxiosInstance,
+  contentUrl: string | undefined,
+  context: { crsCreCd: string; lessonCntsId: string }
+): Promise<ElearningMp4UrlResult> {
+  const { crsCreCd, lessonCntsId } = context;
+
+  if (!contentUrl) {
+    return {
+      success: false,
+      message: "contentUrl이 없습니다.",
+      debugInfo: { crsCreCd, lessonCntsId }
+    };
+  }
+
+  try {
+    const response = await http.get<string>(contentUrl, {
+      headers: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+      }
+    });
+
+    const html = response.data as string;
+    const $ = cheerio.load(html);
+
+    // 1순위: 명시적 <source> 태그 추출 (TypeScript 안전하게 접근)
+    let mp4Url =
+      $('source[type="video/mp4"]').first()?.attr("src") ||
+      $("source#lessonVodSrc")?.attr("src");
+
+    // 2순위: regex 검색 (eplus.seowon.ac.kr 전용)
+    if (!mp4Url) {
+      const regexMatch = html.match(
+        /https:\/\/eplus\.seowon\.ac\.kr\/WebContentStorage\/[^"\s]+\.mp4\?tsdata=[^"\s]+/
+      );
+      if (regexMatch?.[0]) {
+        mp4Url = regexMatch[0];
+      }
+    }
+
+    // 3순위: base64 JSON fallback (VideoPlayerWidgetViewModel)
+    const viewModelMatch = html.match(/new VideoPlayerWidgetViewModel\('([^']+)'/);
+    if (!mp4Url && viewModelMatch?.[1]) {
+      try {
+        const jsonStr = Buffer.from(viewModelMatch[1], "base64").toString("utf8");
+        const parsed = JSON.parse(jsonStr);
+        if (parsed?.videoUrl) {
+          mp4Url = parsed.videoUrl;
+        }
+      } catch (e) {
+        // 디코딩 실패 시 무시
+      }
+    }
+
+    if (mp4Url) {
+      // 상대 경로 보정
+      if (false && contentUrl) {
+        const origin = new URL(contentUrl!).origin;
+        mp4Url = new URL(mp4Url!, origin).toString();
+      }
+      return { success: true, mp4Url };
+    }
+
+    return {
+      success: false,
+      message: "실제 MP4 URL을 찾지 못했습니다.",
+      debugInfo: {
+        crsCreCd,
+        lessonCntsId,
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers["content-type"],
+        bodyLength: html.length,
+        bodySnippet: html.substring(0, 6000),
+        foundBase64: viewModelMatch?.[1] ? viewModelMatch[1].substring(0, 100) + "..." : undefined
+      }
+    };
+  } catch (error: any) {
+    const axiosError = error.response;
+    const errorData = axiosError?.data ? String(axiosError.data) : "";
+    return {
+      success: false,
+      message: error.message || util.inspect(error),
+      debugInfo: {
+        crsCreCd,
+        lessonCntsId,
+        contentUrl,
+        status: axiosError?.status,
+        statusText: axiosError?.statusText,
+        contentType: axiosError?.headers?.["content-type"],
+        bodyLength: errorData.length,
+        bodySnippet: errorData.substring(0, 6000)
+      }
+    };
+  }
+}
+
+/**
+ * 특정 e-learning 강의 MP4를 다운로드한다
+ * @param {AxiosInstance} http - axios 인스턴스
+ * @param {string} mp4Url - 다운로드할 실제 MP4 URL
+ * @param {string} fileName - 저장할 파일명
+ * @param {string} downloadDir - 저장할 폴더 경로
+ * @param {Function} onProgress - 진행 상황 콜백
+ * @returns {Promise<ElearningDownloadResult>} 다운로드 결과
+ */
+export async function downloadElearningMp4(
+  http: AxiosInstance,
+  mp4Url: string,
+  courseTitle: string,
+  lessonTitle: string,
+  baseDir: string = "./downloads",
+  progressCallback?: (progress: { percent: number; loaded: number }) => void
+): Promise<ElearningDownloadResult> {
+  try {
+    const sanitizedCourseTitle = sanitizeFilename(courseTitle);
+    const sanitizedLessonTitle = sanitizeFilename(lessonTitle);
+    const downloadDir = path.resolve(baseDir, sanitizedCourseTitle);
+    const filePath = path.resolve(downloadDir, `${sanitizedLessonTitle}.mp4`);
+
+    fs.mkdirSync(downloadDir, { recursive: true });
+
+    const response = await http.get(mp4Url, {
+      responseType: "stream",
+      onDownloadProgress: (progressEvent) => {
+        if (progressCallback) {
+          const percent = progressEvent.total
+            ? Math.round((progressEvent.loaded / progressEvent.total) * 100)
+            : 0;
+
+          progressCallback({
+            loaded: progressEvent.loaded,
+            percent
+          });
+        }
+      }
+    });
+
+    const writer = fs.createWriteStream(filePath);
+    response.data.pipe(writer);
+
+    return new Promise((resolve, reject) => {
+      writer.on("finish", () => resolve({ success: true, filePath }));
+      writer.on("error", (err) => {
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        reject(err);
+      });
+    });
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : util.inspect(error)
+    };
+  }
+}
+
+function sanitizeFilename(name: string): string {
+  return name.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, " ").trim().substring(0, 100);
 }

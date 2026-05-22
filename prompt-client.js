@@ -4,6 +4,7 @@ import path from "node:path";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { pathToFileURL } from "node:url";
+import util from "node:util";
 
 const SOURCE_ENTRY = path.resolve(process.cwd(), "src/index.ts");
 const DEFAULT_COOKIE_FILE = path.resolve(process.cwd(), ".seowon-ecampus.cookies.json");
@@ -39,6 +40,10 @@ const COMMAND_ALIASES = {
   이러닝목록: "elearning-lessons",
   "elearning-open": "elearning-open",
   이러닝열기: "elearning-open",
+  "elearning-mp4": "elearning-mp4",
+  이러닝MP4: "elearning-mp4",
+  "elearning-download": "elearning-download",
+  이러닝다운로드: "elearning-download",
   help: "help",
   도움말: "help"
 };
@@ -52,6 +57,8 @@ const INTERACTIVE_COMMANDS = [
   { key: "classroom-resources", label: "강의실자료" },
   { key: "elearning-lessons", label: "이러닝목록" },
   { key: "elearning-open", label: "이러닝열기" },
+  { key: "elearning-mp4", label: "이러닝MP4" },
+  { key: "elearning-download", label: "이러닝다운로드" },
   { key: "exit", label: "종료" }
 ];
 
@@ -232,19 +239,46 @@ function getSavedUserNo(session, options) {
 async function chooseCommand(rl) {
   printSection("사용 가능한 명령:");
   INTERACTIVE_COMMANDS.forEach((item, index) => {
+    const menuNumber = item.key === "exit" ? "0" : String(index + 1);
     console.log(
-      `${color(String(index + 1), ANSI.yellow)}. ${color(item.label, ANSI.bold)} ${color(`(${item.key})`, ANSI.gray)}`
+      `${color(menuNumber, ANSI.yellow)}. ${color(item.label, ANSI.bold)} ${color(`(${item.key})`, ANSI.gray)}`
     );
   });
 
   const answer = (await rl.question("명령을 선택하세요: ")).trim();
   const numeric = Number(answer);
 
-  if (Number.isInteger(numeric) && numeric >= 1 && numeric <= INTERACTIVE_COMMANDS.length) {
+  if (answer === "0") {
+    return "exit";
+  }
+
+  if (Number.isInteger(numeric) && numeric >= 1 && numeric < INTERACTIVE_COMMANDS.length) {
     return INTERACTIVE_COMMANDS[numeric - 1].key;
   }
 
   if (answer === "0" || answer.toLowerCase() === "exit" || answer === "종료") {
+    return "exit";
+  }
+
+  return COMMAND_ALIASES[answer] ?? answer;
+}
+
+async function chooseCommandWithZeroExit(rl) {
+  printSection("?ъ슜 媛?ν븳 紐낅졊:");
+  INTERACTIVE_COMMANDS.forEach((item, index) => {
+    console.log(
+      `${color(String(index + 1), ANSI.yellow)}. ${color(item.label, ANSI.bold)} ${color(`(${item.key})`, ANSI.gray)}`
+    );
+  });
+
+  const answer = (await rl.question("紐낅졊???좏깮?섏꽭?? ")).trim();
+  const numeric = Number(answer);
+
+  if (Number.isInteger(numeric) && numeric >= 1 && numeric <= INTERACTIVE_COMMANDS.length) {
+    return INTERACTIVE_COMMANDS[numeric - 1].key;
+  }
+
+  if (answer === "0") {
     return "exit";
   }
 
@@ -263,6 +297,8 @@ function printHelp() {
   강의실자료 | classroom-resources --crsCreCd <code> [--userNo <no>] [--userName <name>] [--cookieFilePath <path>]
   이러닝목록 | elearning-lessons --crsCreCd <code> [--cookieFilePath <path>]
   이러닝열기 | elearning-open --crsCreCd <code> --lessonCntsId <id> [--cookieFilePath <path>]
+  이러닝MP4 | elearning-mp4 --crsCreCd <code> --lessonCntsId <id> [--cookieFilePath <path>]
+  이러닝다운로드 | elearning-download --crsCreCd <code> --lessonCntsId <id> [--cookieFilePath <path>]
 
 저장 파일 기본값
   쿠키: ${DEFAULT_COOKIE_FILE}
@@ -353,6 +389,7 @@ async function collectInteractiveOptions(api, rl, command, baseOptions = {}) {
     case "classroom-resources": {
       const course = await chooseCourseFromMenu(api, rl, options);
       options.crsCreCd = course.crsCreCd;
+      options.courseTitle = course.title;
       printSuccess(`선택 과목: ${course.title} (${course.crsCreCd})`);
       if (command === "assignments" || command === "classroom-resources") {
         options.userNo = await ask(rl, "학번(userNo, 비우면 저장 세션 사용)", options.userNo || "");
@@ -370,12 +407,16 @@ async function collectInteractiveOptions(api, rl, command, baseOptions = {}) {
       printSuccess(`선택 과목: ${course.title} (${course.crsCreCd})`);
       break;
     }
-    case "elearning-open": {
+    case "elearning-open":
+    case "elearning-mp4":
+    case "elearning-download": {
       const course = await chooseCourseFromMenu(api, rl, options);
       options.crsCreCd = course.crsCreCd;
       printSuccess(`선택 과목: ${course.title} (${course.crsCreCd})`);
+      options.courseTitle = course.title;
       const lesson = await chooseLessonFromMenu(api, rl, options);
       options.lessonCntsId = lesson.lessonCntsId;
+      options.lessonTitle = lesson.title;
       printSuccess(`선택 이러닝: ${lesson.title} (${lesson.lessonCntsId})`);
       break;
     }
@@ -504,6 +545,79 @@ async function executeCommand(api, command, options) {
       return;
     }
 
+    case "elearning-mp4": {
+      const { client, session } = createClientFromSavedSession(api, options);
+      printInfo("MP4 URL 추출 중...");
+      const result = await client.getElearningMp4Url(
+        required(options, "crsCreCd"),
+        required(options, "lessonCntsId")
+      );
+
+      if (result.success) {
+        printSection("\nMP4 URL 추출 성공:");
+        console.log(color(result.mp4Url, ANSI.green, ANSI.bold));
+      } else {
+        printErrorMessage(`\n실패: MP4 URL을 찾지 못했습니다. ContentViewer 페이지를 분석했습니다.`);
+        if (result.debugInfo) {
+          printSection("\n디버그 정보:");
+          prettyPrint(result.debugInfo);
+        }
+      }
+      return;
+    }
+
+    case "elearning-download": {
+      const { client } = createClientFromSavedSession(api, options);
+      printInfo("MP4 URL 추출 및 다운로드 준비 중...");
+      
+      // 먼저 URL만 추출하여 로그에 출력
+      const urlResult = await client.getElearningMp4Url(
+        required(options, "crsCreCd"),
+        required(options, "lessonCntsId")
+      );
+
+      if (urlResult.success && urlResult.mp4Url) {
+        printSection("\n추출된 MP4 URL:");
+        console.log(color(urlResult.mp4Url, ANSI.cyan));
+        console.log("");
+      } else {
+        printErrorMessage(`\n추출 실패: ${urlResult.message}`);
+        if (urlResult.debugInfo) {
+          printSection("\n추출 실패 상세 디버그 정보:");
+          const debug = urlResult.debugInfo;
+          console.log(color(`상태 코드: ${debug.status} ${debug.statusText || ""}`, ANSI.yellow));
+          console.log(color(`콘텐츠 타입: ${debug.contentType || "N/A"}`, ANSI.yellow));
+          console.log(color(`본문 길이: ${debug.bodyLength || 0} 자`, ANSI.yellow));
+          
+          if (debug.bodySnippet) {
+            console.log(color("\n--- Body Snippet (앞 6000자) ---", ANSI.gray));
+            console.log(color(debug.bodySnippet, ANSI.gray));
+            console.log(color("------------------------------\n", ANSI.gray));
+          }
+        }
+        return;
+      }
+
+      const result = await client.downloadElearningMp4(
+        required(options, "crsCreCd"),
+        required(options, "lessonCntsId"),
+        options.courseTitle || required(options, "crsCreCd"),
+        options.lessonTitle || required(options, "lessonCntsId"),
+        "./downloads",
+        (progress) => {
+          process.stdout.write(`\r다운로드 진행 중: ${progress.percent}% (${(progress.loaded / 1024 / 1024).toFixed(2)} MB)`);
+        }
+      );
+
+      console.log(""); // 줄바꿈
+      if (result.success) {
+        printSuccess(`다운로드 완료: ${result.filePath}`);
+      } else {
+        printErrorMessage(`\n다운로드 실패: ${result.message}`);
+      }
+      return;
+    }
+
     case "help": {
       printHelp();
       return;
@@ -522,6 +636,7 @@ async function runInteractive(api) {
       console.log("");
       const command = await chooseCommand(rl);
       if (!command || command === "exit") {
+        printInfo("\n프로그램을 종료합니다. 이용해 주셔서 감사합니다.");
         break;
       }
 
@@ -530,7 +645,7 @@ async function runInteractive(api) {
         console.log("");
         await executeCommand(api, command, options);
       } catch (error) {
-        printErrorMessage(error?.stack || error?.message || String(error));
+        printErrorMessage(error?.stack || error?.message || util.inspect(error));
       }
 
       console.log("");
@@ -563,6 +678,6 @@ async function run() {
 try {
   await run();
 } catch (error) {
-  printErrorMessage(error?.stack || error?.message || String(error));
+  printErrorMessage(error?.stack || error?.message || util.inspect(error));
   process.exitCode = 1;
 }

@@ -53,6 +53,18 @@ const result = await client.loginWithEncryptData({ encryptData });
 console.log(result.type);
 ```
 
+## 기본 클라이언트
+
+URL 해석 기능만 필요한 경우 `createSeowonClient`를 사용합니다.
+
+```ts
+import { createSeowonClient } from "seowon-client-api";
+
+const client = createSeowonClient();
+const loginUrl = client.resolveUrl("/home/mainPop/popup/login");
+console.log(loginUrl.toString());
+```
+
 ## 로그인
 
 ### 1. encryptData 생성
@@ -255,7 +267,27 @@ console.log(bundle.recordRequest);
 console.log(bundle.snapshot);
 ```
 
-이 패키지는 실제 학습기록을 사람처럼 자동 전송하는 기능은 제공하지 않습니다. 현재 범위는 요청 구조를 읽기 전용으로 정리하고, 디버깅과 분석에 필요한 스냅샷을 만드는 수준입니다.
+
+### MP4 추출 및 다운로드
+
+특정 강의의 실제 MP4 주소를 알아내거나 다운로드할 수 있습니다.
+
+```ts
+const client = createEcampusClient();
+
+// MP4 URL 추출
+const { mp4Url } = await client.getElearningMp4Url("CRS_CODE", "LESSON_CNTS_ID");
+console.log(mp4Url);
+
+// MP4 다운로드
+await client.downloadElearningMp4(
+  "CRS_CODE",
+  "LESSON_CNTS_ID",
+  "과목명",
+  "강의명",
+  "./downloads"
+);
+```
 
 ## SAZ 패킷 분석
 

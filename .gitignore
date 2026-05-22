@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 files/
+downloads/
 .env
 .env.*
 !.env.example
