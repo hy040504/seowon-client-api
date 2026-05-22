@@ -4,32 +4,36 @@ seowon-client-api 인수인계 문서
 
 1. 프로젝트 개요
 서원대학교 e-campus(LMS) 연동을 위한 TypeScript 기반 클라이언트 라이브러리 및 CLI 도구.
-사용자 시나리오 모사(Fiddler 로그 기반)를 통한 학습 인증 자동화와 강의 자료 추출이 핵심 기능임.
+Fiddler 로그 분석을 기반으로 한 정밀한 학습 자동화(ElearningSession)와 고품질 데이터 추출이 핵심임.
 
 2. 주요 진행 상황 및 완료 사항
-- [인증] 레거시 암호화(encryptData) 기반 로그인 및 tough-cookie 세션 관리 구현 완료.
-- [추출] 과목 목록, 강의실별 공지/과제/자료실 목록 파싱 로직 안정화.
-- [e러닝] 주차별 강의 목록 추출 및 고해상도 MP4 URL 분석/다운로드 기능 구현 완료.
-- [자동화] ElearningSession 도입: Fiddler 로그 분석을 기반으로 한 6단계 학습 시퀀스(창 열기 -> 진입 -> 기록 시작 -> 랜덤 딜레이 기반 반복 기록 -> 상세 확인 -> 종료 패킷) 구현 완료.
-- [CLI] prompt-client.js 고도화: 인터랙티브 메뉴(1~11번), 실시간 로그 UI 제어(Readline 커서 제어), 자동 종료 타이머 통합.
+- [인증] 레거시 암호화(encryptData) 및 tough-cookie 기반 세션 관리 안정화.
+- [추출] 과목, 공지, 과제, 자료실 등 모든 강의실 데이터 파싱 로직 구현 완료.
+- [e러닝] 고해상도 MP4 URL 추출 및 스트림 기반 안정적 다운로드 기능 구현.
+- [자동화] ElearningSession 고도화:
+    - 6단계 시퀀스(창 열기 -> 진입 -> 기록 시작 -> 랜덤 딜레이 기반 반복 기록 -> 상세 확인 -> 종료 패킷) 보장.
+    - 실시간 학습 진행률(prgrRatio) 추출 및 상태 관리 로직 추가.
+- [CLI] prompt-client.js 최적화:
+    - 1~11번 인터랙티브 메뉴 및 목록 선택 기반 UX.
+    - 실시간 로그 UI 제어 (입력 프롬프트 하단 고정).
+    - 1분 주기 안내 및 특정 학습률(5%, 10%, 25%, 50%, 75%, 100%) 도달 시 푸른색 강조 알림.
+    - 'status', 'clear', 'stop' 등 실시간 명령어 처리 지원.
 
 3. 핵심 소스 구조
-- src/ecampus/login.ts: 메인 클라이언트(EcampusClient), 세션 및 인증 제어.
-- src/ecampus/elearning.ts: ElearningSession 클래스, 학습 시퀀스 및 MP4 다운로드 로직.
-- src/ecampus/classroom.ts & courses.ts: HTML 파싱 엔진.
-- prompt-client.js: 사용자용 인터랙티브 CLI 도구.
+- src/ecampus/login.ts: 메인 클라이언트(EcampusClient), axios 세션 관리.
+- src/ecampus/elearning.ts: ElearningSession 클래스, 진행률 추출 및 종료 패킷.
+- src/ecampus/classroom.ts & courses.ts: HTML/JSON 파싱 엔진.
+- prompt-client.js: 사용자 인터페이스 도구.
 
 4. 현재 프로젝트 상태
-- Node.js 20+ 환경에서 안정적으로 동작.
-- 주요 API 기능에 대한 유닛 테스트 및 통합 테스트 구성 완료.
-- 깃허브 원격 저장소(hy040504/seowon-client-api)와 동기화 완료.
+- 모든 핵심 기능 구현 및 연동 테스트 완료.
+- 깃허브 원격 저장소와 최신 상태 동기화 중.
 
 5. 향후 과제 (TODO)
-- 과제 제출 및 퀴즈 응시 자동화 연구.
-- 실시간 온라인 강의(Zoom/Webex) 연동 확인.
-- 패키지 배포를 위한 가벼운 빌드 최적화.
+- 과제 자동 제출 및 퀴즈 응시 로직 고도화.
+- 다중 계정 동시 시청 기능 연구.
 
 6. 주의사항
-- .env 파일에 SEOWON_ID, SEOWON_PASSWORD 필수 설정.
-- 학습 자동화 시 실제 서버 로그와 정합성을 위해 랜덤 딜레이(45~75초)를 엄격히 준수할 것.
-- .seowon-ecampus.cookies.json은 민감 정보를 포함하므로 외부에 노출 금지.
+- .env 파일에 계정 정보 필수 기재.
+- 서버 정책 준수를 위해 랜덤 딜레이 로직 변경 지양.
+- 쿠키 파일(.json) 유출 주의.

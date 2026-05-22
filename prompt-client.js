@@ -45,8 +45,8 @@ const COMMAND_ALIASES = {
   "elearning-download": "elearning-download",
   이러닝다운로드: "elearning-download",
   "elearning-watch": "elearning-watch",
-  이러닝듣기: "elearning-watch",
-  이러닝자동시청: "elearning-watch",
+  "이러닝듣기": "elearning-watch",
+  "이러닝자동시청": "elearning-watch",
   help: "help",
   도움말: "help"
 };
@@ -418,15 +418,11 @@ async function collectInteractiveOptions(api, rl, command, baseOptions = {}) {
     case "elearning-mp4":
     case "elearning-download":
     case "elearning-watch": {
-      // 1. 강의실(과목) 목록 표시 및 선택 (기존 로직 재사용)
       const course = await chooseCourseFromMenu(api, rl, options);
       options.crsCreCd = course.crsCreCd;
-      options.courseTitle = course.title;
       printSuccess(`선택 과목: ${course.title} (${course.crsCreCd})`);
+      options.courseTitle = course.title;
 
-      if (command === "elearning-lessons") break;
-
-      // 2. e러닝 lesson 목록 표시 및 선택 (기존 로직 재사용)
       const lesson = await chooseLessonFromMenu(api, rl, options);
       options.lessonCntsId = lesson.lessonCntsId;
       options.lessonTitle = lesson.title;
@@ -434,7 +430,6 @@ async function collectInteractiveOptions(api, rl, command, baseOptions = {}) {
 
       if (command === "elearning-watch") {
         options.userNo = await ask(rl, "학번 (stdNo)", "2026_1_008620_01_202311420");
-        // 3. [duration 기본값 설정] 해당 lesson의 총 영상시간을 기본값으로 자동 설정
         const defaultMinutes = lesson.durationSeconds ? Math.ceil(lesson.durationSeconds / 60) : "60";
         options.watchMinutes = await ask(rl, "시청할 시간 (분)", String(defaultMinutes));
       }
@@ -637,7 +632,7 @@ async function executeCommand(api, command, options, rl) {
 
       printInfo(`\n학습 자동화 세션을 시작합니다... (목표 시간: ${watchMinutes}분)`);
       
-      // 4. [로그 출력 및 readline cursor 제어]
+      // 로그 출력 제어 로직 (프롬프트 상단 유지)
       const originalLog = console.log;
       const originalWarn = console.warn;
       const originalError = console.error;
@@ -658,6 +653,9 @@ async function executeCommand(api, command, options, rl) {
 
       let session;
       let statusInterval;
+      let lastNotifiedPercent = -1;
+      const progressMilestones = [5, 10, 25, 50, 75, 100];
+
       try {
         session = await api.watchLesson(
           client.http,
@@ -669,10 +667,18 @@ async function executeCommand(api, command, options, rl) {
 
         printSuccess(`🎬 학습 시작 완료. (studyDetailId: ${session.getStudyDetailId()})`);
         
-        // [상태 메시지 1분 주기 출력 로직]
+        // [상태 메시지 및 학습률 알림 로직]
         statusInterval = setInterval(() => {
+          const progress = session.getProgressPercent();
           console.log(color("학습 중... ('stop'으로 종료, 'clear'로 화면 정리, Ctrl+C로 즉시 종료)", ANSI.gray));
-        }, 60000);
+          
+          // 학습률 특정 지점 도달 시 푸른색 강조 로그
+          const matchedMilestone = progressMilestones.find(m => progress >= m && lastNotifiedPercent < m);
+          if (matchedMilestone !== undefined) {
+            console.log(color(`[알림] 학습 진행률이 ${progress}%에 도달했습니다!`, ANSI.bold, ANSI.blue));
+            lastNotifiedPercent = progress;
+          }
+        }, 60000); // 1분 주기
 
         rl.setPrompt(color("> ", ANSI.cyan));
         rl.prompt();
@@ -697,7 +703,6 @@ async function executeCommand(api, command, options, rl) {
         while (true) {
           const answer = (await rl.question("")).trim().toLowerCase();
           
-          // [clear/stop 처리 부분]
           if (answer === "stop" || answer === "") {
             clearTimeout(autoStopTimer);
             clearInterval(statusInterval);
@@ -708,6 +713,9 @@ async function executeCommand(api, command, options, rl) {
           } else if (answer === "clear") {
             console.clear();
             rl.prompt();
+          } else if (answer === "status") {
+            const progress = session.getProgressPercent();
+            console.log(color(`[상태] 현재 학습 진행률: ${progress}%`, ANSI.bold, ANSI.blue));
           }
         }
       } finally {

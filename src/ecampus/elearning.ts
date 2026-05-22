@@ -169,6 +169,7 @@ const EXIT_STUDY_PATH = "/lesson/lessonPop/Form/exitStudy";
 export class ElearningSession {
   private studyDetailId: string | null = null;
   private totalStudyTime: number = 0;
+  private progressPercent: number = 0;
   private intervalId: NodeJS.Timeout | null = null;
   private isWatching = false;
 
@@ -228,7 +229,7 @@ export class ElearningSession {
   private async initializeStudyRecord() {
     const initialTm = 60;
     const res = await this.callAddStudyRecord(initialTm);
-    // 서버 응답 구조가 { returnVO: { studyDetailId: "..." } } 형태인 것을 가정
+    // 서버 응답 구조가 { returnVO: { studyDetailId: "...", prgrRatio: 11 } } 형태인 것을 가정
     const data = res as any;
     if (data?.returnVO?.studyDetailId) {
       this.studyDetailId = data.returnVO.studyDetailId;
@@ -256,7 +257,14 @@ export class ElearningSession {
         "X-Requested-With": "XMLHttpRequest"
       }
     });
-    return response.data;
+
+    // 학습 진행률(prgrRatio) 파싱 및 저장
+    const data = response.data as any;
+    if (data?.returnVO?.prgrRatio !== undefined) {
+      this.progressPercent = Number(data.returnVO.prgrRatio);
+    }
+
+    return data;
   }
 
   private startPeriodicStudyRecord() {
@@ -332,6 +340,10 @@ export class ElearningSession {
 
   getStudyDetailId() {
     return this.studyDetailId;
+  }
+
+  getProgressPercent() {
+    return this.progressPercent;
   }
 }
 
