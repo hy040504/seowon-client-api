@@ -160,6 +160,195 @@ const LESSON_VIEW_PATH = "/lesson/lessonLect/Form/mainLesson";
 const LESSON_WINDOW_PATH = "/lesson/lessonOpen/lessonNewWindow";
 const ADD_STUDY_RECORD_PATH = "/lesson/lessonHome/addStudyRecord";
 const VIEW_STUDY_DETAIL_PATH = "/lesson/lessonLect/viewLessonStudyDetail";
+const VIEW_LESSON_CMNT_PATH = "/lesson/lessonLect/viewLessonCmnt";
+const EXIT_STUDY_PATH = "/lesson/lessonPop/Form/exitStudy";
+
+/**
+ * 실제 사람이 강의를 보는 시나리오를 관리하는 세션 클래스
+ */
+export class ElearningSession {
+  private studyDetailId: string | null = null;
+  private totalStudyTime: number = 0;
+  private intervalId: NodeJS.Timeout | null = null;
+  private isWatching = false;
+
+  constructor(
+    private readonly http: AxiosInstance,
+    private readonly baseUrl: string,
+    private readonly lessonCntsId: string,
+    private readonly crsCreCd: string,
+    private readonly stdNo: string
+  ) {}
+
+  /**
+   * 자연스러운 학습 인증을 시작한다 (lessonNewWindow -> viewLessonCmnt -> addStudyRecord)
+   */
+  async startWatchingLesson(): Promise<void> {
+    if (this.isWatching) return;
+    console.log(`[ElearningSession] 🎬 ${this.lessonCntsId} 자연스러운 학습 시작`);
+
+    // 1. 동영상 재생 창 열기
+    await this.openLessonWindow();
+
+    // 2. 콘텐츠 진입 (Fiddler 로그 기반 추가 단계)
+    await this.enterLessonContent();
+
+    // 3. 최초 학습 기록 생성 (studyDetailId 확보)
+    await this.initializeStudyRecord();
+
+    // 4. 주기적 학습 기록 전송 시작
+    this.startPeriodicStudyRecord();
+
+    this.isWatching = true;
+  }
+
+  private async openLessonWindow() {
+    await this.http.get(LESSON_WINDOW_PATH, {
+      params: { crsCreCd: this.crsCreCd }
+    });
+    console.log("[ElearningSession] ✅ lessonNewWindow 호출 완료");
+  }
+
+  private async enterLessonContent() {
+    const params = new URLSearchParams({
+      lessonCntsId: this.lessonCntsId,
+      progressTypeCd: DEFAULT_PROGRESS_TYPE_CD,
+      stdNo: this.stdNo,
+      crsCreCd: this.crsCreCd
+    });
+    await this.http.post(VIEW_LESSON_CMNT_PATH, params, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    });
+    console.log("[ElearningSession] ✅ viewLessonCmnt (콘텐츠 진입)");
+  }
+
+  private async initializeStudyRecord() {
+    const initialTm = 60;
+    const res = await this.callAddStudyRecord(initialTm);
+    // 서버 응답 구조가 { returnVO: { studyDetailId: "..." } } 형태인 것을 가정
+    const data = res as any;
+    if (data?.returnVO?.studyDetailId) {
+      this.studyDetailId = data.returnVO.studyDetailId;
+      this.totalStudyTime = initialTm;
+      console.log(`[ElearningSession] ✅ studyDetailId 생성: ${this.studyDetailId}`);
+    } else {
+      console.warn("[ElearningSession] ⚠️ studyDetailId를 확보하지 못했습니다.");
+    }
+  }
+
+  private async callAddStudyRecord(studyTotalTm: number) {
+    const query = {
+      lessonCntsId: this.lessonCntsId,
+      stdNo: this.stdNo,
+      studyDetailId: this.studyDetailId || "",
+      studyTotalTm: studyTotalTm.toString(),
+      studyAfterTm: "0",
+      studyStatusCd: "STUDY",
+      crsCreCd: this.crsCreCd
+    };
+    const response = await this.http.get(ADD_STUDY_RECORD_PATH, {
+      params: query,
+      headers: {
+        Accept: "application/json, text/javascript, */*; q=0.01",
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    });
+    return response.data;
+  }
+
+  private startPeriodicStudyRecord() {
+    const sendNext = async () => {
+      if (!this.isWatching) return;
+
+      // 45~75초 사이의 랜덤 딜레이
+      const randomDelay = 45000 + Math.random() * 30000;
+      this.totalStudyTime += 60;
+
+      console.log(`[ElearningSession] ⏰ addStudyRecord 호출 → 누적 ${this.totalStudyTime}초`);
+      await this.callAddStudyRecord(this.totalStudyTime);
+
+      // 학습 이력 확인 (실제 사람이 확인하는 패턴 모사)
+      await this.verifyStudyDetail();
+
+      this.intervalId = setTimeout(sendNext, randomDelay);
+    };
+
+    // 첫 호출 지연 (25~35초 후)
+    this.intervalId = setTimeout(sendNext, 25000 + Math.random() * 10000);
+  }
+
+  private async verifyStudyDetail() {
+    const params = new URLSearchParams({
+      lessonCntsId: this.lessonCntsId,
+      prgrRatioTypeCd: "STUDY_TOTAL_TM",
+      stdNo: this.stdNo,
+      crsCreCd: this.crsCreCd,
+      pageIndex: "1",
+      listScale: "10"
+    });
+    await this.http.post(VIEW_STUDY_DETAIL_PATH, params, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    });
+    console.log("[ElearningSession] ✅ viewLessonStudyDetail (학습 이력 확인)");
+  }
+
+  /**
+   * 학습을 중단하고 세션을 종료한다 (exitStudy 호출)
+   */
+  async stopWatchingLesson(): Promise<void> {
+    if (this.intervalId) {
+      clearTimeout(this.intervalId);
+      this.intervalId = null;
+    }
+    if (!this.isWatching) return;
+
+    try {
+      const params = new URLSearchParams({
+        lessonCntsId: this.lessonCntsId,
+        seekFile: "",
+        downloadYn: "",
+        progressTypeCd: DEFAULT_PROGRESS_TYPE_CD
+      });
+      // 반드시 /lesson/lessonPop/Form/exitStudy 패킷 전송
+      await this.http.post(EXIT_STUDY_PATH, params, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      });
+      console.log(`[ElearningSession] 🛑 학습 종료 패킷(exitStudy) 전송 완료 (총 ${this.totalStudyTime}초)`);
+    } catch (error) {
+      console.error("[ElearningSession] ⚠️ 종료 패킷 전송 중 오류 발생:", error instanceof Error ? error.message : error);
+    } finally {
+      this.isWatching = false;
+    }
+  }
+
+  getStudyDetailId() {
+    return this.studyDetailId;
+  }
+}
+
+/**
+ * 새로운 학습 세션을 생성하고 시작한다
+ */
+export async function watchLesson(
+  http: AxiosInstance,
+  baseUrl: string,
+  lessonCntsId: string,
+  crsCreCd: string,
+  stdNo: string
+): Promise<ElearningSession> {
+  const session = new ElearningSession(http, baseUrl, lessonCntsId, crsCreCd, stdNo);
+  await session.startWatchingLesson();
+  return session;
+}
 
 /**
  * e-learning 강의 목록 HTML에서 주차와 차시 목록을 추출한다

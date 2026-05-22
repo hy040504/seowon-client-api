@@ -91,6 +91,8 @@ export {
   stringifyEcampusLessons,
   getElearningMp4Url,
   downloadElearningMp4,
+  ElearningSession,
+  watchLesson,
   type EcampusLessonGetRequest,
   type EcampusLessonItem,
   type EcampusLessonParseOptions,

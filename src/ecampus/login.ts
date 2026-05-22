@@ -124,7 +124,7 @@ const DEFAULT_PROGRESS_TYPE_CD = "WEEK";
 export class EcampusClient {
   readonly baseUrl: string;
   readonly cookieJar: CookieJar;
-  private readonly http: AxiosInstance;
+  readonly http: AxiosInstance;
   private readonly cookieFilePath?: string;
   private loginCredentials?: LoginCredentials;
 
