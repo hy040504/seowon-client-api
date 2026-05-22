@@ -268,7 +268,7 @@ export class EcampusClient {
    * @returns {Promise<EcampusCourseGroups>} 교과와 비교과 그룹 정보
    */
   async getCourseGroups(): Promise<EcampusCourseGroups> {
-    const html = await this.getMainPageHtml();
+    const html = await this.getCourseListHtml();
     return parseEcampusCourseGroups(html);
   }
 
@@ -277,7 +277,7 @@ export class EcampusClient {
    * @returns {Promise<EcampusCourseListItem[]>} 과목명, 강의실 코드, 과목 타입 배열
    */
   async getCourseList(): Promise<EcampusCourseListItem[]> {
-    const html = await this.getMainPageHtml();
+    const html = await this.getCourseListHtml();
     return parseEcampusCourseList(html);
   }
 
@@ -286,7 +286,7 @@ export class EcampusClient {
    * @returns {Promise<string>} 과목 목록 JSON 문자열
    */
   async getCourseListJson(): Promise<string> {
-    const html = await this.getMainPageHtml();
+    const html = await this.getCourseListHtml();
     return parseEcampusCourseListJson(html);
   }
 
@@ -295,8 +295,22 @@ export class EcampusClient {
    * @returns {Promise<string>} 과목 목록 JSON 문자열
    */
   async getCourseNamesJson(): Promise<string> {
-    const html = await this.getMainPageHtml();
+    const html = await this.getCourseListHtml();
     return parseEcampusCourseNamesJson(html);
+  }
+
+  /**
+   * 메인 페이지에서 AJAX로 불러오는 강의실 목록 HTML을 가져온다.
+   * @param {string} crsCreCd - 현재 선택된 강의실 코드
+   * @returns {Promise<string>} 강의실 드롭다운 HTML
+   */
+  async getCourseListHtml(crsCreCd = ""): Promise<string> {
+    await this.ensureAuthenticated();
+    const html = await this.postForm("/crs/creCrsHome/classRoomCrsCreList", {
+      crsCreCd
+    });
+
+    return html;
   }
 
   /**
@@ -438,15 +452,61 @@ export class EcampusClient {
    */
   async getElearningLessonListHtml(options: GetElearningLessonListOptions): Promise<string> {
     await this.ensureAuthenticated();
-    const url = new URL("/lesson/lessonLect/Form/lessonListForm", this.baseUrl);
-    url.searchParams.set("mcd", options.mcd ?? DEFAULT_LESSON_MENU_CODE);
-    url.searchParams.set("crsCreCd", options.crsCreCd);
+    const formUrl = new URL("/lesson/lessonLect/Form/lessonListForm", this.baseUrl);
+    formUrl.searchParams.set("mcd", options.mcd ?? DEFAULT_LESSON_MENU_CODE);
+    formUrl.searchParams.set("crsCreCd", options.crsCreCd);
 
-    const response = await this.http.get<string>(url.pathname + url.search, {
+    await this.http.get<string>(formUrl.pathname + formUrl.search, {
       headers: {
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
       }
     });
+
+    const creInfoResponse = await this.http.post<{
+      result?: number;
+      returnVO?: {
+        progressTypeCd?: string;
+      };
+    }>(
+      "/crs/creCrsLect/creInfo",
+      new URLSearchParams({
+        crsCreCd: options.crsCreCd
+      }),
+      {
+        headers: {
+          Accept: "application/json, text/javascript, */*; q=0.01",
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          Origin: this.baseUrl.replace(/\/$/, ""),
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      }
+    );
+
+    const progressTypeCd =
+      options.progressTypeCd ??
+      creInfoResponse.data.returnVO?.progressTypeCd ??
+      DEFAULT_PROGRESS_TYPE_CD;
+
+    const response = await this.http.post<string>(
+      "/lesson/lessonLect/lessonList",
+      new URLSearchParams({
+        pageIndex: "1",
+        listScale: "10",
+        searchValue: "",
+        crsCreCd: options.crsCreCd,
+        lessonScheduleId: "",
+        subParam: "GRID",
+        progressTypeCd
+      }),
+      {
+        headers: {
+          Accept: "text/html, */*; q=0.01",
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          Origin: this.baseUrl.replace(/\/$/, ""),
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      }
+    );
 
     await this.persistCookieJar();
     return response.data;
