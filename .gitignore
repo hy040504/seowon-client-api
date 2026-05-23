@@ -10,3 +10,4 @@ npm-debug.log*
 .seowon-ecampus.cookies.json
 .seowon-ecampus.session.json
 tmp-*.html
+handover.txt
