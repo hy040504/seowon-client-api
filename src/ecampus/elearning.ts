@@ -258,10 +258,22 @@ export class ElearningSession {
       }
     });
 
-    // 학습 진행률(prgrRatio) 파싱 및 저장
-    const data = response.data as any;
-    if (data?.returnVO?.prgrRatio !== undefined) {
-      this.progressPercent = Number(data.returnVO.prgrRatio);
+    // 학습 진행률(prgrRatio) 파싱 및 저장 (문자열 응답 대응 및 경로 유연성 확보)
+    let data = response.data;
+    if (typeof data === "string" && data.trim().startsWith("{")) {
+      try {
+        data = JSON.parse(data);
+      } catch (e) {
+        // JSON 파싱 실패 시 무시
+      }
+    }
+
+    const rawRatio = data?.returnVO?.prgrRatio ?? data?.prgrRatio;
+    if (rawRatio !== undefined && rawRatio !== null) {
+      const parsedRatio = Number(rawRatio);
+      if (!isNaN(parsedRatio)) {
+        this.progressPercent = parsedRatio;
+      }
     }
 
     return data;
