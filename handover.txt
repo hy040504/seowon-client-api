@@ -3,37 +3,35 @@ seowon-client-api 인수인계 문서
 작업 폴더: C:\Users\Coding\Desktop\개인 개발 프로젝트\seowon-client-api
 
 1. 프로젝트 개요
-서원대학교 e-campus(LMS) 연동을 위한 TypeScript 기반 클라이언트 라이브러리 및 CLI 도구.
-Fiddler 로그 분석을 기반으로 한 정밀한 학습 자동화(ElearningSession)와 고품질 데이터 추출이 핵심임.
+서원대학교 e-campus(LMS) 연동을 위한 TypeScript 기반 고성능 클라이언트 라이브러리 및 CLI 도구.
+Senior Software Engineer 수준의 코드 품질 표준(JSDoc, WHY-centric comments, Clean Code)을 준수하여 개발됨.
 
 2. 주요 진행 상황 및 완료 사항
-- [인증] 레거시 암호화(encryptData) 및 tough-cookie 기반 세션 관리 안정화.
-- [추출] 과목, 공지, 과제, 자료실 등 모든 강의실 데이터 파싱 로직 구현 완료.
-- [e러닝] 고해상도 MP4 URL 추출 및 스트림 기반 안정적 다운로드 기능 구현.
+- [인증] 레거시 암호화 및 tough-cookie 기반의 안정적인 세션 관리 엔진 구축.
+- [추출] 과목, 공지, 과제, 자료실 등 모든 강의실 리소스에 대한 고성능 파싱 엔진(Cheerio 기반) 완료.
+- [e러닝] 고해상도 MP4 URL 자동 분석 및 스트림 방식의 안정적 다운로드 기능 구현.
 - [자동화] ElearningSession 고도화:
-    - 6단계 시퀀스(창 열기 -> 진입 -> 기록 시작 -> 랜덤 딜레이 기반 반복 기록 -> 상세 확인 -> 종료 패킷) 보장.
-    - 학습 진행률 추출 로직 강화: 서버 응답이 문자열이거나 필드 경로가 다른 경우(data.prgrRatio 등)에도 대응하는 견고한 파싱 적용.
-- [CLI] prompt-client.js 최적화:
-    - 실시간 로그 UI 제어 (입력 프롬프트 하단 고정).
-    - 1분 주기 안내 및 특정 학습률(5%, 10%, 25%, 50%, 75%, 100%) 도달 시 푸른색 강조 알림 기능 추가.
-    - 'status' 명령어를 통한 즉시 학습률 조회 기능 추가.
-    - 'clear', 'stop', Ctrl+C 처리 안정화.
+    - Fiddler 패킷 분석 기반의 정밀한 시청 시퀀스 자동화.
+    - 봇 탐지 회피를 위한 가변 랜덤 딜레이(45~75초) 및 실시간 학습률(prgrRatio) 동기화 로직 적용.
+- [코드 품질] 전체 소스코드 리팩토링 완료:
+    - 전 함수 한국어 JSDoc 표준 적용.
+    - "WHAT"이 아닌 "WHY" 중심의 전문적인 주석 체계 도입.
+    - 유지보수성 향상을 위한 로직 분리 및 네이밍 최적화.
 
 3. 핵심 소스 구조
-- src/ecampus/login.ts: 메인 클라이언트(EcampusClient), axios 세션 관리.
-- src/ecampus/elearning.ts: ElearningSession 클래스, 견고한 진행률 추출 로직 포함.
-- src/ecampus/classroom.ts & courses.ts: HTML/JSON 파싱 엔진.
-- prompt-client.js: 사용자 인터페이스 도구.
+- src/ecampus/login.ts: 코어 클라이언트(EcampusClient), 세션 생명주기 관리.
+- src/ecampus/elearning.ts: 학습 자동화(ElearningSession) 및 미디어 분석 엔진.
+- src/ecampus/utils.ts: HTTP 전문 분리 및 정규식 처리 등 공통 유틸리티.
+- prompt-client.js: 전문가용 인터랙티브 CLI 인터페이스.
 
 4. 현재 프로젝트 상태
-- 모든 핵심 기능 구현 완료 및 사용자 보고 이슈(진행률 0 고정) 해결 완료.
-- 깃허브 원격 저장소와 최신 상태 동기화 중.
+- 프로덕션 수준의 안정성 확보 및 전체 타입 체크 통과.
+- 깃허브 원격 저장소와 최신 리팩토링 결과 동기화 완료.
 
 5. 향후 과제 (TODO)
-- 과제 자동 제출 및 퀴즈 응시 로직 고도화.
-- 다중 세션 동시 시청 안정성 테스트.
+- 과제 자동 제출 엔진 고도화.
+- 다중 계정 동시 관리 기능 추가.
 
 6. 주의사항
-- .env 파일에 계정 정보 필수 기재.
-- 서버 정책 준수를 위해 랜덤 딜레이 로직 변경 지양.
-- 쿠키 파일(.json) 유출 주의.
+- .env 보안 설정 필수.
+- 서버 정합성을 위해 내부 딜레이 로직 임의 수정 금지.

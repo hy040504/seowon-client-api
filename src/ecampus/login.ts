@@ -1,9 +1,7 @@
 import axios, { type AxiosInstance } from "axios";
 import { wrapper } from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
-import * as cheerio from "cheerio";
 import { isCookieJarUsable, loadCookieJarFromFile, saveCookieJarToFile } from "./cookies";
-import util from "node:util";
 import {
   createEmptyEcampusClassroomResources,
   parseEcampusAssignmentListHtml,
@@ -37,22 +35,30 @@ import {
 } from "./elearning";
 import type { EcampusCourseGroups } from "./courses";
 
+/** e-campus 클라이언트 초기화 옵션 */
 export interface EcampusClientOptions {
+  /** 기본 도메인 (생략 시 서원대 e-campus) */
   baseUrl?: string;
+  /** 외부에서 생성한 Axios 인스턴스 주입 시 사용 */
   axios?: AxiosInstance;
+  /** 세션 유지를 위한 쿠키 파일 저장 경로 */
   cookieFilePath?: string;
+  /** 자동 재로그인을 위한 계정 정보 */
   loginCredentials?: LoginCredentials;
 }
 
+/** e-campus 로그인 계정 정보 */
 export interface LoginCredentials extends LoginEncryptOptions {
   userId: string;
   password: string;
 }
 
+/** 암호화된 데이터를 이용한 로그인 옵션 */
 export interface LoginWithEncryptDataOptions {
   encryptData: string;
 }
 
+/** 강의실 리소스 조회 옵션 */
 export interface GetClassroomResourcesOptions {
   crsCreCd: string;
   userNo: string;
@@ -60,22 +66,26 @@ export interface GetClassroomResourcesOptions {
   listScale?: number;
 }
 
+/** 게시판 목록 조회 옵션 */
 export interface GetClassroomBoardListOptions {
   crsCreCd: string;
   listScale?: number;
 }
 
+/** 과제 목록 조회 옵션 */
 export interface GetClassroomAssignmentListOptions extends GetClassroomBoardListOptions {
   userNo: string;
   userName?: string;
 }
 
+/** 온라인 강의 목록 조회 옵션 */
 export interface GetElearningLessonListOptions {
   crsCreCd: string;
   mcd?: string;
   progressTypeCd?: string;
 }
 
+/** 온라인 강의 상세 조회 옵션 */
 export interface OpenElearningLessonOptions {
   crsCreCd: string;
   lessonCntsId: string;
@@ -84,22 +94,13 @@ export interface OpenElearningLessonOptions {
   downloadYn?: string;
 }
 
+/** 로그인 수행 결과 타입 */
 export type LoginResult =
-  | {
-      type: "redirect";
-      data: EcampusLoginResponse;
-      url: string;
-    }
-  | {
-      type: "reload";
-      data: EcampusLoginResponse;
-    }
-  | {
-      type: "error";
-      data?: EcampusLoginResponse;
-      message: string;
-    };
+  | { type: "redirect"; data: EcampusLoginResponse; url: string; }
+  | { type: "reload"; data: EcampusLoginResponse; }
+  | { type: "error"; data?: EcampusLoginResponse; message: string; };
 
+/** e-campus 서버 로그인 응답 구조 */
 export interface EcampusLoginResponse {
   redirectUrl?: string;
   otpLogin?: "Y" | "N" | string;
@@ -119,7 +120,8 @@ const DEFAULT_LESSON_MENU_CODE = "MH_210504T143020d03000a";
 const DEFAULT_PROGRESS_TYPE_CD = "WEEK";
 
 /**
- * e-campus 세션과 로그인/목록 조회를 담당하는 클라이언트
+ * e-campus 세션 관리 및 데이터 연동을 담당하는 핵심 클라이언트 클래스.
+ * 쿠키 기반의 세션 유지와 만료 시 자동 로그인 기능을 포함한다.
  */
 export class EcampusClient {
   readonly baseUrl: string;
@@ -128,104 +130,86 @@ export class EcampusClient {
   private readonly cookieFilePath?: string;
   private loginCredentials?: LoginCredentials;
 
-  // 학습 자동화 상태 관리
-  private studyInterval: NodeJS.Timeout | null = null;
-  private currentStudyDetailId: string | null = null;
-  private currentStudyTotalTm = 0;
-  private isWatching = false;
-  private stdNo: string | null = null;
-
   /**
-   * 클라이언트를 초기화한다
-   * @param {EcampusClientOptions} options - 기본 URL과 axios 인스턴스를 덮어쓸 옵션
+   * 클라이언트 인스턴스를 초기화한다
+   * @param {EcampusClientOptions} options - 설정 옵션
    */
   constructor(options: EcampusClientOptions = {}) {
     this.baseUrl = normalizeBaseUrl(options.baseUrl ?? DEFAULT_BASE_URL);
     this.cookieFilePath = options.cookieFilePath;
     this.loginCredentials = options.loginCredentials;
     this.cookieJar = this.loadCookieJar();
-    this.http =
-      options.axios ??
-      wrapper(
-        axios.create({
-          baseURL: this.baseUrl,
-          jar: this.cookieJar,
-          withCredentials: true,
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-              "(KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
-          }
-        })
-      );
+    
+    // axios-cookiejar-support를 사용하여 세션 쿠키를 자동으로 관리
+    this.http = options.axios ?? wrapper(
+      axios.create({
+        baseURL: this.baseUrl,
+        jar: this.cookieJar,
+        withCredentials: true,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+        }
+      })
+    );
   }
 
   /**
-   * 쿠키 파일이 있으면 불러오고, 없으면 새 저장소를 만든다
-   * @returns {CookieJar} 사용 가능한 쿠키 저장소
+   * 영구 저장된 쿠키 파일을 읽어 CookieJar를 구성한다
+   * @returns {CookieJar} 초기화된 쿠키 저장소
+   * @private
    */
   private loadCookieJar(): CookieJar {
-    if (!this.cookieFilePath) {
-      return new CookieJar();
-    }
-
+    if (!this.cookieFilePath) return new CookieJar();
     const loaded = loadCookieJarFromFile(this.cookieFilePath);
     return loaded ?? new CookieJar();
   }
 
   /**
-   * 쿠키 파일이 설정되어 있으면 현재 저장소를 파일에 기록한다
-   * @returns {Promise<void>} 저장 완료를 기다리는 Promise
+   * 현재 세션 쿠키 상태를 파일로 기록한다
+   * @returns {Promise<void>}
+   * @private
    */
   private async persistCookieJar(): Promise<void> {
-    if (!this.cookieFilePath) {
-      return;
-    }
-
+    if (!this.cookieFilePath) return;
     saveCookieJarToFile(this.cookieFilePath, this.cookieJar);
   }
 
   /**
-   * 쿠키가 유효하면 그대로 쓰고, 만료되었으면 저장된 계정으로 다시 로그인한다
-   * @returns {Promise<void>} 사용 가능한 세션이 확보될 때까지 기다리는 Promise
-   * @throws {Error} 저장된 계정 정보가 없는데 재로그인이 필요한 경우
+   * API 호출 전 세션 유효성을 검사하고, 필요 시 자동 재로그인을 수행한다
+   * @throws {Error} 세션이 만료되었으나 재로그인 정보가 없을 때
+   * @private
    */
   private async ensureAuthenticated(): Promise<void> {
-    if (!this.cookieFilePath && !this.loginCredentials) {
-      return;
-    }
+    if (!this.cookieFilePath && !this.loginCredentials) return;
+    if (isCookieJarUsable(this.cookieJar)) return;
 
-    if (isCookieJarUsable(this.cookieJar)) {
-      return;
-    }
-
+    // TODO: 세션 갱신 실패 시 지수 백오프(Exponential Backoff) 재시도 로직 고려
     if (!this.loginCredentials) {
-      throw new Error("쿠키가 만료되었고 재로그인할 계정 정보가 없습니다.");
+      throw new Error("세션이 만료되었으며, 자동 로그인을 위한 계정 정보가 설정되어 있지 않습니다.");
     }
 
     await this.login(this.loginCredentials);
   }
 
   /**
-   * 로그인에 필요한 초기 세션을 준비한다
-   * @returns {Promise<void>} 세션 준비 완료를 기다리는 Promise
+   * 서버 측 세션 초기화를 위해 로그인 팝업 페이지를 사전 방문한다
+   * @returns {Promise<void>}
    */
   async prepareLoginSession(): Promise<void> {
     await this.http.get(LOGIN_PAGE_PATH, {
-      headers: {
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-      }
+      headers: { Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" }
     });
     await this.persistCookieJar();
   }
 
   /**
-   * 계정 정보로 암호화 문자열을 만들어 로그인한다
-   * @param {LoginCredentials} credentials - 로그인에 필요한 계정 정보
-   * @returns {Promise<LoginResult>} 로그인 결과
+   * 사용자 계정 정보를 기반으로 로그인을 수행한다
+   * @param {LoginCredentials} credentials - 로그인 정보
+   * @returns {Promise<LoginResult>} 로그인 처리 결과
    */
   async login(credentials: LoginCredentials): Promise<LoginResult> {
     this.loginCredentials = credentials;
+    // 레거시 암호화 모듈을 통해 서버가 요구하는 특수 포맷의 문자열 생성
     const encryptData = createLoginEncryptData(credentials.userId, credentials.password, {
       reason: credentials.reason,
       foreigner: credentials.foreigner
@@ -235,8 +219,8 @@ export class EcampusClient {
   }
 
   /**
-   * 암호화 문자열을 이용해 로그인한다
-   * @param {LoginWithEncryptDataOptions} options - 서버로 보낼 encryptData
+   * 생성된 암호화 문자열을 서버로 전송하여 세션을 획득한다
+   * @param {LoginWithEncryptDataOptions} options - 암호화 데이터
    * @returns {Promise<LoginResult>} 로그인 결과
    */
   async loginWithEncryptData(options: LoginWithEncryptDataOptions): Promise<LoginResult> {
@@ -261,24 +245,21 @@ export class EcampusClient {
   }
 
   /**
-   * 로그인 후 메인 페이지 HTML을 가져온다
+   * 로그인 후 접근 가능한 메인 대시보드 HTML을 가져온다
    * @returns {Promise<string>} 메인 페이지 HTML
    */
   async getMainPageHtml(): Promise<string> {
     await this.ensureAuthenticated();
     const response = await this.http.get<string>(MAIN_PAGE_PATH, {
-      headers: {
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-      }
+      headers: { Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" }
     });
-
     await this.persistCookieJar();
     return response.data;
   }
 
   /**
-   * 메인 페이지에서 교과와 비교과 그룹 정보를 추출한다
-   * @returns {Promise<EcampusCourseGroups>} 교과와 비교과 그룹 정보
+   * 수강 중인 과목들을 교과/비교과 그룹으로 분류하여 가져온다
+   * @returns {Promise<EcampusCourseGroups>} 그룹화된 과목 정보
    */
   async getCourseGroups(): Promise<EcampusCourseGroups> {
     const html = await this.getCourseListHtml();
@@ -286,8 +267,8 @@ export class EcampusClient {
   }
 
   /**
-   * 메인 페이지에서 과목 목록 배열을 가져온다
-   * @returns {Promise<EcampusCourseListItem[]>} 과목명, 강의실 코드, 과목 타입 배열
+   * 수강 중인 전체 과목 목록을 가져온다
+   * @returns {Promise<EcampusCourseListItem[]>} 과목 정보 배열
    */
   async getCourseList(): Promise<EcampusCourseListItem[]> {
     const html = await this.getCourseListHtml();
@@ -295,8 +276,8 @@ export class EcampusClient {
   }
 
   /**
-   * 메인 페이지 과목 목록을 JSON 문자열로 가져온다
-   * @returns {Promise<string>} 과목 목록 JSON 문자열
+   * 과목 목록을 정규화된 JSON 문자열 형식으로 가져온다
+   * @returns {Promise<string>} 포맷팅된 JSON 문자열
    */
   async getCourseListJson(): Promise<string> {
     const html = await this.getCourseListHtml();
@@ -304,8 +285,8 @@ export class EcampusClient {
   }
 
   /**
-   * 과목 목록 JSON을 기존 호환 이름으로 가져온다
-   * @returns {Promise<string>} 과목 목록 JSON 문자열
+   * 하위 호환성을 위해 이전 버전 포맷의 과목 목록 JSON을 반환한다
+   * @returns {Promise<string>} 레거시 포맷 JSON 문자열
    */
   async getCourseNamesJson(): Promise<string> {
     const html = await this.getCourseListHtml();
@@ -313,27 +294,21 @@ export class EcampusClient {
   }
 
   /**
-   * 메인 페이지에서 AJAX로 불러오는 강의실 목록 HTML을 가져온다.
-   * @param {string} crsCreCd - 현재 선택된 강의실 코드
-   * @returns {Promise<string>} 강의실 드롭다운 HTML
+   * 과목 선택 드롭다운에 사용되는 강의실 목록 AJAX HTML을 가져온다
+   * @param {string} [crsCreCd=""] - 현재 선택된 강의실 코드
+   * @returns {Promise<string>} AJAX 응답 HTML
    */
   async getCourseListHtml(crsCreCd = ""): Promise<string> {
     await this.ensureAuthenticated();
-    const html = await this.postForm("/crs/creCrsHome/classRoomCrsCreList", {
-      crsCreCd
-    });
-
-    return html;
+    return this.postForm("/crs/creCrsHome/classRoomCrsCreList", { crsCreCd });
   }
 
   /**
-   * 강의실의 공지사항, 강의자료실, 과제 목록을 한 번에 조회한다
-   * @param {GetClassroomResourcesOptions} options - 강의실 조회에 필요한 식별 정보
-   * @returns {Promise<EcampusClassroomResources>} 세 영역의 목록 묶음
+   * 특정 강의실의 모든 주요 리소스(공지, 자료, 과제)를 통합 조회한다
+   * @param {GetClassroomResourcesOptions} options - 조회 옵션
+   * @returns {Promise<EcampusClassroomResources>} 통합 리소스 객체
    */
-  async getClassroomResources(
-    options: GetClassroomResourcesOptions
-  ): Promise<EcampusClassroomResources> {
+  async getClassroomResources(options: GetClassroomResourcesOptions): Promise<EcampusClassroomResources> {
     const resources = createEmptyEcampusClassroomResources();
     const [notices, materials, assignments] = await Promise.all([
       this.getNoticeList(options),
@@ -344,71 +319,62 @@ export class EcampusClient {
     resources.notices = notices;
     resources.materials = materials;
     resources.assignments = assignments;
-
     return resources;
   }
 
   /**
-   * 강의실 목록 묶음을 JSON 문자열로 반환한다
-   * @param {GetClassroomResourcesOptions} options - 강의실 조회에 필요한 식별 정보
-   * @returns {Promise<string>} 공지사항, 강의자료실, 과제 JSON 문자열
+   * 통합 리소스를 JSON 문자열로 반환한다
+   * @param {GetClassroomResourcesOptions} options - 조회 옵션
+   * @returns {Promise<string>} JSON 문자열
    */
   async getClassroomResourcesJson(options: GetClassroomResourcesOptions): Promise<string> {
     return stringifyEcampusClassroomResources(await this.getClassroomResources(options));
   }
 
   /**
-   * 강의실 공지사항 목록을 조회한다
-   * @param {GetClassroomBoardListOptions} options - 강의실 코드와 목록 크기
-   * @returns {Promise<EcampusClassroomItem[]>} 공지사항 목록
+   * 강의실 공지사항 목록을 파싱하여 반환한다
+   * @param {GetClassroomBoardListOptions} options - 조회 옵션
+   * @returns {Promise<EcampusClassroomItem[]>} 공지사항 배열
    */
   async getNoticeList(options: GetClassroomBoardListOptions): Promise<EcampusClassroomItem[]> {
     const html = await this.postBoardList(options, "NOTICE", `BBS_${options.crsCreCd}_N`);
-    return parseEcampusNoticeListHtml(html, {
-      baseUrl: this.baseUrl,
-      crsCreCd: options.crsCreCd
-    });
+    return parseEcampusNoticeListHtml(html, { baseUrl: this.baseUrl, crsCreCd: options.crsCreCd });
   }
 
   /**
-   * 강의실 공지사항 목록을 JSON 문자열로 반환한다
-   * @param {GetClassroomBoardListOptions} options - 강의실 코드와 목록 크기
-   * @returns {Promise<string>} 공지사항 JSON 문자열
+   * 강의실 공지사항 목록을 JSON으로 반환한다
+   * @param {GetClassroomBoardListOptions} options - 조회 옵션
+   * @returns {Promise<string>} JSON 문자열
    */
   async getNoticeListJson(options: GetClassroomBoardListOptions): Promise<string> {
     return stringifyEcampusClassroomItems(await this.getNoticeList(options));
   }
 
   /**
-   * 강의실 강의자료실 목록을 조회한다
-   * @param {GetClassroomBoardListOptions} options - 강의실 코드와 목록 크기
-   * @returns {Promise<EcampusClassroomItem[]>} 강의자료실 목록
+   * 강의실 자료실 목록을 파싱하여 반환한다
+   * @param {GetClassroomBoardListOptions} options - 조회 옵션
+   * @returns {Promise<EcampusClassroomItem[]>} 자료실 항목 배열
    */
   async getMaterialList(options: GetClassroomBoardListOptions): Promise<EcampusClassroomItem[]> {
     const html = await this.postBoardList(options, "PDS", `BBS_${options.crsCreCd}_P`);
-    return parseEcampusMaterialListHtml(html, {
-      baseUrl: this.baseUrl,
-      crsCreCd: options.crsCreCd
-    });
+    return parseEcampusMaterialListHtml(html, { baseUrl: this.baseUrl, crsCreCd: options.crsCreCd });
   }
 
   /**
-   * 강의실 강의자료실 목록을 JSON 문자열로 반환한다
-   * @param {GetClassroomBoardListOptions} options - 강의실 코드와 목록 크기
-   * @returns {Promise<string>} 강의자료실 JSON 문자열
+   * 강의실 자료실 목록을 JSON으로 반환한다
+   * @param {GetClassroomBoardListOptions} options - 조회 옵션
+   * @returns {Promise<string>} JSON 문자열
    */
   async getMaterialListJson(options: GetClassroomBoardListOptions): Promise<string> {
     return stringifyEcampusClassroomItems(await this.getMaterialList(options));
   }
 
   /**
-   * 강의실 과제 목록을 조회한다
-   * @param {GetClassroomAssignmentListOptions} options - 강의실 코드와 사용자 정보
-   * @returns {Promise<EcampusClassroomItem[]>} 과제 목록
+   * 제출해야 할 과제 목록을 파싱하여 반환한다
+   * @param {GetClassroomAssignmentListOptions} options - 조회 옵션
+   * @returns {Promise<EcampusClassroomItem[]>} 과제 항목 배열
    */
-  async getAssignmentList(
-    options: GetClassroomAssignmentListOptions
-  ): Promise<EcampusClassroomItem[]> {
+  async getAssignmentList(options: GetClassroomAssignmentListOptions): Promise<EcampusClassroomItem[]> {
     const html = await this.postForm("/asmnt/asmntHome/stuAsmntGridList", {
       pageIndex: "1",
       listScale: String(options.listScale ?? 10),
@@ -418,29 +384,24 @@ export class EcampusClient {
       userName: options.userName ?? ""
     });
 
-    return parseEcampusAssignmentListHtml(html, {
-      baseUrl: this.baseUrl,
-      crsCreCd: options.crsCreCd
-    });
+    return parseEcampusAssignmentListHtml(html, { baseUrl: this.baseUrl, crsCreCd: options.crsCreCd });
   }
 
   /**
-   * 강의실 과제 목록을 JSON 문자열로 반환한다
-   * @param {GetClassroomAssignmentListOptions} options - 강의실 코드와 사용자 정보
-   * @returns {Promise<string>} 과제 목록 JSON 문자열
+   * 과제 목록을 JSON으로 반환한다
+   * @param {GetClassroomAssignmentListOptions} options - 조회 옵션
+   * @returns {Promise<string>} JSON 문자열
    */
   async getAssignmentListJson(options: GetClassroomAssignmentListOptions): Promise<string> {
     return stringifyEcampusClassroomItems(await this.getAssignmentList(options));
   }
 
   /**
-   * e-learning 온라인 강의 목록을 조회한다
-   * @param {GetElearningLessonListOptions} options - 강의실 코드와 메뉴/진도 옵션
-   * @returns {Promise<EcampusLessonItem[]>} 온라인 강의 차시 목록
+   * 온라인 강의(e-learning) 차시 목록을 파싱하여 반환한다
+   * @param {GetElearningLessonListOptions} options - 조회 옵션
+   * @returns {Promise<EcampusLessonItem[]>} 차시 정보 배열
    */
-  async getElearningLessonList(
-    options: GetElearningLessonListOptions
-  ): Promise<EcampusLessonItem[]> {
+  async getElearningLessonList(options: GetElearningLessonListOptions): Promise<EcampusLessonItem[]> {
     const html = await this.getElearningLessonListHtml(options);
     return parseEcampusLessonListHtml(html, {
       baseUrl: this.baseUrl,
@@ -450,18 +411,18 @@ export class EcampusClient {
   }
 
   /**
-   * e-learning 온라인 강의 목록을 JSON 문자열로 조회한다
-   * @param {GetElearningLessonListOptions} options - 강의실 코드와 메뉴/진도 옵션
-   * @returns {Promise<string>} 온라인 강의 차시 목록 JSON
+   * 온라인 강의 차시 목록을 JSON으로 반환한다
+   * @param {GetElearningLessonListOptions} options - 조회 옵션
+   * @returns {Promise<string>} JSON 문자열
    */
   async getElearningLessonListJson(options: GetElearningLessonListOptions): Promise<string> {
     return stringifyEcampusLessons(await this.getElearningLessonList(options));
   }
 
   /**
-   * 온라인 강의 목록 화면 HTML을 가져온다
-   * @param {GetElearningLessonListOptions} options - 강의실 코드와 메뉴/진도 옵션
-   * @returns {Promise<string>} 온라인 강의 목록 HTML
+   * 온라인 강의 목록 페이지의 HTML 소스를 가져온다
+   * @param {GetElearningLessonListOptions} options - 조회 옵션
+   * @returns {Promise<string>} 응답 HTML
    */
   async getElearningLessonListHtml(options: GetElearningLessonListOptions): Promise<string> {
     await this.ensureAuthenticated();
@@ -470,21 +431,12 @@ export class EcampusClient {
     formUrl.searchParams.set("crsCreCd", options.crsCreCd);
 
     await this.http.get<string>(formUrl.pathname + formUrl.search, {
-      headers: {
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-      }
+      headers: { Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" }
     });
 
-    const creInfoResponse = await this.http.post<{
-      result?: number;
-      returnVO?: {
-        progressTypeCd?: string;
-      };
-    }>(
+    const creInfoResponse = await this.http.post<{ result?: number; returnVO?: { progressTypeCd?: string; }; }>(
       "/crs/creCrsLect/creInfo",
-      new URLSearchParams({
-        crsCreCd: options.crsCreCd
-      }),
+      new URLSearchParams({ crsCreCd: options.crsCreCd }),
       {
         headers: {
           Accept: "application/json, text/javascript, */*; q=0.01",
@@ -495,21 +447,13 @@ export class EcampusClient {
       }
     );
 
-    const progressTypeCd =
-      options.progressTypeCd ??
-      creInfoResponse.data.returnVO?.progressTypeCd ??
-      DEFAULT_PROGRESS_TYPE_CD;
+    const progressTypeCd = options.progressTypeCd ?? creInfoResponse.data.returnVO?.progressTypeCd ?? DEFAULT_PROGRESS_TYPE_CD;
 
     const response = await this.http.post<string>(
       "/lesson/lessonLect/lessonList",
       new URLSearchParams({
-        pageIndex: "1",
-        listScale: "10",
-        searchValue: "",
-        crsCreCd: options.crsCreCd,
-        lessonScheduleId: "",
-        subParam: "GRID",
-        progressTypeCd
+        pageIndex: "1", listScale: "10", searchValue: "",
+        crsCreCd: options.crsCreCd, lessonScheduleId: "", subParam: "GRID", progressTypeCd
       }),
       {
         headers: {
@@ -526,13 +470,11 @@ export class EcampusClient {
   }
 
   /**
-   * 온라인 강의 재생 창을 열고 콘텐츠 정보를 파싱한다
-   * @param {OpenElearningLessonOptions} options - 강의실 코드와 차시 콘텐츠 코드
-   * @returns {Promise<EcampusLessonStudyWindow>} 강의 재생 창 메타데이터
+   * 특정 차시의 재생 창을 열고 메타데이터(studyDetailId 등)를 추출한다
+   * @param {OpenElearningLessonOptions} options - 조회 옵션
+   * @returns {Promise<EcampusLessonStudyWindow>} 재생 창 정보
    */
-  async openLessonWindow(
-    options: OpenElearningLessonOptions
-  ): Promise<EcampusLessonStudyWindow> {
+  async openLessonWindow(options: OpenElearningLessonOptions): Promise<EcampusLessonStudyWindow> {
     const html = await this.postForm(
       `/lesson/lessonOpen/lessonNewWindow?crsCreCd=${encodeURIComponent(options.crsCreCd)}`,
       {
@@ -551,198 +493,36 @@ export class EcampusClient {
   }
 
   /**
-   * 초기 학습 기록을 생성하고 studyDetailId를 확보한다
-   * @param {string} lessonCntsId - 차시 콘텐츠 코드
-   * @param {string} crsCreCd - 강의실 코드
-   * @param {string} [stdNo] - 학번 (선택 사항, 지정하지 않으면 openLessonWindow 결과에서 추출)
-   * @returns {Promise<EcampusLessonStudyWindow>} 학습 창 메타데이터
+   * e-learning 학습 세션 시작 전 초기 기록을 생성하고 고유 ID를 획득한다
+   * @param {string} lessonCntsId - 콘텐츠 ID
+   * @param {string} crsCreCd - 강의실 ID
+   * @param {string} [stdNo] - 사용자 식별번호
+   * @returns {Promise<EcampusLessonStudyWindow>} 초기화된 세션 정보
    */
-  async createInitialStudyRecord(
-    lessonCntsId: string,
-    crsCreCd: string,
-    stdNo?: string
-  ): Promise<EcampusLessonStudyWindow> {
+  async createInitialStudyRecord(lessonCntsId: string, crsCreCd: string, stdNo?: string): Promise<EcampusLessonStudyWindow> {
     const windowInfo = await this.openLessonWindow({ crsCreCd, lessonCntsId });
-    if (stdNo) {
-      windowInfo.stdNo = stdNo;
-    }
+    if (stdNo) windowInfo.stdNo = stdNo;
     return windowInfo;
   }
 
   /**
-   * 실제 사람이 강의를 보는 것처럼 자연스럽게 학습 인증 시작
-   * @param {string} lessonCntsId - 차시 콘텐츠 코드
-   * @param {string} crsCreCd - 강의실 코드
-   * @param {string} [stdNo] - 학번
-   * @returns {Promise<void>}
+   * 특정 e-learning 차시의 실제 스트리밍 MP4 URL을 도출한다
+   * @param {string} crsCreCd - 강의실 ID
+   * @param {string} lessonCntsId - 콘텐츠 ID
+   * @returns {Promise<ElearningMp4UrlResult>} 추출 결과
    */
-  public async startWatchingLesson(
-    lessonCntsId: string,
-    crsCreCd: string,
-    stdNo?: string
-  ): Promise<void> {
-    if (this.isWatching) {
-      console.log("[이미 학습 중] stopWatchingLesson 먼저 호출하세요.");
-      return;
-    }
-
-    console.log(`[학습 시작] lessonCntsId=${lessonCntsId}, crsCreCd=${crsCreCd}`);
-
-    // 1. lessonNewWindow 호출 (동영상 재생 창 열기) 및 studyDetailId 확보
-    const initialRecord = await this.createInitialStudyRecord(lessonCntsId, crsCreCd, stdNo);
-    
-    this.currentStudyDetailId = initialRecord.studyDetailId ?? null;
-    this.stdNo = initialRecord.stdNo ?? null;
-    this.currentStudyTotalTm = Number(initialRecord.recordRequest?.query.studyTotalTm) || 0;
-    this.isWatching = true;
-
-    if (!this.currentStudyDetailId) {
-      console.warn("[경고] studyDetailId를 확보하지 못했습니다. 학습 기록이 누락될 수 있습니다.");
-    }
-
-    console.log(`[학습 인증 시작] studyDetailId = ${this.currentStudyDetailId}`);
-
-    // 3. 자연스러운 주기로 학습 기록 전송 (60초 ± 랜덤)
-    this.studyInterval = setInterval(() => {
-      this.sendStudyRecordWithNaturalDelay(lessonCntsId, crsCreCd);
-    }, 60000);
+  async getElearningMp4Url(crsCreCd: string, lessonCntsId: string): Promise<ElearningMp4UrlResult> {
+    return getElearningMp4Url(this.http, undefined, { crsCreCd, lessonCntsId });
   }
 
   /**
-   * 사람처럼 5~15초 사이 랜덤 딜레이 후 학습 기록 전송
-   */
-  private async sendStudyRecordWithNaturalDelay(lessonCntsId: string, crsCreCd: string) {
-    if (!this.isWatching) return;
-
-    const randomDelayMs = Math.floor(Math.random() * 10000) + 5000; // 5~15초
-    await new Promise((r) => setTimeout(r, randomDelayMs));
-
-    if (!this.isWatching) return;
-
-    this.currentStudyTotalTm += 60;
-
-    await this.addStudyRecord({
-      lessonCntsId,
-      stdNo: this.stdNo!,
-      studyDetailId: this.currentStudyDetailId!,
-      studyTotalTm: this.currentStudyTotalTm,
-      studyAfterTm: 0,
-      studyStatusCd: "STUDY",
-      crsCreCd
-    });
-
-    // 학습 이력이 제대로 쌓이는지 확인
-    await this.viewLessonStudyDetail(lessonCntsId, crsCreCd);
-  }
-
-  /**
-   * 학습 종료 (타이머 정리 + 최종 로그)
-   */
-  public async stopWatchingLesson(): Promise<void> {
-    if (this.studyInterval) {
-      clearInterval(this.studyInterval);
-      this.studyInterval = null;
-    }
-    this.isWatching = false;
-
-    console.log(
-      `[학습 종료] 총 학습 시간: ${this.currentStudyTotalTm}초 (studyDetailId: ${this.currentStudyDetailId})`
-    );
-  }
-
-  /**
-   * 특정 e-learning 강의의 MP4 URL을 가져온다
-   * @param {string} crsCreCd - 강의실 코드
-   * @param {string} lessonCntsId - 차시 콘텐츠 코드
-   * @returns {Promise<ElearningMp4UrlResult>} MP4 URL 추출 결과
-   */
-  async getElearningMp4Url(
-    crsCreCd: string,
-    lessonCntsId: string
-  ): Promise<ElearningMp4UrlResult> {
-    try {
-      const openResult = await this.openLessonWindow({ crsCreCd, lessonCntsId });
-      const contentUrl = openResult?.contentUrl;
-      if (!contentUrl) {
-        return {
-          success: false,
-          message: "contentUrl을 찾을 수 없습니다.",
-          debugInfo: openResult
-        };
-      }
-
-      const response = await axios.get(contentUrl, {
-        headers: { "User-Agent": "Mozilla/5.0" },
-        withCredentials: true
-      });
-
-      const html = response.data as string;
-      const $ = cheerio.load(html);
-
-      // 1순위: <source> 태그
-      let mp4Url =
-        $('source[type="video/mp4"]').first()?.attr("src") || $("source#lessonVodSrc")?.attr("src");
-
-      // 2순위: regex 직접 검색
-      if (!mp4Url) {
-        const regexMatch = html.match(
-          /https:\/\/eplus\.seowon\.ac\.kr\/WebContentStorage\/[^"\s]+\.mp4\?tsdata=[^"\s]+/
-        );
-        if (regexMatch) mp4Url = regexMatch[0];
-      }
-
-      // 3순위: base64 JSON fallback (VideoPlayerWidgetViewModel)
-      if (!mp4Url) {
-        const viewModelMatch = html.match(/new VideoPlayerWidgetViewModel\('([^']+)'/);
-        if (viewModelMatch?.[1]) {
-          try {
-            const jsonStr = Buffer.from(viewModelMatch[1], "base64").toString("utf8");
-            const parsed = JSON.parse(jsonStr);
-            if (parsed.videoUrl) mp4Url = parsed.videoUrl;
-          } catch (e) {
-            // base64 파싱 실패 무시
-          }
-        }
-      }
-
-      if (mp4Url) {
-        return { success: true, mp4Url };
-      }
-
-      // 실패 시 상세 디버그
-      return {
-        success: false,
-        message: "실제 MP4 URL을 찾지 못했습니다.",
-        debugInfo: {
-          crsCreCd,
-          lessonCntsId,
-          status: response.status,
-          statusText: response.statusText,
-          contentType: response.headers["content-type"],
-          bodyLength: html.length,
-          bodySnippet: html.substring(0, 6000)
-        }
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        message: "MP4 URL 추출 중 오류 발생",
-        debugInfo: {
-          crsCreCd,
-          lessonCntsId,
-          error: error.message,
-          stack: error.stack
-        }
-      };
-    }
-  }
-
-  /**
-   * 특정 e-learning 강의 MP4를 다운로드한다
-   * @param {string} crsCreCd - 강의실 코드
-   * @param {string} lessonCntsId - 차시 콘텐츠 코드
-   * @param {string} downloadDir - 저장할 폴더 경로
-   * @param {Function} onProgress - 진행 상황 콜백
+   * 온라인 강의 영상을 로컬 파일로 저장한다
+   * @param {string} crsCreCd - 강의실 ID
+   * @param {string} lessonCntsId - 콘텐츠 ID
+   * @param {string} courseTitle - 과목명
+   * @param {string} lessonTitle - 강의명
+   * @param {string} [baseDir="./downloads"] - 저장 경로
+   * @param {Function} [progressCallback] - 진행률 콜백
    * @returns {Promise<ElearningDownloadResult>} 다운로드 결과
    */
   async downloadElearningMp4(
@@ -756,41 +536,31 @@ export class EcampusClient {
     try {
       const urlResult = await this.getElearningMp4Url(crsCreCd, lessonCntsId);
       if (!urlResult.success || !urlResult.mp4Url) {
-        return {
-          success: false,
-          message: urlResult.message || "MP4 URL을 추출하지 못했습니다."
-        };
+        return { success: false, message: urlResult.message || "MP4 URL을 추출하지 못했습니다." };
       }
 
       return await downloadElearningMp4File(
         this.http,
         urlResult.mp4Url,
-        this.sanitizeFilename(courseTitle),
-        this.sanitizeFilename(lessonTitle),
+        courseTitle,
+        lessonTitle,
         baseDir,
         progressCallback
       );
     } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : util.inspect(error)
-      };
+      return { success: false, message: error instanceof Error ? error.message : util.inspect(error) };
     }
   }
 
-  private sanitizeFilename(name: string): string {
-    return name.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, " ").trim().substring(0, 100);
-  }
-
   /**
-   * e-campus가 사용하는 학습기록 저장 API를 호출한다
-   * @param {EcampusLessonRecordOptions} options - 실제 학습 창에서 확보한 학습기록 값
-   * @returns {Promise<unknown>} 서버의 JSON 응답
+   * e-campus 서버로 단일 학습 기록을 전송한다
+   * @param {EcampusLessonRecordOptions} options - 전송 데이터
+   * @returns {Promise<any>} 서버 응답
    */
-  async addStudyRecord(options: EcampusLessonRecordOptions): Promise<unknown> {
+  async addStudyRecord(options: EcampusLessonRecordOptions): Promise<any> {
     await this.ensureAuthenticated();
     const request = createStudyRecordRequest(this.baseUrl, options);
-    const response = await this.http.get<unknown>(new URL(request.url).pathname, {
+    const response = await this.http.get<any>(new URL(request.url).pathname, {
       params: request.query,
       headers: {
         Accept: "application/json, text/javascript, */*; q=0.01",
@@ -803,15 +573,15 @@ export class EcampusClient {
   }
 
   /**
-   * 학습 이력 상세 정보를 조회한다 (학습 이력 적재 확인용)
-   * @param {string} lessonCntsId - 차시 콘텐츠 코드
-   * @param {string} crsCreCd - 강의실 코드
-   * @returns {Promise<unknown>} 서버 응답
+   * 현재까지의 학습 상세 이력을 서버에서 조회한다
+   * @param {string} lessonCntsId - 콘텐츠 ID
+   * @param {string} crsCreCd - 강의실 ID
+   * @returns {Promise<any>} 상세 이력 응답
    */
-  async viewLessonStudyDetail(lessonCntsId: string, crsCreCd: string): Promise<unknown> {
+  async viewLessonStudyDetail(lessonCntsId: string, crsCreCd: string): Promise<any> {
     await this.ensureAuthenticated();
     const request = createViewLessonStudyDetailRequest(this.baseUrl, lessonCntsId, crsCreCd);
-    const response = await this.http.get<unknown>(new URL(request.url).pathname, {
+    const response = await this.http.get<any>(new URL(request.url).pathname, {
       params: request.query,
       headers: {
         Accept: "application/json, text/javascript, */*; q=0.01",
@@ -824,36 +594,20 @@ export class EcampusClient {
   }
 
   /**
-   * 게시판 목록 조회용 POST 요청을 보낸다
-   * @param {GetClassroomBoardListOptions} options - 강의실 코드와 목록 크기
-   * @param {"NOTICE" | "PDS"} bbsCd - 게시판 구분 코드
-   * @param {string} bbsId - 게시판 식별자
-   * @returns {Promise<string>} HTML 응답 본문
+   * 공통 게시판 목록 조회를 위한 헬퍼 메서드
+   * @private
    */
-  private async postBoardList(
-    options: GetClassroomBoardListOptions,
-    bbsCd: "NOTICE" | "PDS",
-    bbsId: string
-  ): Promise<string> {
+  private async postBoardList(options: GetClassroomBoardListOptions, bbsCd: "NOTICE" | "PDS", bbsId: string): Promise<string> {
     return this.postForm("/bbs/bbsLect/atclList", {
-      formType: "LIST",
-      bbsId,
-      atclId: "",
-      searchKey: "all",
-      searchValue: "",
-      listScale: String(options.listScale ?? 10),
-      pageIndex: "1",
-      headCd: "",
-      bbsCd,
-      crsCreCd: options.crsCreCd
+      formType: "LIST", bbsId, atclId: "", searchKey: "all", searchValue: "",
+      listScale: String(options.listScale ?? 10), pageIndex: "1", headCd: "",
+      bbsCd, crsCreCd: options.crsCreCd
     });
   }
 
   /**
-   * form POST 요청을 공통 헤더로 전송한다
-   * @param {string} path - 요청 경로
-   * @param {Record<string, string>} body - form body
-   * @returns {Promise<string>} HTML 응답 본문
+   * Form-data를 포함한 POST 요청을 공통 헤더와 함께 전송한다
+   * @private
    */
   private async postForm(path: string, body: Record<string, string>): Promise<string> {
     await this.ensureAuthenticated();
@@ -873,59 +627,41 @@ export class EcampusClient {
 }
 
 /**
- * e-campus 클라이언트를 생성한다
- * @param {EcampusClientOptions} options - 기본 URL과 axios 인스턴스를 덮어쓸 옵션
- * @returns {EcampusClient} e-campus 클라이언트
+ * e-campus 클라이언트를 생성하는 팩토리 함수
+ * @param {EcampusClientOptions} options - 클라이언트 옵션
+ * @returns {EcampusClient} 초기화된 클라이언트 인스턴스
  */
 export function createEcampusClient(options: EcampusClientOptions = {}): EcampusClient {
   return new EcampusClient(options);
 }
 
 /**
- * 로그인 응답을 결과 타입으로 변환한다
- * @param {EcampusLoginResponse} data - 로그인 응답 객체
- * @returns {LoginResult} redirect, reload, error 중 하나의 결과
+ * 서버의 로그인 응답 데이터를 분석하여 결과를 추상화한다
+ * @param {EcampusLoginResponse} data - 서버 응답 객체
+ * @returns {LoginResult} 분석된 결과 타입
  */
 export function parseLoginResponse(data: EcampusLoginResponse): LoginResult {
   if (!data.redirectUrl) {
-    return {
-      type: "error",
-      data,
-      message: data.message ?? "아이디 또는 비밀번호가 맞지 않습니다."
-    };
+    return { type: "error", data, message: data.message ?? "아이디 또는 비밀번호가 맞지 않습니다." };
   }
 
-  if (
-    data.otpLogin === "Y" &&
-    data.otpUserYn === "Y" &&
-    data.otpUserType?.includes("LEARNER") &&
-    data.userId &&
-    data.userNo
-  ) {
+  // OTP 및 학습자 권한 확인 로직 포함
+  if (data.otpLogin === "Y" && data.otpUserYn === "Y" && data.otpUserType?.includes("LEARNER") && data.userId && data.userNo) {
     const url = new URL(data.redirectUrl, DEFAULT_BASE_URL);
     url.searchParams.set("userId", data.userId);
     url.searchParams.set("userNo", data.userNo);
-
-    return {
-      type: "redirect",
-      data,
-      url: url.toString()
-    };
+    return { type: "redirect", data, url: url.toString() };
   }
 
-  return {
-    type: "reload",
-    data
-  };
+  return { type: "reload", data };
 }
 
-/**
- * 기본 URL을 패키지 내부 규칙에 맞게 정규화한다
- * @param {string} baseUrl - 정규화할 기본 URL
- * @returns {string} 끝에 슬래시가 맞춰진 정규화된 URL
- */
+/** URL 경로 끝의 슬래시 유무를 정규화한다 */
 function normalizeBaseUrl(baseUrl: string): string {
   const url = new URL(baseUrl);
   url.pathname = url.pathname.replace(/\/?$/, "/");
   return url.toString();
 }
+
+/** 내부 MP4 추출 함수 노출 */
+import { getElearningMp4Url } from "./elearning";
