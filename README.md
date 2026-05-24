@@ -46,87 +46,110 @@
 
 개발자는 `EcampusClient`를 사용하여 자신의 프로젝트에 서원대 LMS 기능을 연동할 수 있습니다.
 
-### 1. 초기화 및 로그인
-서원대학교 e-campus는 특수한 암호화 패킷(`encryptData`)을 요구합니다. **본 라이브러리는 이를 내부에서 자동으로 처리**하므로, 평문 계정 정보만으로 간편하게 세션을 획득할 수 있습니다.
+### 1️⃣ 인증 및 세션 관리 (로그인)
+서원대 e-campus는 `encryptData`라는 특수 암호화 패킷을 요구합니다. **본 라이브러리는 모든 암호화 로직을 내장**하고 있어, 개발자가 별도로 암호화 함수를 호출할 필요가 없습니다.
 
 ```typescript
 import { createEcampusClient } from 'seowon-client-api';
 
 const client = createEcampusClient({
-  cookieFilePath: './cookies.json' // 세션 유지를 위해 쿠키 파일 경로 지정 권장
+  cookieFilePath: './cookies.json' // 세션 유지를 위해 파일 경로 지정을 권장합니다.
 });
 
-// 로그인 수행 (암호화 로직 내장, 세션 쿠키 자동 저장)
+/**
+ * 로그인 시 내부적으로 레거시 암호화 모듈을 호출하여
+ * 서버 전송용 encryptData를 자동으로 생성 및 전송합니다.
+ */
 await client.login({
   userId: '202612345',
   password: 'your_secure_password'
 });
 ```
 
-### 2. 과목 및 이러닝 목록 조회
-현재 학기에 수강 중인 과목 목록과 각 과목의 온라인 강의 차시 정보를 가져옵니다.
+---
+
+### 2️⃣ 수강 과목 목록 조회
+현재 학기에 활성화된 모든 교과 및 비교과 과목 목록을 가져옵니다.
 
 ```typescript
-// 전체 과목 목록 조회
+// 전체 과목 목록 (과목명, 강의실 코드 포함)
 const courses = await client.getCourseList();
-console.log(`현재 ${courses.length}개의 과목을 수강 중입니다.`);
 
-// 특정 과목의 이러닝 차시 목록 조회
-const lessons = await client.getElearningLessonList({
-  crsCreCd: courses[0].crsCreCd
-});
-
-lessons.forEach(lesson => {
-  console.log(`[${lesson.lessonScheduleId}] ${lesson.title} (${lesson.durationText})`);
+courses.forEach(course => {
+  console.log(`[${course.crsTypeCd}] ${course.title} (${course.crsCreCd})`);
 });
 ```
 
-### 3. 강의실 리소스 (공지, 과제, 자료) 조회
-특정 과목의 공지사항, 과제함, 강의자료실 정보를 통합 또는 개별적으로 파싱합니다.
+---
+
+### 3️⃣ 공지사항 및 강의자료 조회
+강의실 내 게시판 데이터를 파싱합니다. 각 항목은 상세 보기를 위한 `request` 객체를 포함합니다.
 
 ```typescript
 const crsCreCd = '2026_1_008620_01';
-const userNo = '202612345'; // 과제 조회 시 필수
 
-// 📢 공지사항만 조회
+// 📢 공지사항 목록
 const notices = await client.getNoticeList({ crsCreCd });
 
-// 📝 과제 목록 및 제출 상태 조회
-const assignments = await client.getAssignmentList({ crsCreCd, userNo });
-
-// 📂 강의자료실 목록 조회
+// 📂 강의자료실 목록 (첨부파일 유무 확인 가능)
 const materials = await client.getMaterialList({ crsCreCd });
 
-// 📦 모든 리소스 한 번에 가져오기
-const resources = await client.getClassroomResources({ crsCreCd, userNo });
-console.log(`공지: ${resources.notices.length}건, 과제: ${resources.assignments.length}건`);
+console.log(`최신 공지: ${notices[0]?.title}`);
 ```
 
-### 4. 실시간 학습 자동화 실행
-`ElearningSession`을 활용하여 서버 가이드라인을 준수하는 자연스러운 시청 패턴을 재현합니다.
+---
+
+### 4️⃣ 과제함 및 제출 상태 조회
+개인별 과제 목록과 해당 과제의 현재 제출 상태(제출완료/미제출 등)를 조회합니다.
+
+```typescript
+const options = {
+  crsCreCd: '2026_1_008620_01',
+  userNo: '202612345' // 과제 조회 시 학생 식별 번호가 필수입니다.
+};
+
+const assignments = await client.getAssignmentList(options);
+
+assignments.forEach(item => {
+  console.log(`${item.title}: ${item.status} (${item.period})`);
+});
+```
+
+---
+
+### 5️⃣ e-러닝(온라인 강의) 목록 및 정보
+주차별 강의 목록과 각 영상의 길이를 조회합니다.
+
+```typescript
+const lessons = await client.getElearningLessonList({
+  crsCreCd: '2026_1_008620_01'
+});
+
+// 차시별 제목 및 재생 시간 정보 확인
+lessons.forEach(lesson => {
+  console.log(`${lesson.title} - ${lesson.durationText}`);
+});
+```
+
+---
+
+### 6️⃣ 실시간 학습 자동화 세션
+Fiddler 로그 분석을 기반으로 설계된 시나리오를 통해 실제 시청 이력을 서버에 적재합니다.
 
 ```typescript
 import { watchLesson } from 'seowon-client-api';
 
-// 학습 세션 시작 (lessonNewWindow -> viewLessonCmnt 순차 실행)
+// 세션 시작 (종료 시 exitStudy 패킷 전송을 보장함)
 const session = await watchLesson(
-  client.http, // 인증된 Axios 인스턴스 전달
+  client.http, 
   client.baseUrl,
-  'CNTS_ID_HERE',
+  'CNTS_ID_HERE', 
   'COURSE_CODE_HERE',
-  'STUDENT_NO_HERE'
+  '202612345'
 );
 
-// 실시간 진행률 모니터링
-const timer = setInterval(() => {
-  const progress = session.getProgressPercent();
-  console.log(`현재 학습 진행률: ${progress}%`);
-  
-  if (progress >= 100) {
-    session.stopWatchingLesson(); // 종료 패킷(exitStudy) 전송
-    clearInterval(timer);
-  }
-}, 15000);
+// 현재 진행률 실시간 확인 (prgrRatio 연동)
+console.log(`학습 시작 진행률: ${session.getProgressPercent()}%`);
 ```
 
 ---

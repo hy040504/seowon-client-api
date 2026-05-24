@@ -805,7 +805,7 @@ function classifyContentUrl(contentUrl: string | undefined): EcampusLessonStudyW
   if (lower.endsWith(".m3u8")) return "hls";
   if (lower.includes("youtube.com") || lower.includes("youtu.be")) return "youtube";
   if (lower.includes("ted.com")) return "ted";
-  if (lower.includes("doczoomsharehub")) return "doczoom";
+  if (lower.includes("doczoom")) return "doczoom";
   return "url";
 }
 
@@ -982,4 +982,6 @@ export async function downloadElearningMp4(
 /** 파일 시스템에서 안전하게 사용 가능한 파일명으로 치환한다 */
 function sanitizeFilename(name: string): string {
   return name.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, " ").trim().substring(0, 100);
+}
+return name.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, " ").trim().substring(0, 100);
 }

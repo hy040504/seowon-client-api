@@ -30,7 +30,7 @@ const COMMAND_ALIASES = {
   "classroom-resources": "classroom-resources", 강의실자료: "classroom-resources",
   "elearning-lessons": "elearning-lessons", 이러닝목록: "elearning-lessons",
   "elearning-open": "elearning-open", 이러닝열기: "elearning-open",
-  "elearning-mp4": "elearning-mp4", 이러닝MP4: "elearning-mp4",
+  "elearning-mp4": "elearning-mp4", 이러닝URL추출: "elearning-mp4",
   "elearning-download": "elearning-download", 이러닝다운로드: "elearning-download",
   "elearning-watch": "elearning-watch", 이러닝듣기: "elearning-watch", 이러닝자동시청: "elearning-watch",
   help: "help", 도움말: "help"
@@ -53,9 +53,8 @@ const INTERACTIVE_COMMANDS = [
 ];
 
 /**
- * 런타임에 TypeScript 코드를 동적으로 로드한다 (JIT 컴파일 환경 지원용)
+ * 런타임에 TypeScript 코드를 동적으로 로드한다
  * @returns {Promise<any>} 로드된 API 모듈
- * @throws {Error} 소스 파일 부재 시 발생
  */
 async function loadClientApi() {
   if (!fs.existsSync(SOURCE_ENTRY)) throw new Error("src/index.ts 파일을 찾을 수 없습니다.");
@@ -64,8 +63,6 @@ async function loadClientApi() {
 
 /**
  * 명령행 인자(argv)를 파싱하여 명령어와 옵션 객체로 분리한다
- * @param {string[]} argv - 프로세스 인자 배열
- * @returns {{command: string, options: Record<string, string>}} 파싱 결과
  */
 function parseArgs(argv) {
   const command = COMMAND_ALIASES[argv[0] ?? ""] ?? (argv[0] ?? "");
@@ -81,7 +78,7 @@ function parseArgs(argv) {
   return { command, options };
 }
 
-/** JSON 데이터를 예쁘게 출력하거나 일반 문자열을 그대로 출력한다 */
+/** JSON 데이터를 예쁘게 출력한다 */
 function prettyPrint(value) {
   if (typeof value === "string") {
     try { console.log(colorizeJson(JSON.stringify(JSON.parse(value), null, 2))); return; }
@@ -96,7 +93,7 @@ function color(text, ...codes) {
   return `${codes.join("")}${text}${ANSI.reset}`;
 }
 
-/** JSON 문자열에 구문 강조(Colorizing)를 적용한다 */
+/** JSON 문자열에 구문 강조를 적용한다 */
 function colorizeJson(text) {
   if (!COLOR_ENABLED) return text;
   return text
@@ -106,53 +103,40 @@ function colorizeJson(text) {
     .replace(/: (true|false|null)/g, (_, v) => `: ${color(v, ANSI.magenta)}`);
 }
 
-/** 터미널에 섹션 제목을 출력한다 */
 function printSection(title) { console.log(color(title, ANSI.bold, ANSI.blue)); }
-/** 터미널에 정보 메시지를 출력한다 */
 function printInfo(message) { console.log(color(message, ANSI.gray)); }
-/** 터미널에 성공 메시지를 출력한다 */
 function printSuccess(message) { console.log(color(message, ANSI.green)); }
-/** 터미널에 경고 메시지를 출력한다 */
 function printWarning(message) { console.log(color(message, ANSI.yellow)); }
-/** 터미널에 에러 메시지를 출력한다 */
 function printErrorMessage(message) { console.error(color(message, ANSI.red)); }
 
-/** 필수 옵션 존재 여부를 검증한다 */
 function required(options, key) {
   const v = options[key];
   if (!v) throw new Error(`필수 옵션이 없습니다: --${key}`);
   return v;
 }
 
-/** 환경변수 또는 기본 경로를 통해 쿠키 파일 경로를 결정한다 */
 function resolveCookieFilePath(options) { return options.cookieFilePath || process.env.SEOWON_COOKIE_FILE || DEFAULT_COOKIE_FILE; }
-/** 환경변수 또는 기본 경로를 통해 세션 파일 경로를 결정한다 */
 function resolveSessionFilePath(options) { return options.sessionFilePath || process.env.SEOWON_SESSION_FILE || DEFAULT_SESSION_FILE; }
 
-/** 저장된 세션 메타데이터를 파일에서 로드한다 */
 function loadSavedSession(options) {
   const path = resolveSessionFilePath(options);
   try { return { sessionFilePath: path, data: JSON.parse(fs.readFileSync(path, "utf8")) }; }
   catch { return { sessionFilePath: path, data: {} }; }
 }
 
-/** 세션 메타데이터를 파일에 기록한다 */
 function saveSession(options, data) {
   const path = resolveSessionFilePath(options);
   fs.writeFileSync(path, JSON.stringify(data, null, 2), "utf8");
   return path;
 }
 
-/** 현재 로드된 세션 정보를 기반으로 API 클라이언트를 초기화한다 */
 function createClientFromSavedSession(api, options) {
   const session = createStoredSessionOptions(options);
   return { client: api.createEcampusClient({ cookieFilePath: session.cookieFilePath }), session };
 }
 
-/** 저장된 세션 정보에서 학번(userNo) 또는 아이디를 추출한다 */
 function getSavedUserNo(session, options) { return options.userNo || session.sessionData.userNo || session.sessionData.userId; }
 
-/** 사용자가 인터랙티브 메뉴에서 명령을 선택하게 한다 */
 async function chooseCommand(rl) {
   printSection("사용 가능한 명령:");
   INTERACTIVE_COMMANDS.forEach((item, i) => {
@@ -166,19 +150,6 @@ async function chooseCommand(rl) {
   return COMMAND_ALIASES[answer] ?? answer;
 }
 
-/** CLI 도움말 텍스트를 출력한다 */
-function printHelp() {
-  printSection("도움말");
-  console.log(`
-명령어 가이드
-  로그인         | login --userId <id> --password <pw>
-  과목           | courses
-  이러닝자동시청 | elearning-watch --crsCreCd <code> --lessonCntsId <id>
-  이러닝다운로드 | elearning-download --crsCreCd <code> --lessonCntsId <id>
-`);
-}
-
-/** 사용자에게 특정 값을 입력받는다 (기본값 지원) */
 async function ask(rl, label, fallback = "") {
   const suffix = fallback ? color(` [기본값: ${fallback}]`, ANSI.gray) : "";
   return (await rl.question(`${color(label, ANSI.cyan)}${suffix}: `)).trim() || fallback;
@@ -187,13 +158,24 @@ async function ask(rl, label, fallback = "") {
 /** 현재 수강 중인 과목 목록을 보여주고 하나를 선택하게 한다 */
 async function chooseCourseFromMenu(api, rl, options) {
   const { client } = createClientFromSavedSession(api, options);
-  const courses = await client.getCourseList();
-  if (!courses.length) throw new Error("선택 가능한 과목이 없습니다.");
-  console.log(""); printSection("과목 목록:");
-  courses.forEach((c, i) => console.log(`${color(String(i + 1), ANSI.yellow)}. ${c.title} ${color(`(${c.crsCreCd})`, ANSI.gray)}`));
-  const num = Number(await rl.question("과목 번호를 선택하세요: "));
-  if (!courses[num - 1]) throw new Error("올바른 과목 번호를 선택하세요.");
-  return courses[num - 1];
+  try {
+    const courses = await client.getCourseList();
+    if (!courses.length) {
+      printInfo("현재 수강 중인 과목이 하나도 없습니다.");
+      throw new Error("NO_COURSES_AVAILABLE");
+    }
+    console.log(""); printSection("과목 목록:");
+    courses.forEach((c, i) => console.log(`${color(String(i + 1), ANSI.yellow)}. ${c.title} ${color(`(${c.crsCreCd})`, ANSI.gray)}`));
+    const num = Number(await rl.question("과목 번호를 선택하세요: "));
+    if (!courses[num - 1]) throw new Error("올바른 과목 번호를 선택하세요.");
+    return courses[num - 1];
+  } catch (err) {
+    if (err.message === "SESSION_EXPIRED") {
+      printWarning("\n⚠️ 로그인 정보가 만료되었습니다. 1번 메뉴를 통해 다시 로그인해 주세요.");
+      throw new Error("AUTH_REQUIRED_BY_USER");
+    }
+    throw err;
+  }
 }
 
 /** 특정 과목의 e-러닝 차시 목록을 보여주고 하나를 선택하게 한다 */
@@ -216,13 +198,27 @@ async function collectInteractiveOptions(api, rl, command, baseOptions = {}) {
   const options = { ...baseOptions };
   switch (command) {
     case "login":
-      options.userId = await ask(rl, "아이디", options.userId || process.env.SEOWON_ID || "");
-      options.password = await ask(rl, "비밀번호", options.password || process.env.SEOWON_PASSWORD || "");
+      options.userId = await ask(rl, "아이디", process.env.SEOWON_ID || "비어있음");
+      options.password = await ask(rl, "비밀번호", process.env.SEOWON_PASSWORD || "비어있음");
       break;
+    case "notices":
+    case "materials":
+    case "assignments":
+    case "classroom-resources": {
+      const course = await chooseCourseFromMenu(api, rl, options);
+      options.crsCreCd = course.crsCreCd; options.courseTitle = course.title;
+      printSuccess(`선택 과목: ${course.title} (${course.crsCreCd})`);
+      if (command === "assignments" || command === "classroom-resources") {
+        options.userNo = await ask(rl, "학번(userNo, 비우면 저장 세션 사용)", options.userNo || "");
+        options.userName = await ask(rl, "이름(userName, 비우면 저장 세션 사용)", options.userName || "");
+      }
+      break;
+    }
     case "elearning-watch":
     case "elearning-download":
     case "elearning-mp4":
-    case "elearning-lessons": {
+    case "elearning-lessons":
+    case "elearning-open": {
       const course = await chooseCourseFromMenu(api, rl, options);
       options.crsCreCd = course.crsCreCd; options.courseTitle = course.title;
       printSuccess(`선택 과목: ${course.title} (${course.crsCreCd})`);
@@ -251,6 +247,7 @@ async function executeCommand(api, command, options, rl) {
       const res = await client.login({ userId, password });
       saveSession(options, { userId: res?.data?.userId || userId, userNo: res?.data?.userNo || userId, savedAt: new Date().toISOString() });
       printSuccess("로그인 성공 및 세션 저장 완료.");
+      prettyPrint(res);
       return;
     }
     case "courses": {
@@ -258,20 +255,56 @@ async function executeCommand(api, command, options, rl) {
       prettyPrint(await client.getCourseList());
       return;
     }
+    case "notices": {
+      const { client } = createClientFromSavedSession(api, options);
+      prettyPrint(await client.getNoticeList({ crsCreCd: required(options, "crsCreCd") }));
+      return;
+    }
+    case "materials": {
+      const { client } = createClientFromSavedSession(api, options);
+      prettyPrint(await client.getMaterialList({ crsCreCd: required(options, "crsCreCd") }));
+      return;
+    }
+    case "assignments": {
+      const { client, session } = createClientFromSavedSession(api, options);
+      const userNo = getSavedUserNo(session, options);
+      prettyPrint(await client.getAssignmentList({ crsCreCd: required(options, "crsCreCd"), userNo }));
+      return;
+    }
+    case "classroom-resources": {
+      const { client, session } = createClientFromSavedSession(api, options);
+      const userNo = getSavedUserNo(session, options);
+      prettyPrint(await client.getClassroomResources({ crsCreCd: required(options, "crsCreCd"), userNo }));
+      return;
+    }
+    case "elearning-lessons": {
+      const { client } = createClientFromSavedSession(api, options);
+      prettyPrint(await client.getElearningLessonList({ crsCreCd: required(options, "crsCreCd") }));
+      return;
+    }
+    case "elearning-open": {
+      const { client } = createClientFromSavedSession(api, options);
+      prettyPrint(await client.openLessonWindow({ crsCreCd: required(options, "crsCreCd"), lessonCntsId: required(options, "lessonCntsId") }));
+      return;
+    }
+    case "elearning-mp4": {
+      const { client } = createClientFromSavedSession(api, options);
+      const result = await client.getElearningMp4Url(required(options, "crsCreCd"), required(options, "lessonCntsId"));
+      prettyPrint(result);
+      return;
+    }
     case "elearning-watch": {
       const { client, session: savedSession } = createClientFromSavedSession(api, options);
       const userNo = options.userNo || getSavedUserNo(savedSession, options);
       const watchMinutes = Number(options.watchMinutes || 60);
-
       printInfo(`\n[Elearning] 학습 세션을 시작합니다... (목표: ${watchMinutes}분)`);
       
       const originalLog = console.log;
-      // 입력 프롬프트가 밀리지 않도록 Readline 커서를 제어하는 로깅 래퍼
       const safeLog = (...args) => {
         if (rl && rl.line !== undefined) {
-          process.stdout.write("\r\u001b[K"); // 현재 라인 삭제
+          process.stdout.write("\r\u001b[K");
           originalLog(...args);
-          rl.prompt(true); // 프롬프트 재표시
+          rl.prompt(true);
         } else originalLog(...args);
       };
       console.log = console.warn = console.error = safeLog;
@@ -285,10 +318,9 @@ async function executeCommand(api, command, options, rl) {
         session = await api.watchLesson(client.http, client.baseUrl, required(options, "lessonCntsId"), required(options, "crsCreCd"), userNo);
         printSuccess(`🎬 학습 인증 세션 활성화 완료.`);
         
-        // 정기적인 상태 안내 및 학습률 도달 알림 로직
         statusInterval = setInterval(() => {
           const progress = session.getProgressPercent();
-          console.log(color("학습 중... ('stop'으로 종료, 'clear'로 화면 정리, Ctrl+C로 즉시 종료)", ANSI.gray));
+          console.log(color("학습 중... ('stop'으로 종료, 'clear'로 화면 정리, 'status'로 확인)", ANSI.gray));
           const milestone = milestones.find(m => progress >= m && lastPercent < m);
           if (milestone !== undefined) {
             console.log(color(`[알림] 학습 진행률이 ${progress}%에 도달했습니다!`, ANSI.bold, ANSI.blue));
@@ -297,7 +329,6 @@ async function executeCommand(api, command, options, rl) {
         }, 60000);
 
         rl.setPrompt(color("> ", ANSI.cyan)); rl.prompt();
-
         const autoStopTimer = setTimeout(async () => {
           console.log(color(`\n[Elearning] ⏰ 목표 시간(${watchMinutes}분) 도달로 자동 종료합니다.`, ANSI.yellow));
           if (session) await session.stopWatchingLesson();
@@ -341,7 +372,14 @@ async function runInteractive(api) {
       try {
         const options = await collectInteractiveOptions(api, rl, command);
         console.log(""); await executeCommand(api, command, options, rl);
-      } catch (err) { printErrorMessage(err?.message || String(err)); }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        if (errorMessage === "AUTH_REQUIRED_BY_USER") {
+          printErrorMessage(`Error: ${errorMessage}`);
+        } else {
+          printErrorMessage(err?.stack || `Error: ${errorMessage}`);
+        }
+      }
       console.log(""); if (input.isTTY) await rl.question(color("엔터를 누르면 메뉴로 돌아갑니다.", ANSI.gray) + " ");
     }
   } finally { rl.close(); }

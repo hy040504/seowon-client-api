@@ -128,6 +128,15 @@ function parseEcampusCourses(html: string): EcampusCourse[] {
     courses.push(course);
   });
 
+  // 과목 목록이 비어 있는 경우, 세션 만료 여부를 정밀 판별한다
+  if (courses.length === 0) {
+    const content = html.toLowerCase();
+    // 로그인 입력 폼이나 관련 경로가 포함되어 있다면 세션이 끊겨 리다이렉트된 것으로 간주
+    if (content.includes("login") || content.includes("encryptdata") || content.includes("userhome")) {
+      throw new Error("SESSION_EXPIRED");
+    }
+  }
+
   return courses;
 }
 
