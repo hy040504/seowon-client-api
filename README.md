@@ -18,8 +18,8 @@
 
 본 프로젝트는 단순한 크롤러를 넘어 **Senior Software Engineer**의 설계 철학을 담고 있습니다.
 
-*   **WHY-centric Documentation**: 코드의 단순 동작이 아닌, 설계 의도와 비즈니스 로직(봇 탐지 회피 등)의 배경을 설명하는 전문 주석 체계.
-*   **Full JSDoc Support**: 모든 API와 내부 함수에 상세한 한국어 JSDoc 명세를 제공하여 별도의 문서 없이도 즉시 개발 가능.
+*   **Architectural Intent**: 설계 의도와 비즈니스 로직(봇 탐지 회피 등)의 배경을 설명하는 전문 주석 체계.
+*   **Full JSDoc Support**: 모든 API에 상세한 한국어 JSDoc 명세를 제공하여 타입 정의만으로도 즉시 개발 가능.
 *   **Production Reliability**: 서버 응답 유연성 처리, 표준 프로토콜 준수 등 실제 환경에서의 무결성을 최우선으로 설계.
 
 ---
@@ -31,14 +31,14 @@
 ### 🤖 정밀 학습 자동화 (`ElearningSession`)
 *   **6단계 인증 시퀀스**: `창 열기` → `콘텐츠 진입` → `기록 시작` → `가변 딜레이 반복` → `이력 검증` → `종료 패킷`을 완벽히 자동화.
 *   **지능형 봇 회피**: 45~75초 사이의 유동적인 랜덤 딜레이를 적용하여 실제 시청 패턴을 완벽히 재현.
-*   **실시간 상태 동기화**: 서버 응답 데이터에서 진행률(`prgrRatio`)을 실시간 파싱하여 대시보드에 반영.
+*   **실시간 상태 동기화**: 진행률(`prgrRatio`) 실시간 파싱 및 마일스톤 알림 제공.
 
 ### 🎬 지능형 미디어 분석 및 다운로드
-*   **다중 추출 엔진**: 단순 태그 분석부터 정규식 매칭, Base64 JSON Fallback 전략까지 동원하여 실제 MP4 URL 도출.
-*   **안정적 스트리밍**: 대용량 영상의 안정적인 청크 기반 다운로드 및 실시간 진행률 표시.
+*   **다중 추출 엔진**: Regex 매칭 및 Base64 Fallback 전략을 동원하여 실제 MP4 URL 도출.
+*   **안정적 스트리밍**: 대용량 영상의 안정적인 청크 기반 다운로드 지원.
 
 ### 📂 통합 강의실 리소스 관리
-*   **원스톱 데이터 추출**: 수강 과목, 공지사항, 과제 정보, 강의자료실 데이터를 단일 인터페이스로 통합 조회 및 파싱.
+*   **원스톱 데이터 추출**: 수강 과목, 공지사항, 과제 정보, 강의자료실 데이터를 단일 인터페이스로 통합 조회.
 
 ---
 
@@ -47,16 +47,16 @@
 개발자는 `EcampusClient`를 사용하여 자신의 프로젝트에 서원대 LMS 기능을 연동할 수 있습니다.
 
 ### 1. 초기화 및 로그인
-환경 변수 또는 명시적 설정을 통해 클라이언트를 생성하고 세션을 획득합니다.
+서원대학교 e-campus는 특수한 암호화 패킷(`encryptData`)을 요구합니다. **본 라이브러리는 이를 내부에서 자동으로 처리**하므로, 평문 계정 정보만으로 간편하게 세션을 획득할 수 있습니다.
 
 ```typescript
 import { createEcampusClient } from 'seowon-client-api';
 
 const client = createEcampusClient({
-  cookieFilePath: './cookies.json'
+  cookieFilePath: './cookies.json' // 세션 유지를 위해 쿠키 파일 경로 지정 권장
 });
 
-// 로그인 수행 (세션 쿠키 자동 저장)
+// 로그인 수행 (암호화 로직 내장, 세션 쿠키 자동 저장)
 await client.login({
   userId: '202612345',
   password: 'your_secure_password'
@@ -64,57 +64,86 @@ await client.login({
 ```
 
 ### 2. 과목 및 이러닝 목록 조회
-수강 중인 과목과 해당 과목의 주차별 차시 정보를 가져옵니다.
+현재 학기에 수강 중인 과목 목록과 각 과목의 온라인 강의 차시 정보를 가져옵니다.
 
 ```typescript
 // 전체 과목 목록 조회
 const courses = await client.getCourseList();
+console.log(`현재 ${courses.length}개의 과목을 수강 중입니다.`);
 
 // 특정 과목의 이러닝 차시 목록 조회
 const lessons = await client.getElearningLessonList({
   crsCreCd: courses[0].crsCreCd
 });
 
-console.log(`강의 제목: ${lessons[0].title}`);
+lessons.forEach(lesson => {
+  console.log(`[${lesson.lessonScheduleId}] ${lesson.title} (${lesson.durationText})`);
+});
 ```
 
-### 3. 실시간 학습 자동화 실행
-`ElearningSession`을 활용하여 실제 시청 패턴으로 학습 인증을 수행합니다.
+### 3. 강의실 리소스 (공지, 과제, 자료) 조회
+특정 과목의 공지사항, 과제함, 강의자료실 정보를 통합 또는 개별적으로 파싱합니다.
+
+```typescript
+const crsCreCd = '2026_1_008620_01';
+const userNo = '202612345'; // 과제 조회 시 필수
+
+// 📢 공지사항만 조회
+const notices = await client.getNoticeList({ crsCreCd });
+
+// 📝 과제 목록 및 제출 상태 조회
+const assignments = await client.getAssignmentList({ crsCreCd, userNo });
+
+// 📂 강의자료실 목록 조회
+const materials = await client.getMaterialList({ crsCreCd });
+
+// 📦 모든 리소스 한 번에 가져오기
+const resources = await client.getClassroomResources({ crsCreCd, userNo });
+console.log(`공지: ${resources.notices.length}건, 과제: ${resources.assignments.length}건`);
+```
+
+### 4. 실시간 학습 자동화 실행
+`ElearningSession`을 활용하여 서버 가이드라인을 준수하는 자연스러운 시청 패턴을 재현합니다.
 
 ```typescript
 import { watchLesson } from 'seowon-client-api';
 
-// 학습 세션 시작
+// 학습 세션 시작 (lessonNewWindow -> viewLessonCmnt 순차 실행)
 const session = await watchLesson(
-  client.http,
+  client.http, // 인증된 Axios 인스턴스 전달
   client.baseUrl,
   'CNTS_ID_HERE',
   'COURSE_CODE_HERE',
   'STUDENT_NO_HERE'
 );
 
-// 실시간 진행률 모니터링 (예시)
-setInterval(() => {
-  console.log(`현재 진행률: ${session.getProgressPercent()}%`);
-}, 10000);
-
-// 특정 조건 달성 시 종료
-// await session.stopWatchingLesson();
+// 실시간 진행률 모니터링
+const timer = setInterval(() => {
+  const progress = session.getProgressPercent();
+  console.log(`현재 학습 진행률: ${progress}%`);
+  
+  if (progress >= 100) {
+    session.stopWatchingLesson(); // 종료 패킷(exitStudy) 전송
+    clearInterval(timer);
+  }
+}, 15000);
 ```
 
 ---
 
 ## 💻 CLI 전문가 가이드
 
-인터랙티브 CLI를 통해 코드 한 줄 없이 모든 강력한 기능을 사용할 수 있습니다.
+인터랙티브 CLI를 통해 모든 기능을 즉시 사용할 수 있습니다.
 
 | 번호 | 기능 | 명령어 (Alias) | 설명 |
 | :--- | :--- | :--- | :--- |
-| **1** | **로그인** | `login` | 세션 초기화 및 쿠키/세션 파일 생성 |
-| **2** | **과목 목록** | `courses` | 현재 수강 중인 전체 과목 정보 출력 |
-| **6** | **강의실 자료** | `classroom-resources` | 공지/과제/자료를 통합하여 한눈에 파악 |
-| **11** | **자동 시청** | `elearning-watch` | 목록 선택형 UI로 시청 및 학습률 자동 갱신 |
-| **-** | **상태 확인** | `status` | (학습 중) 현재 실시간 진행률 즉시 확인 |
+| **1** | **로그인** | `login` | 세션 초기화 및 로컬 세션 정보 저장 |
+| **2** | **과목 목록** | `courses` | 현재 수강 중인 과목 및 강의실 코드 확인 |
+| **3** | **공지사항** | `notices` | 선택한 과목의 최신 공지 목록 파싱 |
+| **5** | **과제함** | `assignments` | 과제 목록 및 개인별 제출 상태 확인 |
+| **6** | **강의실 자료** | `classroom-resources` | 공지/과제/자료 통합 조회 |
+| **7** | **이러닝 목록** | `elearning-lessons` | 주차별 온라인 강의 정보 확인 |
+| **11** | **자동 시청** | `elearning-watch` | 실시간 학습 인증 및 진행률 모니터링 |
 
 ---
 

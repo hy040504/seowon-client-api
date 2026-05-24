@@ -355,7 +355,10 @@ async function run() {
   else await executeCommand(api, command, options, null);
 }
 
-run().catch((e) => { printErrorMessage(e?.message || String(e)); process.exit(1); });
+run().catch((e) => {
+  printErrorMessage(e?.stack || e?.message || util.inspect(e));
+  process.exit(1);
+});
 
 function createStoredSessionOptions(options) {
   const path = resolveCookieFilePath(options);
