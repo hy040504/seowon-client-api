@@ -63,16 +63,16 @@ export {
   type LoginResult,
   type LoginWithEncryptDataOptions,
   type OpenElearningLessonOptions
-} from "./ecampus/login";
+} from "./ecampus/login.js";
 
 export {
   isCookieJarUsable,
   isSerializedCookieJarUsable,
   loadCookieJarFromFile,
   saveCookieJarToFile
-} from "./ecampus/cookies";
+} from "./ecampus/cookies.js";
 
-export { createLoginEncryptData, type LoginEncryptOptions } from "./ecampus/crypto";
+export { createLoginEncryptData, type LoginEncryptOptions } from "./ecampus/crypto.js";
 
 export {
   parseEcampusCourseList,
@@ -86,7 +86,7 @@ export {
   type EcampusCourseTypeCode,
   type EcampusCourseNamesJson,
   type EcampusCourseGroups
-} from "./ecampus/courses";
+} from "./ecampus/courses.js";
 
 export {
   createLessonStudyWindowRequest,
@@ -119,7 +119,7 @@ export {
   type EcampusLessonStudyWindow,
   type ElearningMp4UrlResult,
   type ElearningDownloadResult
-} from "./ecampus/elearning";
+} from "./ecampus/elearning.js";
 
 export {
   createEmptyEcampusClassroomResources,
@@ -137,6 +137,6 @@ export {
   type EcampusClassroomResourceOptions,
   type EcampusClassroomSection,
   type EcampusPostRequest
-} from "./ecampus/classroom";
+} from "./ecampus/classroom.js";
 
 export type { SerializedCookieJar } from "tough-cookie";

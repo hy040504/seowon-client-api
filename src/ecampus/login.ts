@@ -2,7 +2,7 @@ import axios, { type AxiosInstance } from "axios";
 import { wrapper } from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
 import util from "node:util";
-import { isCookieJarUsable, loadCookieJarFromFile, saveCookieJarToFile } from "./cookies";
+import { isCookieJarUsable, loadCookieJarFromFile, saveCookieJarToFile } from "./cookies.js";
 import {
   createEmptyEcampusClassroomResources,
   parseEcampusAssignmentListHtml,
@@ -12,15 +12,15 @@ import {
   stringifyEcampusClassroomResources,
   type EcampusClassroomItem,
   type EcampusClassroomResources
-} from "./classroom";
+} from "./classroom.js";
 import {
   parseEcampusCourseGroups,
   parseEcampusCourseList,
   parseEcampusCourseListJson,
   parseEcampusCourseNamesJson,
   type EcampusCourseListItem
-} from "./courses";
-import { createLoginEncryptData, type LoginEncryptOptions } from "./crypto";
+} from "./courses.js";
+import { createLoginEncryptData, type LoginEncryptOptions } from "./crypto.js";
 import {
   createStudyRecordRequest,
   createViewLessonStudyDetailRequest,
@@ -33,18 +33,14 @@ import {
   type EcampusLessonStudyWindow,
   type ElearningMp4UrlResult,
   type ElearningDownloadResult
-} from "./elearning";
-import type { EcampusCourseGroups } from "./courses";
+} from "./elearning.js";
+import type { EcampusCourseGroups } from "./courses.js";
 
 /** e-campus 클라이언트 초기화 옵션 */
 export interface EcampusClientOptions {
-  /** 기본 도메인 (생략 시 서원대 e-campus) */
   baseUrl?: string;
-  /** 외부에서 생성한 Axios 인스턴스 주입 시 사용 */
   axios?: AxiosInstance;
-  /** 세션 유지를 위한 쿠키 파일 저장 경로 */
   cookieFilePath?: string;
-  /** 자동 재로그인을 위한 계정 정보 */
   loginCredentials?: LoginCredentials;
 }
 
@@ -155,6 +151,18 @@ export class EcampusClient {
   }
 
   /**
+   * 계정 정보를 내부 상태에 보관한다 (자동 재로그인용)
+   */
+  setCredentials(credentials: LoginCredentials): void {
+    this.loginCredentials = credentials;
+  }
+
+  /** @returns {LoginCredentials | undefined} 현재 설정된 계정 정보 */
+  getCredentials(): LoginCredentials | undefined {
+    return this.loginCredentials;
+  }
+
+  /**
    * 영구 저장된 쿠키 파일을 읽어 CookieJar를 구성한다
    * @returns {CookieJar} 초기화된 쿠키 저장소
    * @private
@@ -178,13 +186,10 @@ export class EcampusClient {
   /**
    * API 호출 전 세션 유효성을 검사하고, 필요 시 자동 재로그인을 수행한다
    * @throws {Error} 세션이 만료되었으나 재로그인 정보가 없을 때
-   * @private
    */
-  private async ensureAuthenticated(): Promise<void> {
-    if (!this.cookieFilePath && !this.loginCredentials) return;
+  async ensureAuthenticated(): Promise<void> {
     if (isCookieJarUsable(this.cookieJar)) return;
 
-    // TODO: 세션 갱신 실패 시 지수 백오프(Exponential Backoff) 재시도 로직 고려
     if (!this.loginCredentials) {
       throw new Error("세션이 만료되었으며, 자동 로그인을 위한 계정 정보가 설정되어 있지 않습니다.");
     }
@@ -513,7 +518,27 @@ export class EcampusClient {
    * @returns {Promise<ElearningMp4UrlResult>} 추출 결과
    */
   async getElearningMp4Url(crsCreCd: string, lessonCntsId: string): Promise<ElearningMp4UrlResult> {
-    return getElearningMp4Url(this.http, undefined, { crsCreCd, lessonCntsId });
+    try {
+      // 1. 서버로부터 재생 창 메타데이터(contentUrl 포함)를 먼저 확보한다
+      const windowInfo = await this.openLessonWindow({ crsCreCd, lessonCntsId });
+      
+      if (!windowInfo.contentUrl) {
+        return {
+          success: false,
+          message: "콘텐츠 URL(contentUrl)을 찾을 수 없습니다. (재생 창 파싱 실패)",
+          debugInfo: { crsCreCd, lessonCntsId }
+        };
+      }
+
+      // 2. 확보된 URL을 분석하여 실제 MP4 주소를 추출한다
+      return getElearningMp4Url(this.http, windowInfo.contentUrl, { crsCreCd, lessonCntsId });
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `URL 추출 중 오류 발생: ${error.message}`,
+        debugInfo: { crsCreCd, lessonCntsId }
+      };
+    }
   }
 
   /**
@@ -665,4 +690,4 @@ function normalizeBaseUrl(baseUrl: string): string {
 }
 
 /** 내부 MP4 추출 함수 노출 */
-import { getElearningMp4Url } from "./elearning";
+import { getElearningMp4Url } from "./elearning.js";

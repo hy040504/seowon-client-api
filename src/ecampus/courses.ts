@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { normalizeSpace } from "./utils";
+import { normalizeSpace } from "./utils.js";
 
 /** 과목 대분류 타입 */
 export type EcampusCourseCategory = "curricular" | "extracurricular";

@@ -7,7 +7,7 @@ import {
   parseFormBody,
   parseFunctionArguments,
   splitHttpMessage
-} from "./utils";
+} from "./utils.js";
 
 import util from "node:util";
 import fs from "node:fs";
@@ -964,7 +964,8 @@ export async function downloadElearningMp4(
       }
     });
 
-    const writer = fs.createWriteStream(filePath);
+    // 대용량 파일 쓰기 성능을 위해 highWaterMark 버퍼를 1MB로 상향 조정
+    const writer = fs.createWriteStream(filePath, { highWaterMark: 1024 * 1024 });
     response.data.pipe(writer);
 
     return new Promise((resolve, reject) => {
@@ -982,6 +983,4 @@ export async function downloadElearningMp4(
 /** 파일 시스템에서 안전하게 사용 가능한 파일명으로 치환한다 */
 function sanitizeFilename(name: string): string {
   return name.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, " ").trim().substring(0, 100);
-}
-return name.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, " ").trim().substring(0, 100);
 }

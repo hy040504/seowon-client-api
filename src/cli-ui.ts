@@ -78,16 +78,14 @@ export function prettyPrint(value: any): void {
   console.log(colorizeJson(JSON.stringify(value, null, 2)));
 }
 
-/* --- 상태별 로깅 함수 --- */
-
-export function printSection(title: string) { console.log(color(title, ANSI.bold, ANSI.blue)); }
-export function printInfo(message: string) { console.log(color(message, ANSI.gray)); }
-export function printSuccess(message: string) { console.log(color(message, ANSI.green)); }
-export function printWarning(message: string) { console.log(color(message, ANSI.yellow)); }
-export function printErrorMessage(message: string) { console.error(color(message, ANSI.red)); }
+export function printSection(title: string): void { console.log(color(title, ANSI.bold, ANSI.blue)); }
+export function printInfo(message: string): void { console.log(color(message, ANSI.gray)); }
+export function printSuccess(message: string): void { console.log(color(message, ANSI.green)); }
+export function printWarning(message: string): void { console.log(color(message, ANSI.yellow)); }
+export function printErrorMessage(message: string): void { console.error(color(message, ANSI.red)); }
 
 /** 사용자에게 직접 입력을 요청한다 */
-export async function ask(rl: readline.Interface, label: string, fallback = ""): Promise<string> {
+export async function ask(rl: readline.Interface, label: string, fallback: string = ""): Promise<string> {
   const suffix = fallback ? color(` [기본값: ${fallback}]`, ANSI.gray) : "";
   return (await rl.question(`${color(label, ANSI.cyan)}${suffix}: `)).trim() || fallback;
 }
@@ -102,12 +100,15 @@ export async function chooseCommand(rl: readline.Interface): Promise<string> {
   const answer = (await rl.question("명령을 선택하세요: ")).trim();
   const num = Number(answer);
   if (answer === "0") return "exit";
-  if (Number.isInteger(num) && num >= 1 && num <= INTERACTIVE_COMMANDS.length) return INTERACTIVE_COMMANDS[num - 1].key;
+  if (Number.isInteger(num) && num >= 1 && num <= INTERACTIVE_COMMANDS.length) {
+    const found = INTERACTIVE_COMMANDS[num - 1];
+    if (found) return found.key;
+  }
   return COMMAND_ALIASES[answer] ?? answer;
 }
 
 /** 도움말 텍스트를 출력한다 */
-export function printHelp() {
+export function printHelp(): void {
   printSection("도움말");
   console.log(`
 명령어 가이드
@@ -133,8 +134,38 @@ export async function pickFromList<T>(
 
   const answer = await rl.question(`${title} 번호를 선택하세요: `);
   const index = parseInt(answer.trim()) - 1;
-  if (!items[index]) {
+  const selected = items[index];
+  if (!selected) {
     throw new Error(`올바른 ${title} 번호를 선택하세요.`);
   }
-  return items[index];
+  return selected;
+}
+
+/**
+ * 초 단위 숫자를 "X분 Y초" 형식의 문자열로 변환한다
+ * @param {number} seconds - 변환할 초 단위 시간
+ * @returns {string} 포맷팅된 시간 문자열
+ */
+export function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}분 ${s}초`;
+}
+
+/**
+ * 텍스트 기반의 진행바(Progress Bar) 문자열을 생성한다
+ * @param {number} current - 현재 값
+ * @param {number} total - 최대 값
+ * @param {number} [width=30] - 진행바 너비
+ * @returns {string} 진행바 문자열
+ */
+export function getProgressBar(current: number, total: number, width: number = 30): string {
+  const percent = Math.min(Math.max(current / total, 0), 1);
+  const filledWidth = Math.floor(percent * width);
+  const emptyWidth = width - filledWidth;
+  
+  const bar = "█".repeat(filledWidth) + "░".repeat(emptyWidth);
+  const percentText = (percent * 100).toFixed(1).padStart(5) + "%";
+  
+  return `|${color(bar, ANSI.cyan)}| ${color(percentText, ANSI.bold)}`;
 }

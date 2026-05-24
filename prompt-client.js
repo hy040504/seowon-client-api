@@ -44,21 +44,6 @@ function parseArgs(argv) {
     const token = argv[i];
     if (!token?.startsWith("--")) continue;
     const key = token.slice(2);
-    const next = argv[index + 1]; // FIXME: index -> i
-    if (!next || next.startsWith("--")) { options[key] = "true"; continue; }
-    options[key] = next; i++;
-  }
-  return { command, options };
-}
-
-// 위 parseArgs의 버그 수정본
-function parseArgsFixed(argv) {
-  const command = COMMAND_ALIASES[argv[0] ?? ""] ?? (argv[0] ?? "");
-  const options = {};
-  for (let i = 1; i < argv.length; i++) {
-    const token = argv[i];
-    if (!token?.startsWith("--")) continue;
-    const key = token.slice(2);
     const next = argv[i + 1];
     if (!next || next.startsWith("--")) { options[key] = "true"; continue; }
     options[key] = next; i++;
@@ -160,7 +145,7 @@ async function collectInteractiveOptions(api, rl, command, baseOptions = {}) {
       options.lessonCntsId = lesson.lessonCntsId; options.lessonTitle = lesson.title;
       printSuccess(`선택 이러닝: ${lesson.title} (${lesson.lessonCntsId})`);
       if (command === "elearning-watch") {
-        options.userNo = await ask(rl, "학번 (stdNo)", "2026_1_008620_01_202311420");
+        options.userNo = await ask(rl, "학번 (stdNo)", "학번_또는_로그인시_받은_userNo");
         const defaultMin = lesson.durationSeconds ? Math.ceil(lesson.durationSeconds / 60) : "60";
         options.watchMinutes = await ask(rl, "시청할 시간 (분)", String(defaultMin));
       }

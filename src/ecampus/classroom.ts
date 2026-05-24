@@ -6,7 +6,7 @@ import {
   parseFormBody,
   parseFunctionArguments,
   splitHttpMessage
-} from "./utils";
+} from "./utils.js";
 
 /** 강의실 리소스 섹션 타입 */
 export type EcampusClassroomSection = "notices" | "assignments" | "materials";
