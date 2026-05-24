@@ -954,6 +954,11 @@ export async function downloadElearningMp4(
 
     fs.mkdirSync(downloadPath, { recursive: true });
 
+    // .env에서 버퍼 크기(KB)를 가져오거나 기본값(1024KB = 1MB)을 사용한다.
+    // HighWaterMark가 클수록 I/O 호출 횟수가 줄어들어 고속 네트워크에서 성능이 향상된다.
+    const hwmConfig = process.env.DOWNLOAD_HIGH_WATER_MARK ? parseInt(process.env.DOWNLOAD_HIGH_WATER_MARK) : 1024;
+    const hwmBytes = (isNaN(hwmConfig) ? 1024 : hwmConfig) * 1024;
+
     const response = await http.get(mp4Url, {
       responseType: "stream",
       onDownloadProgress: (ev) => {
@@ -964,8 +969,7 @@ export async function downloadElearningMp4(
       }
     });
 
-    // 대용량 파일 쓰기 성능을 위해 highWaterMark 버퍼를 1MB로 상향 조정
-    const writer = fs.createWriteStream(filePath, { highWaterMark: 1024 * 1024 });
+    const writer = fs.createWriteStream(filePath, { highWaterMark: hwmBytes });
     response.data.pipe(writer);
 
     return new Promise((resolve, reject) => {
