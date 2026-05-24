@@ -147,14 +147,20 @@ npm run prompt:client
 
 실행하면 명령어 목록이 표시되고, 원하는 기능을 선택해 API 응답을 바로 확인할 수 있습니다.
 
+```text
+4. 강의실자료 (materials)
+5. 과제 (assignments)
+6. 통합 검색(공지/강의자료/과제) (classroom-resources)
+```
+
 | 메뉴/명령어           | 동작                                      |
 | :-------------------- | :---------------------------------------- |
 | `login`               | 계정으로 로그인하고 쿠키 세션 저장        |
 | `courses`             | 현재 수강 중인 과목 목록 출력             |
 | `notices`             | 선택한 과목의 공지사항 조회               |
-| `materials`           | 선택한 과목의 강의자료 조회               |
+| `materials`           | 선택한 과목의 강의실자료 조회             |
 | `assignments`         | 선택한 과목의 과제 및 제출 상태 조회      |
-| `classroom-resources` | 공지/자료/과제 리소스 통합 조회           |
+| `classroom-resources` | 통합 검색(공지/강의자료/과제)             |
 | `elearning-lessons`   | 선택한 과목의 이러닝 차시 목록 조회       |
 | `elearning-download`  | 선택한 차시의 영상 분석 후 다운로드       |
 | `elearning-watch`     | 선택한 차시의 학습 세션 시작 및 기록 갱신 |
@@ -164,6 +170,8 @@ npm run prompt:client
 ```text
 login -> courses -> 원하는 과목 선택 -> notices/materials/assignments/elearning-lessons
 ```
+
+`materials`는 강의자료실만 조회하고, `classroom-resources`는 공지/강의자료/과제를 한 번에 묶어서 출력합니다.
 
 `prompt-client`는 라이브러리 API가 어떤 데이터를 반환하는지 빠르게 확인하는 용도입니다. 대량 다운로드나 여러 강의 자동 시청은 `auto-manager`를 사용하세요.
 
@@ -325,4 +333,4 @@ if (urlResult.success) {
 >
 > - 본 프로젝트는 서원대학교 이캠퍼스 비공식 클라이언트 모듈입니다.
 > - 사용 시 해당 대학의 정보 보안 지침 및 LMS 운영 정책을 반드시 준수해야 하며, 사용에 대한 모든 책임은 본인에게 있습니다.
-> - 세션 정보가 담긴 쿠키 파일(`.json`) 유출에 각별히 유의하십시오.
+> - 세션 정보가 담긴 쿠키 파일(`.json`)과 개인정보 파일(`.env`) 유출에 각별히 유의하십시오.
