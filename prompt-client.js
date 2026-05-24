@@ -6,65 +6,53 @@ import { stdin as input, stdout as output } from "node:process";
 import { pathToFileURL } from "node:url";
 import util from "node:util";
 
+// UI 및 공통 레이아웃 모듈 임포트
+import {
+  ANSI,
+  COMMAND_ALIASES,
+  INTERACTIVE_COMMANDS,
+  color,
+  prettyPrint,
+  printSection,
+  printInfo,
+  printSuccess,
+  printWarning,
+  printErrorMessage,
+  ask,
+  chooseCommand,
+  pickFromList
+} from "./src/cli-ui.js";
+
 /** 라이브러리 엔트리 포인트 경로 */
 const SOURCE_ENTRY = path.resolve(process.cwd(), "src/index.ts");
-/** 세션 유지용 쿠키 파일 저장소 경로 */
 const DEFAULT_COOKIE_FILE = path.resolve(process.cwd(), ".seowon-ecampus.cookies.json");
-/** 로그인 결과 메타데이터 저장소 경로 */
 const DEFAULT_SESSION_FILE = path.resolve(process.cwd(), ".seowon-ecampus.session.json");
 
-const COLOR_ENABLED = process.stdout.isTTY && !process.env.NO_COLOR;
-const ANSI = {
-  reset: "\u001b[0m", bold: "\u001b[1m", dim: "\u001b[2m",
-  red: "\u001b[31m", green: "\u001b[32m", yellow: "\u001b[33m",
-  blue: "\u001b[34m", magenta: "\u001b[35m", cyan: "\u001b[36m", gray: "\u001b[90m"
-};
-
-/** 사용자의 편의를 위한 한글/영문 명령어 매핑 테이블 */
-const COMMAND_ALIASES = {
-  login: "login", 로그인: "login",
-  courses: "courses", 과목: "courses",
-  notices: "notices", 공지: "notices",
-  materials: "materials", 자료: "materials",
-  assignments: "assignments", 과제: "assignments",
-  "classroom-resources": "classroom-resources", 강의실자료: "classroom-resources",
-  "elearning-lessons": "elearning-lessons", 이러닝목록: "elearning-lessons",
-  "elearning-open": "elearning-open", 이러닝열기: "elearning-open",
-  "elearning-mp4": "elearning-mp4", 이러닝URL추출: "elearning-mp4",
-  "elearning-download": "elearning-download", 이러닝다운로드: "elearning-download",
-  "elearning-watch": "elearning-watch", 이러닝듣기: "elearning-watch", 이러닝자동시청: "elearning-watch",
-  help: "help", 도움말: "help"
-};
-
-/** 인터랙티브 메뉴 구성 정보 */
-const INTERACTIVE_COMMANDS = [
-  { key: "login", label: "로그인" },
-  { key: "courses", label: "과목" },
-  { key: "notices", label: "공지" },
-  { key: "materials", label: "자료" },
-  { key: "assignments", label: "과제" },
-  { key: "classroom-resources", label: "강의실자료" },
-  { key: "elearning-lessons", label: "이러닝목록" },
-  { key: "elearning-open", label: "이러닝열기" },
-  { key: "elearning-mp4", label: "이러닝URL 추출" },
-  { key: "elearning-download", label: "이러닝다운로드" },
-  { key: "elearning-watch", label: "e러닝 자동 시청 (학습 인증)" },
-  { key: "exit", label: "종료" }
-];
-
 /**
- * 런타임에 TypeScript 코드를 동적으로 로드한다
- * @returns {Promise<any>} 로드된 API 모듈
+ * 런타임에 TypeScript 코드를 로드한다
  */
 async function loadClientApi() {
   if (!fs.existsSync(SOURCE_ENTRY)) throw new Error("src/index.ts 파일을 찾을 수 없습니다.");
   return import(pathToFileURL(SOURCE_ENTRY).href);
 }
 
-/**
- * 명령행 인자(argv)를 파싱하여 명령어와 옵션 객체로 분리한다
- */
+/** 명령행 인자 파싱 */
 function parseArgs(argv) {
+  const command = COMMAND_ALIASES[argv[0] ?? ""] ?? (argv[0] ?? "");
+  const options = {};
+  for (let i = 1; i < argv.length; i++) {
+    const token = argv[i];
+    if (!token?.startsWith("--")) continue;
+    const key = token.slice(2);
+    const next = argv[index + 1]; // FIXME: index -> i
+    if (!next || next.startsWith("--")) { options[key] = "true"; continue; }
+    options[key] = next; i++;
+  }
+  return { command, options };
+}
+
+// 위 parseArgs의 버그 수정본
+function parseArgsFixed(argv) {
   const command = COMMAND_ALIASES[argv[0] ?? ""] ?? (argv[0] ?? "");
   const options = {};
   for (let i = 1; i < argv.length; i++) {
@@ -77,37 +65,6 @@ function parseArgs(argv) {
   }
   return { command, options };
 }
-
-/** JSON 데이터를 예쁘게 출력한다 */
-function prettyPrint(value) {
-  if (typeof value === "string") {
-    try { console.log(colorizeJson(JSON.stringify(JSON.parse(value), null, 2))); return; }
-    catch { console.log(value); return; }
-  }
-  console.log(colorizeJson(JSON.stringify(value, null, 2)));
-}
-
-/** ANSI 색상 코드를 텍스트에 입힌다 */
-function color(text, ...codes) {
-  if (!COLOR_ENABLED) return text;
-  return `${codes.join("")}${text}${ANSI.reset}`;
-}
-
-/** JSON 문자열에 구문 강조를 적용한다 */
-function colorizeJson(text) {
-  if (!COLOR_ENABLED) return text;
-  return text
-    .replace(/^( *)"([^"]+)":/gm, (_, indent, key) => `${indent}${color(`"${key}"`, ANSI.cyan)}:`)
-    .replace(/: "([^"]*)"/g, (_, v) => `: ${color(`"${v}"`, ANSI.green)}`)
-    .replace(/: (-?\d+(?:\.\d+)?)/g, (_, v) => `: ${color(v, ANSI.yellow)}`)
-    .replace(/: (true|false|null)/g, (_, v) => `: ${color(v, ANSI.magenta)}`);
-}
-
-function printSection(title) { console.log(color(title, ANSI.bold, ANSI.blue)); }
-function printInfo(message) { console.log(color(message, ANSI.gray)); }
-function printSuccess(message) { console.log(color(message, ANSI.green)); }
-function printWarning(message) { console.log(color(message, ANSI.yellow)); }
-function printErrorMessage(message) { console.error(color(message, ANSI.red)); }
 
 function required(options, key) {
   const v = options[key];
@@ -137,25 +94,7 @@ function createClientFromSavedSession(api, options) {
 
 function getSavedUserNo(session, options) { return options.userNo || session.sessionData.userNo || session.sessionData.userId; }
 
-async function chooseCommand(rl) {
-  printSection("사용 가능한 명령:");
-  INTERACTIVE_COMMANDS.forEach((item, i) => {
-    const num = item.key === "exit" ? "0" : String(i + 1);
-    console.log(`${color(num, ANSI.yellow)}. ${color(item.label, ANSI.bold)} ${color(`(${item.key})`, ANSI.gray)}`);
-  });
-  const answer = (await rl.question("명령을 선택하세요: ")).trim();
-  const num = Number(answer);
-  if (answer === "0") return "exit";
-  if (Number.isInteger(num) && num >= 1 && num <= INTERACTIVE_COMMANDS.length) return INTERACTIVE_COMMANDS[num - 1].key;
-  return COMMAND_ALIASES[answer] ?? answer;
-}
-
-async function ask(rl, label, fallback = "") {
-  const suffix = fallback ? color(` [기본값: ${fallback}]`, ANSI.gray) : "";
-  return (await rl.question(`${color(label, ANSI.cyan)}${suffix}: `)).trim() || fallback;
-}
-
-/** 현재 수강 중인 과목 목록을 보여주고 하나를 선택하게 한다 */
+/** 과목 선택 인터랙티브 흐름 */
 async function chooseCourseFromMenu(api, rl, options) {
   const { client } = createClientFromSavedSession(api, options);
   try {
@@ -164,11 +103,8 @@ async function chooseCourseFromMenu(api, rl, options) {
       printInfo("현재 수강 중인 과목이 하나도 없습니다.");
       throw new Error("NO_COURSES_AVAILABLE");
     }
-    console.log(""); printSection("과목 목록:");
-    courses.forEach((c, i) => console.log(`${color(String(i + 1), ANSI.yellow)}. ${c.title} ${color(`(${c.crsCreCd})`, ANSI.gray)}`));
-    const num = Number(await rl.question("과목 번호를 선택하세요: "));
-    if (!courses[num - 1]) throw new Error("올바른 과목 번호를 선택하세요.");
-    return courses[num - 1];
+    
+    return await pickFromList(rl, "과목", courses, (c) => `${c.title} (${c.crsCreCd})`);
   } catch (err) {
     if (err.message === "SESSION_EXPIRED") {
       printWarning("\n⚠️ 로그인 정보가 만료되었습니다. 1번 메뉴를 통해 다시 로그인해 주세요.");
@@ -178,22 +114,19 @@ async function chooseCourseFromMenu(api, rl, options) {
   }
 }
 
-/** 특정 과목의 e-러닝 차시 목록을 보여주고 하나를 선택하게 한다 */
+/** 이러닝 차시 선택 인터랙티브 흐름 */
 async function chooseLessonFromMenu(api, rl, options) {
   const { client } = createClientFromSavedSession(api, options);
   const lessons = await client.getElearningLessonList({ crsCreCd: options.crsCreCd });
   if (!lessons.length) throw new Error("선택한 과목에 조회 가능한 차시가 없습니다.");
-  console.log(""); printSection("이러닝 목록:");
-  lessons.forEach((l, i) => {
+  
+  return await pickFromList(rl, "이러닝", lessons, (l) => {
     const dur = l.durationText ? ` [${l.durationText}]` : "";
-    console.log(`${color(String(i + 1), ANSI.yellow)}. ${l.title}${color(dur, ANSI.cyan)} ${color(`(${l.lessonCntsId})`, ANSI.gray)}`);
+    return `${l.title}${color(dur, ANSI.cyan)} (${l.lessonCntsId})`;
   });
-  const num = Number(await rl.question("이러닝 번호를 선택하세요: "));
-  if (!lessons[num - 1]) throw new Error("올바른 이러닝 번호를 선택하세요.");
-  return lessons[num - 1];
 }
 
-/** 인터랙티브 모드에서 명령어 실행 전 필요한 옵션들을 사용자에게 직접 물어본다 */
+/** 인터랙티브 입력 수집 */
 async function collectInteractiveOptions(api, rl, command, baseOptions = {}) {
   const options = { ...baseOptions };
   switch (command) {
@@ -237,7 +170,7 @@ async function collectInteractiveOptions(api, rl, command, baseOptions = {}) {
   return options;
 }
 
-/** 명령어를 실제로 실행하고 결과를 출력한다 */
+/** 핵심 실행 로직 */
 async function executeCommand(api, command, options, rl) {
   switch (command) {
     case "login": {
