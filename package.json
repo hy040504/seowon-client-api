@@ -46,7 +46,7 @@
     "api"
   ],
   "author": "",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "devDependencies": {
     "@eslint/js": "^10.0.1",
