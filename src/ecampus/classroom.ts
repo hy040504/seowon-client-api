@@ -8,50 +8,50 @@ import {
   splitHttpMessage
 } from "./utils.js";
 
-/** 강의실 리소스 섹션 타입 */
+/** 강의실 리소스 식별 타입 */
 export type EcampusClassroomSection = "notices" | "assignments" | "materials";
 
-/** e-campus POST 요청 표준 포맷 */
+/** e-campus 전용 표준 POST 요청 규격 */
 export interface EcampusPostRequest {
   method: "POST";
   url: string;
   body: Record<string, string>;
 }
 
-/** 개별 게시물(공지, 자료, 과제 등) 항목 데이터 */
+/** 공지사항, 과제, 강의자료실 등 게시판 형태의 항목 정보 */
 export interface EcampusClassroomItem {
-  /** 항목 고유 식별자 (atclId 또는 asmntCd) */
+  /** 데이터베이스 식별자 (atclId 또는 asmntCd) */
   id: string;
-  /** 제목 */
+  /** 항목 제목 */
   title: string;
-  /** 상세 보기 URL */
+  /** 상세 진입을 위한 전체 URL */
   url: string;
-  /** 상세 보기를 위해 필요한 POST 요청 정보 */
+  /** 상세 데이터 조회를 위해 직접 사용 가능한 사전 구성 요청 정보 */
   request: EcampusPostRequest;
-  /** 작성일 또는 등록일 */
+  /** 게시일 또는 작성일 */
   date?: string;
-  /** 제출/학습 기간 */
+  /** 과제 마감 기한 또는 시청 기간 */
   period?: string;
-  /** 진행 상태 (제출완료, 미제출 등) */
+  /** 현재 진행 또는 제출 상태 */
   status?: string;
-  /** 첨부파일 존재 여부 */
+  /** 물리적 첨부파일 포함 여부 */
   hasAttachment?: boolean;
 }
 
-/** 강의실 통합 리소스 패키지 */
+/** 강의실 내부의 모든 리소스를 수집한 통합 데이터 구조 */
 export interface EcampusClassroomResources {
   notices: EcampusClassroomItem[];
   assignments: EcampusClassroomItem[];
   materials: EcampusClassroomItem[];
 }
 
-/** 리소스 파싱 옵션 */
+/** 파싱 처리에 필요한 기본 정보 주입 옵션 */
 export interface EcampusClassroomResourceOptions {
   baseUrl?: string;
   crsCreCd?: string;
 }
 
-/** 네트워크 패킷 분석용 원시 데이터 구조 */
+/** 패킷 로그 분석을 위한 원시 세션 구조체 */
 interface RawHttpSession {
   number: number;
   request: {
@@ -66,46 +66,33 @@ const DEFAULT_BASE_URL = "https://ecampus.seowon.ac.kr";
 const VIEW_ATCL_PATH = "/bbs/bbsLect/Form/viewAtclForm";
 const VIEW_ASMNT_PATH = "/asmnt/asmntLect/Form/asmntStuMain";
 
-/**
- * 리소스 수집을 위한 빈 컨테이너를 생성한다
- * @returns {EcampusClassroomResources} 초기화된 빈 리소스 객체
- */
+/** 신규 리소스 컨테이너 초기화 */
 export function createEmptyEcampusClassroomResources(): EcampusClassroomResources {
   return { notices: [], assignments: [], materials: [] };
 }
 
-/**
- * 공지사항 게시판 HTML 소스에서 항목 목록을 파싱한다
- * @param {string} html - 응답 HTML
- * @param {EcampusClassroomResourceOptions} options - 컨텍스트 옵션
- * @returns {EcampusClassroomItem[]} 파싱된 공지사항 목록
- */
+/** 공지사항 게시판 리스트 파싱 */
 export function parseEcampusNoticeListHtml(html: string, options: EcampusClassroomResourceOptions = {}): EcampusClassroomItem[] {
   return parseBbsListHtml(html, "notices", options);
 }
 
-/**
- * 강의자료실 게시판 HTML 소스에서 항목 목록을 파싱한다
- * @param {string} html - 응답 HTML
- * @param {EcampusClassroomResourceOptions} options - 컨텍스트 옵션
- * @returns {EcampusClassroomItem[]} 파싱된 자료 목록
- */
+/** 강의자료실 게시판 리스트 파싱 */
 export function parseEcampusMaterialListHtml(html: string, options: EcampusClassroomResourceOptions = {}): EcampusClassroomItem[] {
   return parseBbsListHtml(html, "materials", options);
 }
 
 /**
- * 과제함 HTML 소스에서 과제 목록 및 제출 상태를 파싱한다.
- * 과제는 일반 게시판과 폼 구조가 다르므로 전용 로직을 사용한다.
- * @param {string} html - 응답 HTML
- * @param {EcampusClassroomResourceOptions} options - 컨텍스트 옵션
- * @returns {EcampusClassroomItem[]} 파싱된 과제 목록
+ * 과제함 HTML의 특수한 테이블 구조를 분석하여 목록과 제출 정보를 추출한다.
+ * 일반 게시판과 달리 진행 상태(제출 여부)를 포함하는 복합 로직을 수행한다.
+ * @param {string} html - 응답 소스
+ * @param {EcampusClassroomResourceOptions} options - 설정
+ * @returns {EcampusClassroomItem[]} 파싱된 과제 항목 배열
  */
 export function parseEcampusAssignmentListHtml(html: string, options: EcampusClassroomResourceOptions = {}): EcampusClassroomItem[] {
   const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
   const $ = cheerio.load(html);
   
-  // 상세 조회를 위해 부모 폼의 hidden 필드들을 베이스로 사용
+  // 제출 처리에 필요한 모든 기본 폼 데이터(token 등) 수집
   const formValues = getFormValues($, "form#asmntListForm");
   const crsCreCd = options.crsCreCd ?? formValues.crsCreCd ?? "";
 
@@ -113,15 +100,17 @@ export function parseEcampusAssignmentListHtml(html: string, options: EcampusCla
     .toArray()
     .map((link) => {
       const $link = $(link);
-      // "javascript:asmntView('ID')" 형태에서 ID 추출
+      // "javascript:asmntView('CD')" 에서 고유 코드 추출
       const asmntCd = parseFunctionArguments($link.attr("href") ?? "")[0] ?? "";
       const card = $link.closest(".card");
       const text = normalizeSpace(card.text());
       const title = normalizeSpace($link.text());
       
+      // 제출 기간 및 현재 상태(제출완료/미제출) 정규식 매칭
       const period = text.match(/제출기간\s*([0-9.() :~]+)/)?.[1]?.trim();
       const status = text.match(/(과제를 제출하였습니다|미제출|종료|진행중)/)?.[1];
       
+      // 개별 과제 조회를 위한 맞춤형 요청 정보 구성
       const body = { ...formValues, crsCreCd, asmntCd };
 
       return {
@@ -141,19 +130,19 @@ export function parseEcampusAssignmentListHtml(html: string, options: EcampusCla
 }
 
 /**
- * Fiddler SAZ 파일에 기록된 모든 네트워크 세션을 분석하여 강의실 전체 리소스를 복원한다.
- * 중복된 항목은 병합하여 누락된 정보를 보완한다.
- * @param {Uint8Array} sazFile - SAZ 파일 바이너리
+ * Fiddler SAZ 파일에서 캡처된 다수의 세션을 분석하여 전체 리소스를 정밀 복원한다.
+ * 누락된 데이터가 있을 경우 세션 간 병합을 통해 완성도를 극대화한다.
+ * @param {Uint8Array} sazFile - 바이너리 데이터
  * @param {EcampusClassroomResourceOptions} options - 옵션
- * @returns {EcampusClassroomResources} 복원된 전체 리소스
+ * @returns {EcampusClassroomResources} 복원된 통합 리소스 객체
  */
 export function parseEcampusClassroomResourcesFromSaz(sazFile: Uint8Array, options: EcampusClassroomResourceOptions = {}): EcampusClassroomResources {
   const sessions = parseFiddlerSazSessions(sazFile);
   const resources = createEmptyEcampusClassroomResources();
-  const seen = new Map<EcampusClassroomSection, Map<string, EcampusClassroomItem>>();
+  const seenMap = new Map<EcampusClassroomSection, Map<string, EcampusClassroomItem>>();
 
   for (const section of Object.keys(resources) as EcampusClassroomSection[]) {
-    seen.set(section, new Map());
+    seenMap.set(section, new Map());
   }
 
   for (const session of sessions) {
@@ -166,49 +155,47 @@ export function parseEcampusClassroomResourcesFromSaz(sazFile: Uint8Array, optio
       : parseBbsListHtml(session.responseBody, section, { ...options, crsCreCd });
 
     for (const item of list) {
-      const bucket = seen.get(section);
-      if (!bucket) continue;
-
-      const current = bucket.get(item.id);
-      // 동일 ID 항목이 발견되면 필드 병합을 통해 정보 완성도 향상
-      bucket.set(item.id, current ? mergeItem(current, item) : item);
+      const bucket = seenMap.get(section)!;
+      const existing = bucket.get(item.id);
+      // 필드 병합(Field Merging)을 통해 정보 보완 처리
+      bucket.set(item.id, existing ? mergeItem(existing, item) : item);
     }
   }
 
   for (const section of Object.keys(resources) as EcampusClassroomSection[]) {
-    resources[section] = Array.from(seen.get(section)?.values() ?? []);
+    resources[section] = Array.from(seenMap.get(section)?.values() ?? []);
   }
 
   return resources;
 }
 
-/** SAZ 분석을 통한 공지사항 목록 복원 */
+/** SAZ 데이터에서 공지사항만 선별 추출 */
 export function parseEcampusNoticeListFromSaz(sazFile: Uint8Array, options: EcampusClassroomResourceOptions = {}): EcampusClassroomItem[] {
   return parseEcampusClassroomResourcesFromSaz(sazFile, options).notices;
 }
 
-/** SAZ 분석을 통한 과제 목록 복원 */
+/** SAZ 데이터에서 과제 목록만 선별 추출 */
 export function parseEcampusAssignmentListFromSaz(sazFile: Uint8Array, options: EcampusClassroomResourceOptions = {}): EcampusClassroomItem[] {
   return parseEcampusClassroomResourcesFromSaz(sazFile, options).assignments;
 }
 
-/** SAZ 분석을 통한 자료실 목록 복원 */
+/** SAZ 데이터에서 강의자료실 항목만 선별 추출 */
 export function parseEcampusMaterialListFromSaz(sazFile: Uint8Array, options: EcampusClassroomResourceOptions = {}): EcampusClassroomItem[] {
   return parseEcampusClassroomResourcesFromSaz(sazFile, options).materials;
 }
 
-/** 리소스 통합 객체를 JSON 문자열로 변환 */
+/** 통합 리소스 데이터를 가독성 있는 JSON으로 직렬화 */
 export function stringifyEcampusClassroomResources(resources: EcampusClassroomResources): string {
   return JSON.stringify(resources, null, 2);
 }
 
-/** 항목 배열을 JSON 문자열로 변환 */
+/** 항목 리스트를 가독성 있는 JSON으로 직렬화 */
 export function stringifyEcampusClassroomItems(items: EcampusClassroomItem[]): string {
   return JSON.stringify(items, null, 2);
 }
 
 /**
- * 공지사항/자료실 공통 파싱 로직.
+ * 일반적인 게시판(NOTICE, PDS) 형태의 HTML 리스트를 공통 파싱한다.
  * @private
  */
 function parseBbsListHtml(html: string, section: Exclude<EcampusClassroomSection, "assignments">, options: EcampusClassroomResourceOptions): EcampusClassroomItem[] {
@@ -241,7 +228,7 @@ function parseBbsListHtml(html: string, section: Exclude<EcampusClassroomSection
 }
 
 /**
- * Fiddler SAZ 패킷 내부의 HTTP 세션들을 순차적으로 파싱한다.
+ * SAZ 패킷 내부의 HTTP 전문에서 유효한 세션 데이터들을 정제하여 복원한다.
  * @private
  */
 function parseFiddlerSazSessions(sazFile: Uint8Array): RawHttpSession[] {
@@ -255,10 +242,8 @@ function parseFiddlerSazSessions(sazFile: Uint8Array): RawHttpSession[] {
     const resEntry = entries.get(`raw/${n}_s.txt`);
     if (!reqEntry || !resEntry) return undefined;
 
-    const reqRaw = decoder.decode(reqEntry.getData());
-    const resRaw = decoder.decode(resEntry.getData());
-    const [reqHeader, reqBody] = splitHttpMessage(reqRaw);
-    const [resHeader, resBody] = splitHttpMessage(resRaw);
+    const [reqHeader, reqBody] = splitHttpMessage(decoder.decode(reqEntry.getData()));
+    const [resHeader, resBody] = splitHttpMessage(decoder.decode(resEntry.getData()));
     const [method = "", url = ""] = (reqHeader.split(/\r?\n/)[0] ?? "").split(" ");
 
     if (!resHeader.startsWith("HTTP/")) return undefined;
@@ -267,10 +252,7 @@ function parseFiddlerSazSessions(sazFile: Uint8Array): RawHttpSession[] {
   }).filter((s): s is RawHttpSession => !!s);
 }
 
-/**
- * 세션의 URL 및 본문 속성을 기반으로 어떤 게시판 영역인지 분류한다.
- * @private
- */
+/** 세션의 목적지를 식별하여 게시판 종류를 분류한다 */
 function classifySession(session: RawHttpSession): EcampusClassroomSection | undefined {
   const path = new URL(session.request.url).pathname;
   const body = session.request.body;
@@ -283,7 +265,7 @@ function classifySession(session: RawHttpSession): EcampusClassroomSection | und
   return undefined;
 }
 
-/** 폼 내부의 모든 input 값을 수집한다 */
+/** HTML 폼 내부의 모든 Hidden 및 데이터 필드를 수집한다 */
 function getFormValues($: cheerio.CheerioAPI, selector: string): Record<string, string> {
   const values: Record<string, string> = {};
   $(`${selector} input[name]`).each((_, input) => {
@@ -293,17 +275,17 @@ function getFormValues($: cheerio.CheerioAPI, selector: string): Record<string, 
   return values;
 }
 
-/** BBS ID 포맷(BBS_CODE_N)에서 순수 과목 코드 추출 */
+/** 게시판 식별 코드에서 과목 고유 ID를 분리한다 */
 function extractCrsCreCdFromBbsId(bbsId: string): string {
   return bbsId.match(/^BBS_(.+)_[A-Z]$/)?.[1] ?? "";
 }
 
-/** 텍스트 내에서 날짜(YYYY.MM.DD) 패턴 추출 */
+/** 텍스트 내에서 날짜 리터럴을 탐색한다 */
 function extractDate(text: string): string | undefined {
   return text.match(/\b20\d{2}\.\d{2}\.\d{2}\b/)?.[0];
 }
 
-/** 데이터 보완을 위한 항목 병합 로직 */
+/** 데이터 완성도를 위한 속성 단위 병합 */
 function mergeItem(current: EcampusClassroomItem, next: EcampusClassroomItem): EcampusClassroomItem {
   return {
     ...current, ...next,

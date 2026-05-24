@@ -1,5 +1,6 @@
 /**
- * 텍스트 내의 불필요한 연속 공백을 단일 공백으로 치환한다
+ * 텍스트 내의 불필요한 연속 공백을 단일 공백으로 치환한다.
+ * 데이터 파싱 시 HTML 태그 사이의 줄바꿈이나 탭을 제거하여 문자열 비교의 정확도를 높이기 위해 사용한다.
  * @param {string} value - 공백을 정리할 원본 문자열
  * @returns {string} 연속 공백이 제거되고 앞뒤 트림 처리가 완료된 문자열
  */
@@ -8,7 +9,7 @@ export function normalizeSpace(value: string): string {
 }
 
 /**
- * 상대 경로를 포함한 경로 문자열을 절대 URL로 변환한다
+ * 상대 경로를 포함한 경로 문자열을 절대 URL로 변환한다.
  * @param {string} pathOrUrl - 변환할 경로 또는 URL
  * @param {string} baseUrl - 기준이 되는 도메인 및 경로
  * @returns {string} 브라우저에서 바로 사용 가능한 절대 URL 문자열
@@ -18,7 +19,8 @@ export function absoluteUrl(pathOrUrl: string, baseUrl: string): string {
 }
 
 /**
- * HTTP 응답/요청 전체 메시지에서 헤더와 본문을 분리한다
+ * HTTP 응답/요청 전체 메시지에서 헤더와 본문을 분리한다.
+ * 프록시 로그나 SAZ 파일에서 추출된 원시 HTTP 데이터를 처리하기 위해 사용한다.
  * @param {string} message - 파싱할 HTTP 전문
  * @returns {[string, string]} [헤더 섹션, 본문 섹션] 튜플
  */
@@ -39,7 +41,7 @@ export function splitHttpMessage(message: string): [string, string] {
 }
 
 /**
- * application/x-www-form-urlencoded 형식의 문자열을 객체 형태로 변환한다
+ * application/x-www-form-urlencoded 형식의 문자열을 객체 형태로 변환한다.
  * @param {string} body - 폼 본문 문자열
  * @returns {Record<string, string>} 키-값 쌍으로 구성된 데이터 객체
  */
@@ -55,9 +57,10 @@ export function parseFormBody(body: string): Record<string, string> {
 }
 
 /**
- * JavaScript 함수 호출 구문(String) 내부의 인자값들을 정규식을 이용해 배열로 추출한다
+ * JavaScript 함수 호출 구문(String) 내부의 인자값들을 추출한다.
+ * HTML 내 onclick 핸들러 등에서 식별자(ID)를 뽑아내기 위해 정규식을 사용한다.
  * @param {string} source - 예: "javascript:openWindow('ARG1', 'ARG2')"
- * @returns {string[]} 추출된 인자값 배열 (인자가 없거나 형식이 틀리면 빈 배열)
+ * @returns {string[]} 추출된 인자값 배열
  */
 export function parseFunctionArguments(source: string): string[] {
   const match = source.match(/\((.*)\)/);
@@ -66,7 +69,7 @@ export function parseFunctionArguments(source: string): string[] {
   }
 
   const args: string[] = [];
-  // 따옴표(') 또는 쌍따옴표(")로 묶인 문자열, 혹은 쉼표로 구분된 비문자열 값을 순차적으로 캡처
+  // 따옴표 종류에 상관없이 값을 캡처하되, 쉼표와 공백을 기준으로 구분
   const regex = /'([^']*)'|"([^"]*)"|([^,\s)]+)/g;
   let arg: RegExpExecArray | null;
 
@@ -78,9 +81,10 @@ export function parseFunctionArguments(source: string): string[] {
 }
 
 /**
- * 문자열 내의 정규식 특수문자 앞에 역슬래시를 붙여 리터럴 검색이 가능하게 만든다
+ * 문자열 내의 정규식 특수문자를 이스케이프한다.
+ * 사용자 입력값을 정규식 패턴으로 사용할 때 의도치 않은 매칭을 방지하기 위해 필수적이다.
  * @param {string} value - 이스케이프할 문자열
- * @returns {string} 정규식 패턴에서 안전하게 사용 가능한 문자열
+ * @returns {string} 정규식 리터럴로 안전하게 사용 가능한 문자열
  */
 export function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
