@@ -49,7 +49,8 @@ export interface EcampusCourseNamesJson {
 }
 
 /** 강의실 메인 진입을 담당하는 내부 스크립트 호출 패턴 */
-const CLASS_ROOM_ONCLICK_PATTERN = /classRoomMain\(\s*['"](?<crsCreCd>[^'"]+)['"]\s*,\s*['"](?<crsTypeCd>[^'"]+)['"]\s*\)/;
+const CLASS_ROOM_ONCLICK_PATTERN =
+  /classRoomMain\(\s*['"](?<crsCreCd>[^'"]+)['"]\s*,\s*['"](?<crsTypeCd>[^'"]+)['"]\s*\)/;
 
 /**
  * e-campus 대시보드 HTML에서 현재 활성화된 과목 목록을 추출한다.
@@ -57,7 +58,11 @@ const CLASS_ROOM_ONCLICK_PATTERN = /classRoomMain\(\s*['"](?<crsCreCd>[^'"]+)['"
  * @returns {EcampusCourseListItem[]} 과목 정보 배열
  */
 export function parseEcampusCourseList(html: string): EcampusCourseListItem[] {
-  return parseEcampusCourses(html).map(({ title, crsCreCd, crsTypeCd }) => ({ title, crsCreCd, crsTypeCd }));
+  return parseEcampusCourses(html).map(({ title, crsCreCd, crsTypeCd }) => ({
+    title,
+    crsCreCd,
+    crsTypeCd
+  }));
 }
 
 /** 과목 목록을 가독성 좋은 JSON 문자열로 직렬화한다 */
@@ -117,7 +122,13 @@ function parseEcampusCourses(html: string): EcampusCourse[] {
     const label = normalizeSpace(item.find("label.ui.mini.basic.label.mr5").first().text());
     const category = resolveCourseCategory(crsTypeCd, label);
     const course: EcampusCourse = {
-      id: crsCreCd, title, crsCreCd, crsTypeCd, category, label, rawTypeCode: crsTypeCd
+      id: crsCreCd,
+      title,
+      crsCreCd,
+      crsTypeCd,
+      category,
+      label,
+      rawTypeCode: crsTypeCd
     };
 
     // 분반 정보 등 부가 라벨이 존재하는 경우 추가
@@ -131,7 +142,11 @@ function parseEcampusCourses(html: string): EcampusCourse[] {
   if (courses.length === 0) {
     const content = html.toLowerCase();
     // 로그인 유도 키워드가 발견되면 세션 만료 에러 투척
-    if (content.includes("login") || content.includes("encryptdata") || content.includes("userhome")) {
+    if (
+      content.includes("login") ||
+      content.includes("encryptdata") ||
+      content.includes("userhome")
+    ) {
       throw new Error("SESSION_EXPIRED");
     }
   }

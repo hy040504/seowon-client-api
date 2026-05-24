@@ -13,7 +13,7 @@ const TEXT_CONTENT_TYPES = [
   "application/x-javascript",
   "application/xml",
   "application/xhtml+xml",
-  "application/x-www-form-urlencoded",
+  "application/x-www-form-urlencoded"
 ];
 
 function ensureDir(dirPath) {
@@ -32,7 +32,7 @@ function splitHeadBody(text) {
 
   return {
     head: text.slice(0, match.index),
-    body: text.slice(match.index + match[0].length),
+    body: text.slice(match.index + match[0].length)
   };
 }
 
@@ -47,7 +47,7 @@ function parseHeaders(lines) {
 
     headers.push({
       key: line.slice(0, separatorIndex).trim(),
-      value: line.slice(separatorIndex + 1).trim(),
+      value: line.slice(separatorIndex + 1).trim()
     });
   }
 
@@ -71,7 +71,7 @@ function parseRequest(text) {
     url,
     protocol,
     headers: parseHeaders(lines.slice(1)),
-    body,
+    body
   };
 }
 
@@ -87,20 +87,19 @@ function parseResponse(text) {
     statusCode: statusMatch?.[2] ?? "",
     statusText: statusMatch?.[3] ?? "",
     headers: parseHeaders(lines.slice(1)),
-    body,
+    body
   };
 }
 
 function parseMeta(xmlText) {
-  const attribute = (name) =>
-    xmlText.match(new RegExp(`${name}="([^"]*)"`, "i"))?.[1] ?? "";
+  const attribute = (name) => xmlText.match(new RegExp(`${name}="([^"]*)"`, "i"))?.[1] ?? "";
 
   return {
     clientBegin: attribute("ClientBeginRequest"),
     clientDone: attribute("ClientDoneResponse"),
     gatewayTime: attribute("GatewayTime"),
     dnsTime: attribute("DNSTime"),
-    tcpConnectTime: attribute("TCPConnectTime"),
+    tcpConnectTime: attribute("TCPConnectTime")
   };
 }
 
@@ -118,8 +117,7 @@ function isTextLike(contentType, body) {
   let suspicious = 0;
   for (const char of sample) {
     const code = char.charCodeAt(0);
-    const printable =
-      code === 9 || code === 10 || code === 13 || (code >= 32 && code <= 126);
+    const printable = code === 9 || code === 10 || code === 13 || (code >= 32 && code <= 126);
     if (!printable) {
       suspicious += 1;
     }
@@ -190,10 +188,7 @@ function buildSessionMarkdown(session) {
     "",
     "## Request Body Preview",
     "```",
-    previewBody(
-      session.request.body,
-      getHeaderValue(session.request.headers, "content-type"),
-    ),
+    previewBody(session.request.body, getHeaderValue(session.request.headers, "content-type")),
     "```",
     "",
     "## Response Status",
@@ -210,7 +205,7 @@ function buildSessionMarkdown(session) {
     "```",
     previewBody(session.response.body, session.responseContentType),
     "```",
-    "",
+    ""
   ].join("\n");
 }
 
@@ -229,7 +224,7 @@ function buildIndexMarkdown(sourcePath, sessions, endpointStats, hostStats) {
     .slice(0, 30)
     .map(
       (item) =>
-        `| ${item.count} | \`${item.method}\` | \`${item.path}\` | ${item.statusCodes.join(", ")} |`,
+        `| ${item.count} | \`${item.method}\` | \`${item.path}\` | ${item.statusCodes.join(", ")} |`
     )
     .join("\n");
 
@@ -238,14 +233,14 @@ function buildIndexMarkdown(sourcePath, sessions, endpointStats, hostStats) {
     .slice(0, 20)
     .map(
       (session) =>
-        `| ${session.id} | \`${session.request.method}\` | \`${session.request.url}\` | ${session.responseBytes} | ${session.responseContentType || "-"} |`,
+        `| ${session.id} | \`${session.request.method}\` | \`${session.request.url}\` | ${session.responseBytes} | ${session.responseContentType || "-"} |`
     )
     .join("\n");
 
   const sessionRows = sessions
     .map(
       (session) =>
-        `| ${session.id} | ${session.meta.clientBegin || "-"} | \`${session.request.method}\` | \`${session.request.url}\` | ${session.response.statusCode || "-"} | ${session.responseBytes} | [open](./sessions/${session.id}.md) |`,
+        `| ${session.id} | ${session.meta.clientBegin || "-"} | \`${session.request.method}\` | \`${session.request.url}\` | ${session.response.statusCode || "-"} | ${session.responseBytes} | [open](./sessions/${session.id}.md) |`
     )
     .join("\n");
 
@@ -280,7 +275,7 @@ function buildIndexMarkdown(sourcePath, sessions, endpointStats, hostStats) {
     "| Session | Start | Method | URL | Status | Bytes | Detail |",
     "| --- | --- | --- | --- | ---: | ---: | --- |",
     sessionRows,
-    "",
+    ""
   ].join("\n");
 }
 
@@ -329,7 +324,7 @@ export function analyzeSaz(inputArg = DEFAULT_INPUT, outputArg = DEFAULT_OUTPUT)
       query: parsedUrl?.search ?? "",
       responseContentType,
       responseBytes: responseEntry?.header.size ?? 0,
-      requestBytes: requestEntry?.header.size ?? 0,
+      requestBytes: requestEntry?.header.size ?? 0
     };
   });
 
@@ -342,7 +337,7 @@ export function analyzeSaz(inputArg = DEFAULT_INPUT, outputArg = DEFAULT_OUTPUT)
       method: session.request.method,
       path: session.path,
       count: 0,
-      statusCodes: new Set(),
+      statusCodes: new Set()
     };
     endpoint.count += 1;
     if (session.response.statusCode) {
@@ -357,7 +352,7 @@ export function analyzeSaz(inputArg = DEFAULT_INPUT, outputArg = DEFAULT_OUTPUT)
   const endpointStats = [...endpointMap.values()]
     .map((endpoint) => ({
       ...endpoint,
-      statusCodes: [...endpoint.statusCodes].sort(),
+      statusCodes: [...endpoint.statusCodes].sort()
     }))
     .sort((left, right) => right.count - left.count || left.path.localeCompare(right.path));
 
@@ -369,7 +364,7 @@ export function analyzeSaz(inputArg = DEFAULT_INPUT, outputArg = DEFAULT_OUTPUT)
     fs.writeFileSync(
       path.join(outputPath, "sessions", `${sanitizeFileName(session.id)}.md`),
       buildSessionMarkdown(session),
-      "utf8",
+      "utf8"
     );
   }
 
@@ -392,8 +387,8 @@ export function analyzeSaz(inputArg = DEFAULT_INPUT, outputArg = DEFAULT_OUTPUT)
       contentType: session.responseContentType,
       requestBytes: session.requestBytes,
       responseBytes: session.responseBytes,
-      query: session.query,
-    })),
+      query: session.query
+    }))
   };
 
   const summaryCsv = [
@@ -408,7 +403,7 @@ export function analyzeSaz(inputArg = DEFAULT_INPUT, outputArg = DEFAULT_OUTPUT)
       "statusCode",
       "contentType",
       "requestBytes",
-      "responseBytes",
+      "responseBytes"
     ].join(","),
     ...sessions.map((session) =>
       [
@@ -422,22 +417,22 @@ export function analyzeSaz(inputArg = DEFAULT_INPUT, outputArg = DEFAULT_OUTPUT)
         session.response.statusCode,
         session.responseContentType,
         session.requestBytes,
-        session.responseBytes,
+        session.responseBytes
       ]
         .map(csvEscape)
-        .join(","),
-    ),
+        .join(",")
+    )
   ].join("\n");
 
   fs.writeFileSync(
     path.join(outputPath, "index.md"),
     buildIndexMarkdown(inputPath, sessions, endpointStats, hostStats),
-    "utf8",
+    "utf8"
   );
   fs.writeFileSync(
     path.join(outputPath, "summary.json"),
     JSON.stringify(summaryJson, null, 2),
-    "utf8",
+    "utf8"
   );
   fs.writeFileSync(path.join(outputPath, "summary.csv"), summaryCsv, "utf8");
 }

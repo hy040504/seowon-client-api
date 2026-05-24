@@ -42,24 +42,41 @@ async function run() {
 
   try {
     const client = await initializeSession(rl);
-    
+
     while (true) {
-      console.log(color("\n[메인 메뉴]", ANSI.bold));
-      console.log(`${color("1", ANSI.yellow)}. ${color("🔑 로그인 / 로그인 정보 갱신", ANSI.bold)}`);
-      console.log(`${color("2", ANSI.yellow)}. ${color("📥 이러닝 일괄 다운로드 (전체 대기열 시각화)", ANSI.bold)}`);
-      console.log(`${color("3", ANSI.yellow)}. ${color("📺 이러닝 순차 자동 시청 (고급 로그 제어)", ANSI.bold)}`);
-      console.log(`${color("4", ANSI.yellow)}. ${color("📝 전체 교과목 미제출 과제 전수 조사", ANSI.bold)}`);
+      printSection("\n[메인 메뉴]");
+      console.log(
+        `${color("1", ANSI.yellow)}. ${color("🔑 로그인 / 로그인 정보 갱신", ANSI.bold)}`
+      );
+      console.log(
+        `${color("2", ANSI.yellow)}. ${color("📥 이러닝 일괄 다운로드 (전체 대기열 시각화)", ANSI.bold)}`
+      );
+      console.log(
+        `${color("3", ANSI.yellow)}. ${color("📺 이러닝 순차 자동 시청 (고급 로그 제어)", ANSI.bold)}`
+      );
+      console.log(
+        `${color("4", ANSI.yellow)}. ${color("📝 전체 교과목 미제출 과제 전수 조사", ANSI.bold)}`
+      );
       console.log(`${color("0", ANSI.yellow)}. ${color("종료", ANSI.bold)}`);
 
       const menu = (await rl.question("\n메뉴 선택: ")).trim();
       if (menu === "0") break;
 
       switch (menu) {
-        case "1": await loginManual(client, rl); break;
-        case "2": await withAuthRetry(client, rl, () => batchDownload(client, rl)); break;
-        case "3": await withAuthRetry(client, rl, () => batchWatch(client, rl)); break;
-        case "4": await withAuthRetry(client, rl, () => checkAllAssignments(client)); break;
-        default: printErrorMessage("올바른 메뉴를 선택하세요.");
+        case "1":
+          await loginManual(client, rl);
+          break;
+        case "2":
+          await withAuthRetry(client, rl, () => batchDownload(client, rl));
+          break;
+        case "3":
+          await withAuthRetry(client, rl, () => batchWatch(client, rl));
+          break;
+        case "4":
+          await withAuthRetry(client, rl, () => checkAllAssignments(client));
+          break;
+        default:
+          printErrorMessage("올바른 메뉴를 선택하세요.");
       }
     }
   } catch (err: any) {
@@ -75,7 +92,11 @@ async function run() {
  * @param {readline.Interface} rl - 입출력 인터페이스
  * @param {Function} action - 재시도할 원본 작업
  */
-async function withAuthRetry<T>(client: EcampusClient, rl: readline.Interface, action: () => Promise<T>): Promise<T> {
+async function withAuthRetry<T>(
+  client: EcampusClient,
+  rl: readline.Interface,
+  action: () => Promise<T>
+): Promise<T> {
   try {
     return await action();
   } catch (err: any) {
@@ -110,7 +131,7 @@ async function refreshSession(client: EcampusClient) {
 /** 앱 시작 시 기존 세션 유무를 확인하고 없으면 로그인을 진행한다 */
 async function initializeSession(rl: readline.Interface): Promise<EcampusClient> {
   const client = createEcampusClient({ cookieFilePath: DEFAULT_COOKIE_FILE });
-  
+
   if (process.env.SEOWON_ID && process.env.SEOWON_PASSWORD) {
     client.setCredentials({ userId: process.env.SEOWON_ID, password: process.env.SEOWON_PASSWORD });
   }
@@ -128,7 +149,8 @@ async function loginManual(client: EcampusClient, rl: readline.Interface): Promi
   printWarning("\n🔑 로그인을 수행합니다.");
   const userId = await ask(rl, "아이디", process.env.SEOWON_ID || "비어있음");
   const password = await ask(rl, "비밀번호", process.env.SEOWON_PASSWORD || "비어있음");
-  if (userId === "비어있음" || password === "비어있음") throw new Error("유효한 계정 정보가 필요합니다.");
+  if (userId === "비어있음" || password === "비어있음")
+    throw new Error("유효한 계정 정보가 필요합니다.");
   await client.login({ userId, password });
   printSuccess("✅ 로그인 성공 및 세션 저장 완료.");
   return client;
@@ -138,14 +160,23 @@ async function loginManual(client: EcampusClient, rl: readline.Interface): Promi
 async function batchDownload(client: EcampusClient, rl: readline.Interface) {
   const courses = await client.getCourseList();
   const course = await pickFromList(rl, "과목", courses, (c) => c.title);
-  
+
   const lessons = await client.getElearningLessonList({ crsCreCd: course.crsCreCd });
-  const selectedLessons = await pickMultipleFromList(rl, "다운로드할 강의", lessons, (l) => `${l.title} [${l.durationText || "시간미정"}]`);
-  
+  const selectedLessons = await pickMultipleFromList(
+    rl,
+    "다운로드할 강의",
+    lessons,
+    (l) => `${l.title} [${l.durationText || "시간미정"}]`
+  );
+
   const concurrencyInput = await ask(rl, "동시 다운로드 수", "3");
   const concurrency = Math.min(Math.max(parseInt(concurrencyInput) || 1, 1), 5);
 
-  const itemStatuses = selectedLessons.map(l => ({ title: l.title, percent: 0, status: "pending" as any }));
+  const itemStatuses = selectedLessons.map((l) => ({
+    title: l.title,
+    percent: 0,
+    status: "pending" as any
+  }));
   let isStarted = false;
 
   /** 전체 목록을 덮어쓰기 방식으로 실시간 렌더링 */
@@ -156,18 +187,26 @@ async function batchDownload(client: EcampusClient, rl: readline.Interface) {
       process.stdout.write("\r\u001b[K");
       const prefix = `[${i + 1}/${selectedLessons.length}]`;
       if (item.status === "downloading") {
-        console.log(`${prefix} ${getProgressBar(item.percent, 100, 15)} ${color(item.title.substring(0, 30), ANSI.yellow)}`);
+        console.log(
+          `${prefix} ${getProgressBar(item.percent, 100, 15)} ${color(item.title.substring(0, 30), ANSI.yellow)}`
+        );
       } else if (item.status === "completed") {
-        console.log(`${prefix} ${color("✅ 완료", ANSI.green)}      ${color(item.title.substring(0, 30), ANSI.green)}`);
+        console.log(
+          `${prefix} ${color("✅ 완료", ANSI.green)}      ${color(item.title.substring(0, 30), ANSI.green)}`
+        );
       } else if (item.status === "failed") {
-        console.log(`${prefix} ${color("❌ 실패", ANSI.red)}      ${color(item.title.substring(0, 30), ANSI.red)}`);
+        console.log(
+          `${prefix} ${color("❌ 실패", ANSI.red)}      ${color(item.title.substring(0, 30), ANSI.red)}`
+        );
       } else {
         console.log(`${prefix} ${color("⏳ 대기", ANSI.gray)}      ${item.title.substring(0, 30)}`);
       }
     });
   };
 
-  printInfo(`\n🚀 총 ${selectedLessons.length}개의 파일을 다운로드합니다. (동시 작업: ${concurrency}개)\n`);
+  printInfo(
+    `\n🚀 총 ${selectedLessons.length}개의 파일을 다운로드합니다. (동시 작업: ${concurrency}개)\n`
+  );
   selectedLessons.forEach(() => console.log(""));
   isStarted = true;
 
@@ -180,9 +219,17 @@ async function batchDownload(client: EcampusClient, rl: readline.Interface) {
       const state = itemStatuses[idx]!;
       state.status = "downloading";
       renderQueue();
-      const res = await client.downloadElearningMp4(course.crsCreCd, lesson.lessonCntsId, course.title, lesson.title, "./downloads", (p) => {
-        state.percent = p.percent; renderQueue();
-      });
+      const res = await client.downloadElearningMp4(
+        course.crsCreCd,
+        lesson.lessonCntsId,
+        course.title,
+        lesson.title,
+        "./downloads",
+        (p) => {
+          state.percent = p.percent;
+          renderQueue();
+        }
+      );
       state.status = res.success ? "completed" : "failed";
       state.percent = 100;
       renderQueue();
@@ -198,7 +245,12 @@ async function batchWatch(client: EcampusClient, rl: readline.Interface) {
   const courses = await client.getCourseList();
   const course = await pickFromList(rl, "과목", courses, (c) => c.title);
   const lessons = await client.getElearningLessonList({ crsCreCd: course.crsCreCd });
-  const selectedLessons = await pickMultipleFromList(rl, "자동 시청할 강의", lessons, (l) => `${l.title} [${l.durationText || "시간미정"}]`);
+  const selectedLessons = await pickMultipleFromList(
+    rl,
+    "자동 시청할 강의",
+    lessons,
+    (l) => `${l.title} [${l.durationText || "시간미정"}]`
+  );
   const stdNo = await ask(rl, "학번 (stdNo 확인용)", `${course.crsCreCd}_${process.env.SEOWON_ID}`);
 
   printSection(`\n🚀 총 ${selectedLessons.length}개의 강의를 순차적으로 시청합니다.`);
@@ -207,7 +259,7 @@ async function batchWatch(client: EcampusClient, rl: readline.Interface) {
     const lesson = selectedLessons[i]!;
     const totalSeconds = lesson.durationSeconds || 3600;
     printWarning(`\n[${i + 1}/${selectedLessons.length}] 시청 대기: ${lesson.title}`);
-    
+
     const originalLog = console.log;
     let currentBarLine = "";
 
@@ -218,9 +270,17 @@ async function batchWatch(client: EcampusClient, rl: readline.Interface) {
       process.stdout.write(currentBarLine);
     };
 
-    console.log = safeLog; console.warn = safeLog; console.error = safeLog;
-    const session = await watchLesson(client.http, client.baseUrl, lesson.lessonCntsId, course.crsCreCd, stdNo);
-    
+    console.log = safeLog;
+    console.warn = safeLog;
+    console.error = safeLog;
+    const session = await watchLesson(
+      client.http,
+      client.baseUrl,
+      lesson.lessonCntsId,
+      course.crsCreCd,
+      stdNo
+    );
+
     await new Promise((resolve) => {
       let elapsed = 0;
       const interval = setInterval(() => {
@@ -251,26 +311,49 @@ async function checkAllAssignments(client: EcampusClient) {
     process.stdout.write(`\r조회 중: ${course.title}...                    `);
     try {
       const assignments = await client.getAssignmentList({ crsCreCd: course.crsCreCd, userNo });
-      const missing = assignments.filter((a) => a.status === "미제출" || a.status?.includes("진행중"));
+      const missing = assignments.filter(
+        (a) => a.status === "미제출" || a.status?.includes("진행중")
+      );
       if (missing.length > 0) {
         console.log(color(`\n[${course.title}]`, ANSI.bold, ANSI.yellow));
-        missing.forEach((a) => { console.log(`  - 📝 ${a.title} (기한: ${a.period || "미정"})`); totalMissing++; });
+        missing.forEach((a) => {
+          console.log(`  - 📝 ${a.title} (기한: ${a.period || "미정"})`);
+          totalMissing++;
+        });
       }
     } catch (e) {}
   }
   const finalColor = totalMissing > 0 ? ANSI.red : ANSI.green;
-  console.log(color(`\n\n✅ 조사 완료! 총 ${totalMissing}개의 미제출/진행중 과제가 발견되었습니다.`, finalColor));
+  console.log(
+    color(
+      `\n\n✅ 조사 완료! 총 ${totalMissing}개의 미제출/진행중 과제가 발견되었습니다.`,
+      finalColor
+    )
+  );
 }
 
 /** 번호 기반 다중 선택 유틸리티 */
-async function pickMultipleFromList<T>(rl: readline.Interface, title: string, items: T[], labelMapper: (item: T) => string): Promise<T[]> {
+async function pickMultipleFromList<T>(
+  rl: readline.Interface,
+  title: string,
+  items: T[],
+  labelMapper: (item: T) => string
+): Promise<T[]> {
   printSection(`\n${title} 목록:`);
-  items.forEach((item, i) => console.log(`${color(String(i + 1), ANSI.yellow)}. ${labelMapper(item)}`));
+  items.forEach((item, i) =>
+    console.log(`${color(String(i + 1), ANSI.yellow)}. ${labelMapper(item)}`)
+  );
   const answer = await rl.question(`\n번호들을 쉼표로 구분하여 입력 (예: 1,2,5): `);
-  return answer.split(",").map(s => parseInt(s.trim()) - 1).filter(n => n >= 0 && n < items.length).map(n => items[n]!);
+  return answer
+    .split(",")
+    .map((s) => parseInt(s.trim()) - 1)
+    .filter((n) => n >= 0 && n < items.length)
+    .map((n) => items[n]!);
 }
 
-function pathToFileURL(p: string) { return new URL(`file:///${p.replace(/\\/g, "/")}`); }
+function pathToFileURL(p: string) {
+  return new URL(`file:///${p.replace(/\\/g, "/")}`);
+}
 
 run().catch((err) => {
   process.stderr.write("\n❌ [FATAL] 스크립트 실행 실패\n");

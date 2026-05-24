@@ -18,51 +18,142 @@
 
 본 프로젝트는 단순한 크롤러를 넘어 **Senior Software Engineer**의 설계 철학을 담고 있습니다.
 
-*   **WHY-centric Documentation**: 설계 의도와 비즈니스 로직(봇 탐지 회피, 서버 응답 유연성 등)의 배경을 설명하는 전문 주석 체계.
-*   **Full JSDoc Support**: 모든 API와 내부 함수에 상세한 한국어 JSDoc 명세를 제공하여 타입 정의만으로 즉시 개발 가능.
-*   **Production Reliability**: 세션 만료 자동 감지, 병렬 스트림 최적화, 표준 프로토콜 준수 등 실제 환경에서의 무결성 보장.
+- **WHY-centric Documentation**: 설계 의도와 비즈니스 로직(봇 탐지 회피, 서버 응답 유연성 등)의 배경을 설명하는 전문 주석 체계.
+- **Full JSDoc Support**: 모든 API와 내부 함수에 상세한 한국어 JSDoc 명세를 제공하여 타입 정의만으로 즉시 개발 가능.
+- **Production Reliability**: 세션 만료 자동 감지, 병렬 스트림 최적화, 표준 프로토콜 준수 등 실제 환경에서의 무결성 보장.
 
 ---
 
 ## 🚀 핵심 도구 안내
 
 ### 1. ⚡ 실전 자동화 매니저 (`auto-manager.ts`)
+
 대량 작업을 위한 고성능 스크립트입니다. `npm run auto:manager`로 실행합니다.
-*   **📥 병렬 일괄 다운로드**: 여러 영상을 동시에 다운로드하며, 다중 진행바로 상태를 실시간 확인합니다.
-*   **⏳ 순차 자동 시청**: 선택한 모든 강의를 영상 길이에 맞춰 자동으로 이어서 시청하고 세션을 정리합니다.
-*   **🔍 미제출 과제 전수 조사**: 모든 교과 과목을 순회하여 미제출/진행중 과제를 즉시 리스팅합니다.
+
+- **📥 병렬 일괄 다운로드**: 여러 영상을 동시에 다운로드하며, 다중 진행바로 상태를 실시간 확인합니다.
+- **⏳ 순차 자동 시청**: 선택한 모든 강의를 영상 길이에 맞춰 자동으로 이어서 시청하고 세션을 정리합니다.
+- **🔍 미제출 과제 전수 조사**: 모든 교과 과목을 순회하여 미제출/진행중 과제를 즉시 리스팅합니다.
 
 ### 2. 🤖 정밀 학습 인증 엔진 (`ElearningSession`)
-*   Fiddler 패킷 분석 기반의 6단계 인증 시퀀스 자동화.
-*   45~75초 유동적 랜덤 딜레이 적용으로 봇 탐지 회피.
-*   실시간 학습 진행률(`prgrRatio`) 동기화 및 마일스톤 알림.
+
+- Fiddler 패킷 분석 기반의 6단계 인증 시퀀스 자동화.
+- 45~75초 유동적 랜덤 딜레이 적용으로 봇 탐지 회피.
+- 실시간 학습 진행률(`prgrRatio`) 동기화 및 마일스톤 알림.
 
 ### 3. 🎬 지능형 미디어 분석
-*   다중 추출 엔진(Regex, Base64 Fallback)을 통한 고해상도 MP4 도출.
-*   1MB 하이워터마크 버퍼를 적용한 고속 스트리밍 다운로드.
+
+- 다중 추출 엔진(Regex, Base64 Fallback)을 통한 고해상도 MP4 도출.
+- 1MB 하이워터마크 버퍼를 적용한 고속 스트리밍 다운로드.
+
+---
+
+## 🧭 CLI 실행 가이드
+
+이 프로젝트는 목적이 다른 두 개의 인터랙티브 실행 도구를 제공합니다.
+
+| 도구            | 실행 명령어             | 사용 목적                                      | 추천 상황                          |
+| :-------------- | :---------------------- | :--------------------------------------------- | :--------------------------------- |
+| `prompt-client` | `npm run prompt:client` | API 기능을 하나씩 직접 호출하고 응답 JSON 확인 | 파서/로그인/개별 기능 테스트       |
+| `auto-manager`  | `npm run auto:manager`  | 다운로드, 자동 시청, 과제 조사 일괄 처리       | 실제 반복 작업을 한 번에 처리할 때 |
+
+### 0️⃣ 실행 전 준비
+
+먼저 `.env.example`을 기준으로 `.env` 파일을 준비합니다.
+
+```env
+SEOWON_ID=your_id
+SEOWON_PASSWORD=your_password
+DOWNLOAD_HIGH_WATER_MARK=1024
+```
+
+- `SEOWON_ID`, `SEOWON_PASSWORD`: 로그인 자동 입력 및 세션 갱신에 사용됩니다.
+- `DOWNLOAD_HIGH_WATER_MARK`: 영상 다운로드 버퍼 크기입니다. 기본값은 `1024`KB입니다.
+- 로그인 성공 후 세션 쿠키는 `.seowon-ecampus.cookies.json`에 저장되어 다음 실행 때 재사용됩니다.
+
+### 1️⃣ `prompt-client`: 개별 API 확인용
+
+```bash
+npm run prompt:client
+```
+
+실행하면 명령어 목록이 표시되고, 원하는 기능을 선택해 API 응답을 바로 확인할 수 있습니다.
+
+| 메뉴/명령어           | 동작                                      |
+| :-------------------- | :---------------------------------------- |
+| `login`               | 계정으로 로그인하고 쿠키 세션 저장        |
+| `courses`             | 현재 수강 중인 과목 목록 출력             |
+| `notices`             | 선택한 과목의 공지사항 조회               |
+| `materials`           | 선택한 과목의 강의자료 조회               |
+| `assignments`         | 선택한 과목의 과제 및 제출 상태 조회      |
+| `classroom-resources` | 공지/자료/과제 리소스 통합 조회           |
+| `elearning-lessons`   | 선택한 과목의 이러닝 차시 목록 조회       |
+| `elearning-download`  | 선택한 차시의 영상 분석 후 다운로드       |
+| `elearning-watch`     | 선택한 차시의 학습 세션 시작 및 기록 갱신 |
+
+권장 흐름:
+
+```text
+login -> courses -> 원하는 과목 선택 -> notices/materials/assignments/elearning-lessons
+```
+
+`prompt-client`는 라이브러리 API가 어떤 데이터를 반환하는지 빠르게 확인하는 용도입니다. 대량 다운로드나 여러 강의 자동 시청은 `auto-manager`를 사용하세요.
+
+### 2️⃣ `auto-manager`: 실전 자동화용
+
+```bash
+npm run auto:manager
+```
+
+실행 시 기존 쿠키 세션이 유효하면 바로 메인 메뉴로 진입하고, 세션이 없거나 만료되면 로그인 정보를 입력받습니다.
+
+```text
+[메인 메뉴]
+1. 로그인 / 로그인 정보 갱신
+2. 이러닝 일괄 다운로드 (전체 대기열 시각화)
+3. 이러닝 순차 자동 시청 (고급 로그 제어)
+4. 전체 교과목 미제출 과제 전수 조사
+0. 종료
+```
+
+| 메뉴 | 기능                  | 사용 방법                                                 |
+| :--- | :-------------------- | :-------------------------------------------------------- |
+| `1`  | 로그인/세션 갱신      | 계정 정보를 다시 입력해 쿠키 세션을 새로 저장             |
+| `2`  | 이러닝 일괄 다운로드  | 과목 선택 → 다운로드할 차시 번호 선택 → 동시 작업 수 입력 |
+| `3`  | 이러닝 순차 자동 시청 | 과목 선택 → 시청할 차시 번호 선택 → 학번 확인             |
+| `4`  | 미제출 과제 전수 조사 | 전체 과목을 순회하며 미제출/진행중 과제를 출력            |
+
+여러 항목을 선택할 때는 번호를 쉼표로 입력합니다.
+
+```text
+번호들을 쉼표로 구분하여 입력 (예: 1,2,5): 1,3,4
+```
+
+다운로드 결과는 기본적으로 `downloads/` 폴더에 저장됩니다. 세션 만료가 감지되면 `.env`의 계정 정보 또는 저장된 인증 정보로 자동 재로그인을 시도한 뒤 작업을 재개합니다.
 
 ---
 
 ## 🛠 Usage Examples (Library API)
 
 ### 1️⃣ 인증 및 세션 (로그인)
+
 서원대 e-campus는 `encryptData`라는 특수 암호화 패킷을 요구합니다. **본 라이브러리는 모든 암호화 로직을 내장**하고 있어, 평문 계정 정보만으로 즉시 세션을 획득합니다.
 
 ```typescript
-import { createEcampusClient } from 'seowon-client-api';
+import { createEcampusClient } from "seowon-client-api";
 
 const client = createEcampusClient({
-  cookieFilePath: './cookies.json' // 세션을 파일로 영구 보관
+  cookieFilePath: "./cookies.json" // 세션을 파일로 영구 보관
 });
 
 // 로그인 수행 (내부적으로 암호화 로직 자동 실행 및 쿠키 저장)
 await client.login({
-  userId: '202612345',
-  password: 'your_password'
+  userId: "202612345",
+  password: "your_password"
 });
 ```
 
 ### 2️⃣ 과목 목록 (Courses)
+
 현재 학기에 수강 중인 모든 과목을 교과/비교과로 분류하거나 평탄화된 배열로 가져옵니다.
 
 ```typescript
@@ -75,53 +166,57 @@ console.log(`교과 과목 수: ${groups.curricular.length}`);
 ```
 
 ### 3️⃣ 공지사항 (Notices)
+
 강의실 내 공지사항 게시판의 최신 항목들을 파싱합니다.
 
 ```typescript
 // 특정 과목의 공지사항 조회
 const notices = await client.getNoticeList({
-  crsCreCd: '2026_1_000000_01'
+  crsCreCd: "2026_1_000000_01"
 });
 
-notices.forEach(n => console.log(`[공지] ${n.title} (${n.date})`));
+notices.forEach((n) => console.log(`[공지] ${n.title} (${n.date})`));
 ```
 
 ### 4️⃣ 과제함 (Assignments)
+
 개인별 과제 목록과 제출 상태(제출완료/미제출/진행중)를 상세히 조회합니다.
 
 ```typescript
 // 과제 목록 및 제출 상태 조회 (userNo 필수)
 const assignments = await client.getAssignmentList({
-  crsCreCd: '2026_1_000000_01',
-  userNo: '202612345'
+  crsCreCd: "2026_1_000000_01",
+  userNo: "202612345"
 });
 
-assignments.forEach(a => console.log(`${a.title}: ${a.status}`));
+assignments.forEach((a) => console.log(`${a.title}: ${a.status}`));
 ```
 
 ### 5️⃣ 강의자료 및 리소스 (Materials)
+
 강의자료실의 항목과 첨부파일 유무를 확인하고, 모든 리소스를 한 번에 패키지로 획득합니다.
 
 ```typescript
 // 📂 강의자료실 조회
-const materials = await client.getMaterialList({ crsCreCd: '...' });
+const materials = await client.getMaterialList({ crsCreCd: "..." });
 
 // 📦 공지/과제/자료 통합 획득
 const resources = await client.getClassroomResources({
-  crsCreCd: '...',
-  userNo: '...'
+  crsCreCd: "...",
+  userNo: "..."
 });
 ```
 
 ### 6️⃣ e-러닝 차시 정보 및 MP4 분석
+
 주차별 강의 목록과 각 영상의 실제 스트리밍 주소를 도출합니다.
 
 ```typescript
 // 이러닝 차시 목록 조회
-const lessons = await client.getElearningLessonList({ crsCreCd: '...' });
+const lessons = await client.getElearningLessonList({ crsCreCd: "..." });
 
 // 지능형 엔진을 통한 실제 MP4 URL 추출 (Base64 Fallback 포함)
-const urlResult = await client.getElearningMp4Url('CRS_CODE', 'CNTS_ID');
+const urlResult = await client.getElearningMp4Url("CRS_CODE", "CNTS_ID");
 if (urlResult.success) {
   console.log(`원본 주소: ${urlResult.mp4Url}`);
 }
@@ -131,25 +226,25 @@ if (urlResult.success) {
 
 ## 💻 CLI 전문가 명령어 가이드
 
-| 명령어 | 설명 |
-| :--- | :--- |
-| `courses` | 현재 수강 중인 전체 과목 정보 출력 |
-| `notices` | 특정 과목의 최신 공지 목록 파싱 |
-| `assignments` | 과제 목록 및 개인별 제출 상태 확인 |
-| `elearning-watch` | 실시간 학습 인증 및 진행률 모니터링 |
-| `elearning-download`| 고속 스트림 방식으로 영상 로컬 저장 |
-| `status` | (학습 중 전용) 현재 실시간 진행률 즉시 확인 |
+| 명령어               | 설명                                        |
+| :------------------- | :------------------------------------------ |
+| `courses`            | 현재 수강 중인 전체 과목 정보 출력          |
+| `notices`            | 특정 과목의 최신 공지 목록 파싱             |
+| `assignments`        | 과제 목록 및 개인별 제출 상태 확인          |
+| `elearning-watch`    | 실시간 학습 인증 및 진행률 모니터링         |
+| `elearning-download` | 고속 스트림 방식으로 영상 로컬 저장         |
+| `status`             | (학습 중 전용) 현재 실시간 진행률 즉시 확인 |
 
 ---
 
 ## 🛠 기술 스택
 
-| Category | Technology |
-| :--- | :--- |
-| **Runtime** | `Node.js (20+)` |
-| **Language** | `TypeScript (Strict Mode)` |
-| **Network** | `Axios`, `tough-cookie` |
-| **Scraping** | `Cheerio` |
+| Category        | Technology                           |
+| :-------------- | :----------------------------------- |
+| **Runtime**     | `Node.js (20+)`                      |
+| **Language**    | `TypeScript (Strict Mode)`           |
+| **Network**     | `Axios`, `tough-cookie`              |
+| **Scraping**    | `Cheerio`                            |
 | **CLI Control** | `Readline (Advanced Cursor Control)` |
 
 ---
@@ -158,6 +253,7 @@ if (urlResult.success) {
 
 > [!CAUTION]
 > **보안 및 정책 가이드라인**
-> *   본 프로젝트는 공유를 위해 코드 내 모든 실제 개인 정보를 제거했습니다.
-> *   사용 시 해당 대학의 정보 보안 지침 및 LMS 운영 정책을 반드시 준수해야 합니다.
-> *   세션 정보가 담긴 쿠키 파일(`.json`) 유출에 각별히 유의하십시오.
+>
+> - 본 프로젝트는 공유를 위해 코드 내 모든 실제 개인 정보를 제거했습니다.
+> - 사용 시 해당 대학의 정보 보안 지침 및 LMS 운영 정책을 반드시 준수해야 합니다.
+> - 세션 정보가 담긴 쿠키 파일(`.json`) 유출에 각별히 유의하십시오.

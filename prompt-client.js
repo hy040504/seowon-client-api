@@ -35,9 +35,9 @@ async function main() {
   const rl = readline.createInterface({ input, output });
 
   printSection("\n--- 🎓 서원대 e-campus API 인터랙티브 클라이언트 ---");
-  
+
   const client = api.createEcampusClient({ cookieFilePath: DEFAULT_COOKIE_FILE });
-  const options: any = {};
+  const options = {};
 
   try {
     while (true) {
@@ -54,7 +54,10 @@ async function main() {
             // 계정 정보는 .env 또는 실시간 입력을 통해 수집
             options.userId = await ask(rl, "아이디", process.env.SEOWON_ID);
             options.password = await ask(rl, "비밀번호", process.env.SEOWON_PASSWORD);
-            const result = await client.login({ userId: options.userId, password: options.password });
+            const result = await client.login({
+              userId: options.userId,
+              password: options.password
+            });
             printSuccess(`로그인 결과: ${result.type}`);
             if (result.type === "error") printErrorMessage(result.message);
             break;
@@ -88,19 +91,39 @@ async function main() {
             } else {
               // 이러닝 시청 및 다운로드는 차시 선택까지 추가로 필요
               const lessons = await client.getElearningLessonList(options);
-              const lesson = await pickFromList(rl, "강의 차시", lessons, (l) => `${l.title} [${l.durationText || "N/A"}]`);
+              const lesson = await pickFromList(
+                rl,
+                "강의 차시",
+                lessons,
+                (l) => `${l.title} [${l.durationText || "N/A"}]`
+              );
               options.lessonCntsId = lesson.lessonCntsId;
 
               if (command === "elearning-watch") {
-                const stdNo = await ask(rl, "학번 (stdNo)", `${options.crsCreCd}_${process.env.SEOWON_ID}`);
-                const session = await api.watchLesson(client.http, client.baseUrl, lesson.lessonCntsId, options.crsCreCd, stdNo);
+                const stdNo = await ask(
+                  rl,
+                  "학번 (stdNo)",
+                  `${options.crsCreCd}_${process.env.SEOWON_ID}`
+                );
+                const session = await api.watchLesson(
+                  client.http,
+                  client.baseUrl,
+                  lesson.lessonCntsId,
+                  options.crsCreCd,
+                  stdNo
+                );
                 printInfo("학습 세션이 시작되었습니다. 1분 주기로 기록을 갱신합니다.");
                 printWarning("중단하려면 Ctrl+C를 누르거나 창을 닫으세요.");
                 // 개별 클라이언트에서는 단순 유지 모드로 진입
-                await new Promise(() => {}); 
+                await new Promise(() => {});
               } else if (command === "elearning-download") {
                 printInfo("영상 분석 및 다운로드를 시작합니다...");
-                const dlRes = await client.downloadElearningMp4(options.crsCreCd, lesson.lessonCntsId, course.title, lesson.title);
+                const dlRes = await client.downloadElearningMp4(
+                  options.crsCreCd,
+                  lesson.lessonCntsId,
+                  course.title,
+                  lesson.title
+                );
                 if (dlRes.success) printSuccess(`저장 완료: ${dlRes.filePath}`);
                 else printErrorMessage(`실패: ${dlRes.message}`);
               }
@@ -110,10 +133,11 @@ async function main() {
           default:
             printErrorMessage(`알 수 없는 명령: ${command}`);
         }
-      } catch (err: any) {
+      } catch (err) {
         // 복합 에러 객체의 경우 스택 추적을 포함하여 상세 출력
         printErrorMessage(`\n[ERROR] ${err.message}`);
-        if (err.response?.data) console.error(util.inspect(err.response.data, { depth: null, colors: true }));
+        if (err.response?.data)
+          console.error(util.inspect(err.response.data, { depth: null, colors: true }));
         else if (err.stack) printInfo(err.stack);
       }
     }

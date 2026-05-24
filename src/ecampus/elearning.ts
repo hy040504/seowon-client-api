@@ -280,10 +280,12 @@ export class ElearningSession {
   private async initializeStudyRecord() {
     const initialTm = 60; // 시작 시 1분 학습 데이터 선적재
     const res = await this.callAddStudyRecord(initialTm);
-    
+
     let data = res;
     if (typeof data === "string" && data.trim().startsWith("{")) {
-      try { data = JSON.parse(data); } catch {}
+      try {
+        data = JSON.parse(data);
+      } catch {}
     }
 
     if (data?.returnVO?.studyDetailId) {
@@ -316,7 +318,9 @@ export class ElearningSession {
 
     let data = response.data;
     if (typeof data === "string" && data.trim().startsWith("{")) {
-      try { data = JSON.parse(data); } catch {}
+      try {
+        data = JSON.parse(data);
+      } catch {}
     }
 
     // 서버 응답 본문에서 진행률(%) 추출
@@ -392,16 +396,23 @@ export class ElearningSession {
           "X-Requested-With": "XMLHttpRequest"
         }
       });
-      console.log(`[ElearningSession] 🛑 학습 종료 패킷(exitStudy) 전송 완료 (총 ${this.totalStudyTime}초)`);
+      console.log(
+        `[ElearningSession] 🛑 학습 종료 패킷(exitStudy) 전송 완료 (총 ${this.totalStudyTime}초)`
+      );
     } catch (error) {
-      console.error("[ElearningSession] ⚠️ 종료 패킷 전송 오류:", error instanceof Error ? error.message : error);
+      console.error(
+        "[ElearningSession] ⚠️ 종료 패킷 전송 오류:",
+        error instanceof Error ? error.message : error
+      );
     } finally {
       this.isWatching = false;
     }
   }
 
   /** @returns {number} 서버 측에 반영된 최종 진행률(%) */
-  getProgressPercent() { return this.progressPercent; }
+  getProgressPercent() {
+    return this.progressPercent;
+  }
 }
 
 /** 학습 세션 생성 및 즉시 시작 팩토리 */
@@ -424,7 +435,10 @@ export function parseEcampusLessonSchedulesHtml(
 ): EcampusLessonSchedule[] {
   const $ = cheerio.load(html);
   const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
-  const crsCreCd = options.crsCreCd ?? extractFirstValue(html, /crsCreCd["']?\s*(?:value=|:)\s*["']([^"']+)/) ?? "";
+  const crsCreCd =
+    options.crsCreCd ??
+    extractFirstValue(html, /crsCreCd["']?\s*(?:value=|:)\s*["']([^"']+)/) ??
+    "";
   const schedules: EcampusLessonSchedule[] = [];
 
   $(".title.header[id^='dropdown_']").each((_, element) => {
@@ -474,12 +488,42 @@ export function parseEcampusLessonSchedulesHtml(
 }
 
 /** HTML 차시 목록을 평탄화된 배열로 추출 */
-export function parseEcampusLessonListHtml(html: string, options: EcampusLessonParseOptions = {}): EcampusLessonItem[] {
+export function parseEcampusLessonListHtml(
+  html: string,
+  options: EcampusLessonParseOptions = {}
+): EcampusLessonItem[] {
   return parseEcampusLessonSchedulesHtml(html, options).flatMap((s) => s.lessons);
 }
 
+/** SAZ 패킷에서 주차별 강의 구조를 복원 */
+export function parseEcampusLessonSchedulesFromSaz(
+  saz: Buffer | Uint8Array,
+  options: EcampusLessonParseOptions = {}
+): EcampusLessonSchedule[] {
+  for (const session of parseSazHttpSessions(saz)) {
+    const html = session.responseBody;
+    if (!html.includes("dropdown_") || !html.includes("lessonCntsId")) continue;
+
+    const schedules = parseEcampusLessonSchedulesHtml(html, options);
+    if (schedules.length > 0) return schedules;
+  }
+
+  return [];
+}
+
+/** SAZ 패킷에서 평탄화된 강의 목록을 복원 */
+export function parseEcampusLessonListFromSaz(
+  saz: Buffer | Uint8Array,
+  options: EcampusLessonParseOptions = {}
+): EcampusLessonItem[] {
+  return parseEcampusLessonSchedulesFromSaz(saz, options).flatMap((s) => s.lessons);
+}
+
 /** 시청 창 HTML에서 핵심 메타데이터 추출 */
-export function parseEcampusLessonStudyWindowHtml(html: string, options: EcampusLessonParseOptions = {}): EcampusLessonStudyWindow {
+export function parseEcampusLessonStudyWindowHtml(
+  html: string,
+  options: EcampusLessonParseOptions = {}
+): EcampusLessonStudyWindow {
   const $ = cheerio.load(html);
   const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
   const contentUrl = extractFirstValue(html, /var\s+cntsUrl\s*=\s*"([^*]*)"/);
@@ -491,26 +535,162 @@ export function parseEcampusLessonStudyWindowHtml(html: string, options: Ecampus
     lessonCntsId,
     contentUrl,
     contentKind: classifyContentUrl(contentUrl),
-    studyDetailId: $("#studyDetailId").attr("value") || extractFirstValue(html, /studyDetailId["']?\s*:\s*["']([^"']+)/)
+    studyDetailId:
+      $("#studyDetailId").attr("value") ||
+      extractFirstValue(html, /studyDetailId["']?\s*:\s*["']([^"']+)/)
+  };
+}
+
+/** SAZ 패킷에서 강의 재생 창과 학습 기록 요청 정보를 추출 */
+export function parseEcampusLessonStudyWindowsFromSaz(
+  saz: Buffer | Uint8Array,
+  options: EcampusLessonParseOptions = {}
+): EcampusLessonStudyWindow[] {
+  const sessions = parseSazHttpSessions(saz);
+  const recordRequests = sessions
+    .filter((session) => session.request.url.includes(ADD_STUDY_RECORD_PATH))
+    .map((session) => ({
+      method: "GET" as const,
+      url: stripQuery(session.request.url),
+      query: readQuery(session.request.url)
+    }));
+
+  return sessions
+    .filter((session) => {
+      const html = session.responseBody;
+      return (
+        html.includes("lessonCntsId") &&
+        (html.includes("cntsUrl") || html.includes("studyDetailId"))
+      );
+    })
+    .map((session) => {
+      const window = parseEcampusLessonStudyWindowHtml(session.responseBody, options);
+      const recordRequest = recordRequests.find(
+        (request) => request.query.lessonCntsId === window.lessonCntsId
+      );
+
+      if (recordRequest) {
+        window.recordRequest = recordRequest;
+        window.stdNo = recordRequest.query.stdNo;
+        window.studyDetailId = window.studyDetailId ?? recordRequest.query.studyDetailId;
+        window.currentStudyStatusCd = recordRequest.query.studyStatusCd;
+      }
+
+      return window;
+    })
+    .filter((window) => window.lessonCntsId);
+}
+
+/** 학습 창 정보에서 재사용 가능한 학습 기록 스냅샷 생성 */
+export function parseStudyRecordSnapshot(
+  input: EcampusLessonStudyWindow | EcampusStudyRecordSnapshotInput
+): EcampusStudyRecordSnapshot {
+  const snapshotInput = input as EcampusStudyRecordSnapshotInput &
+    Partial<EcampusLessonStudyWindow>;
+  const baseUrl = snapshotInput.baseUrl ?? DEFAULT_BASE_URL;
+  const lessonCntsId = input.lessonCntsId ?? "";
+  const crsCreCd = input.crsCreCd ?? "";
+  const stdNo = input.stdNo;
+  const studyDetailId = input.studyDetailId;
+  const studyStatusCd =
+    "currentStudyStatusCd" in input ? input.currentStudyStatusCd : snapshotInput.studyStatusCd;
+
+  const recordRequest =
+    "recordRequest" in input && input.recordRequest
+      ? input.recordRequest
+      : stdNo
+        ? createStudyRecordRequest(baseUrl, {
+            crsCreCd,
+            lessonCntsId,
+            stdNo,
+            studyDetailId,
+            studyStatusCd,
+            studyTotalTm: snapshotInput.studyTotalTm,
+            studyAfterTm: snapshotInput.studyAfterTm,
+            studySessionLoc: snapshotInput.studySessionLoc,
+            studyMaxLoc: snapshotInput.studyMaxLoc,
+            playerTm: snapshotInput.playerTm,
+            progressTm: snapshotInput.progressTm
+          })
+        : undefined;
+
+  return {
+    baseUrl,
+    lessonScheduleId: snapshotInput.lessonScheduleId,
+    lessonCntsId,
+    crsCreCd,
+    stdNo,
+    studyDetailId,
+    currentStudyStatusCd: studyStatusCd,
+    contentUrl: input.contentUrl,
+    contentKind: input.contentKind ?? "unknown",
+    recordRequest
+  };
+}
+
+/** lesson 객체 하나로 진입, 재생 창, 학습 기록 요청을 묶는다 */
+export function createEcampusLessonRequestBundle(
+  lesson: EcampusLessonItem,
+  options: EcampusLessonRequestBundleOptions = {}
+): EcampusLessonRequestBundle {
+  const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
+  const crsCreCd = options.crsCreCd ?? "";
+  const snapshot = parseStudyRecordSnapshot({
+    ...options,
+    baseUrl,
+    crsCreCd,
+    lessonScheduleId: lesson.lessonScheduleId,
+    lessonCntsId: lesson.lessonCntsId
+  });
+
+  return {
+    viewRequest: createLessonViewRequest(
+      baseUrl,
+      crsCreCd,
+      lesson.lessonScheduleId,
+      lesson.lessonCntsId
+    ),
+    studyWindowRequest: createLessonStudyWindowRequest(baseUrl, crsCreCd, lesson.lessonCntsId),
+    recordRequest: snapshot.recordRequest,
+    snapshot
   };
 }
 
 /** 강의 정보를 JSON으로 직렬화 */
-export function stringifyEcampusLessons(lessons: EcampusLessonItem[] | EcampusLessonSchedule[]): string {
+export function stringifyEcampusLessons(
+  lessons: EcampusLessonItem[] | EcampusLessonSchedule[]
+): string {
   return JSON.stringify(lessons, null, 2);
 }
 
 /** 강의 진입용 POST 객체 생성 */
-export function createLessonViewRequest(baseUrl: string, crsCreCd: string, lessonScheduleId: string, lessonCntsId: string): EcampusLessonPostRequest {
+export function createLessonViewRequest(
+  baseUrl: string,
+  crsCreCd: string,
+  lessonScheduleId: string,
+  lessonCntsId: string
+): EcampusLessonPostRequest {
   return {
     method: "POST",
     url: absoluteUrl(LESSON_VIEW_PATH, baseUrl),
-    body: { crsCreCd, lessonScheduleId, crsOperTypeCd: "", progressTypeCd: DEFAULT_PROGRESS_TYPE_CD, lessonCntsId, goUrl: "", subParam: "" }
+    body: {
+      crsCreCd,
+      lessonScheduleId,
+      crsOperTypeCd: "",
+      progressTypeCd: DEFAULT_PROGRESS_TYPE_CD,
+      lessonCntsId,
+      goUrl: "",
+      subParam: ""
+    }
   };
 }
 
 /** 재생 창 로드용 POST 객체 생성 */
-export function createLessonStudyWindowRequest(baseUrl: string, crsCreCd: string, lessonCntsId: string): EcampusLessonPostRequest {
+export function createLessonStudyWindowRequest(
+  baseUrl: string,
+  crsCreCd: string,
+  lessonCntsId: string
+): EcampusLessonPostRequest {
   return {
     method: "POST",
     url: absoluteUrl(`${LESSON_WINDOW_PATH}?crsCreCd=${encodeURIComponent(crsCreCd)}`, baseUrl),
@@ -519,7 +699,10 @@ export function createLessonStudyWindowRequest(baseUrl: string, crsCreCd: string
 }
 
 /** 학습 기록용 GET 객체 생성 */
-export function createStudyRecordRequest(baseUrl: string, options: EcampusLessonRecordOptions): EcampusLessonGetRequest {
+export function createStudyRecordRequest(
+  baseUrl: string,
+  options: EcampusLessonRecordOptions
+): EcampusLessonGetRequest {
   const query = {
     lessonCntsId: options.lessonCntsId,
     stdNo: options.stdNo,
@@ -533,12 +716,22 @@ export function createStudyRecordRequest(baseUrl: string, options: EcampusLesson
 }
 
 /** 학습 이력 확인용 GET 객체 생성 */
-export function createViewLessonStudyDetailRequest(baseUrl: string, lessonCntsId: string, crsCreCd: string): EcampusLessonGetRequest {
-  return { method: "GET", url: absoluteUrl(VIEW_STUDY_DETAIL_PATH, baseUrl), query: { lessonCntsId, crsCreCd } };
+export function createViewLessonStudyDetailRequest(
+  baseUrl: string,
+  lessonCntsId: string,
+  crsCreCd: string
+): EcampusLessonGetRequest {
+  return {
+    method: "GET",
+    url: absoluteUrl(VIEW_STUDY_DETAIL_PATH, baseUrl),
+    query: { lessonCntsId, crsCreCd }
+  };
 }
 
 /** 콘텐츠 URL을 분석하여 미디어 타입 분류 */
-function classifyContentUrl(contentUrl: string | undefined): EcampusLessonStudyWindow["contentKind"] {
+function classifyContentUrl(
+  contentUrl: string | undefined
+): EcampusLessonStudyWindow["contentKind"] {
   if (!contentUrl) return "unknown";
   const lower = contentUrl.toLowerCase();
   if (lower.endsWith(".mp4")) return "mp4";
@@ -550,20 +743,89 @@ function classifyContentUrl(contentUrl: string | undefined): EcampusLessonStudyW
 }
 
 /** 텍스트 정규식 도우미 */
-function extractFirstValue(source: string, pattern: RegExp): string | undefined { return source.match(pattern)?.[1]; }
+function extractFirstValue(source: string, pattern: RegExp): string | undefined {
+  return source.match(pattern)?.[1];
+}
+
+function parseSazHttpSessions(saz: Buffer | Uint8Array): RawHttpSession[] {
+  const zip = new AdmZip(Buffer.from(saz));
+  const parts = new Map<string, { request?: string; response?: string }>();
+
+  for (const entry of zip.getEntries()) {
+    const match = entry.entryName.match(/raw[/\\](\d+)_(c|s)\.txt$/i);
+    if (!match?.[1] || !match[2]) continue;
+
+    const part = parts.get(match[1]) ?? {};
+    if (match[2].toLowerCase() === "c") part.request = entry.getData().toString("utf8");
+    else part.response = entry.getData().toString("utf8");
+    parts.set(match[1], part);
+  }
+
+  return [...parts.values()].flatMap((part) => {
+    if (!part.request || !part.response) return [];
+
+    const [requestHead, requestBody] = splitHttpMessage(part.request);
+    const [, responseBody] = splitHttpMessage(part.response);
+    const request = parseRawHttpRequest(requestHead, requestBody);
+    if (!request) return [];
+
+    return [{ request, responseBody }];
+  });
+}
+
+function parseRawHttpRequest(head: string, body: string): RawHttpSession["request"] | undefined {
+  const lines = head.split(/\r?\n/);
+  const requestLine = lines[0];
+  if (!requestLine) return undefined;
+
+  const [method = "GET", target = ""] = requestLine.split(/\s+/);
+  const headers = new Map<string, string>();
+
+  for (const line of lines.slice(1)) {
+    const separator = line.indexOf(":");
+    if (separator < 0) continue;
+    headers.set(line.slice(0, separator).trim().toLowerCase(), line.slice(separator + 1).trim());
+  }
+
+  const host = headers.get("host") ?? new URL(DEFAULT_BASE_URL).host;
+  const url = target.startsWith("http") ? target : `https://${host}${target}`;
+  const parsedBody = method.toUpperCase() === "POST" ? parseFormBody(body) : {};
+
+  return { method, url, body: parsedBody };
+}
+
+function stripQuery(url: string): string {
+  const parsed = new URL(url);
+  parsed.search = "";
+  return parsed.toString();
+}
+
+function readQuery(url: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [key, value] of new URL(url).searchParams) {
+    result[key] = value;
+  }
+  return result;
+}
 
 /** 라벨 기반 텍스트 추출 */
 function extractLabeledText(text: string, label: string): string | undefined {
   const norm = normalizeSpace(text);
   const labels = ["기간 외 학습기간", "기간", "수업내용", "강의시간", "출결상태"];
-  const other = labels.filter((c) => c !== label).map(escapeRegExp).join("|");
+  const other = labels
+    .filter((c) => c !== label)
+    .map(escapeRegExp)
+    .join("|");
   const pattern = new RegExp(`${escapeRegExp(label)}\\s*(.*?)(?=\\s*(?:${other})\\s*|$)`);
   return norm.match(pattern)?.[1]?.trim() || undefined;
 }
 
 /** 강의 시간 텍스트 추출 */
 function extractDurationText(text: string): string | undefined {
-  return text.match(/강의시간\s*([0-9]+\s*분(?:\s*[0-9]+\s*초)?|[0-9]+\s*초)/)?.[1]?.replace(/\s+/g, " ").trim();
+  return text
+    .match(/강의시간\s*([0-9]+\s*분(?:\s*[0-9]+\s*초)?|[0-9]+\s*초)/)?.[1]
+    ?.replace(/\s+/g, " ")
+    .trim();
 }
 
 /** 시간 변환 도우미 */
@@ -575,7 +837,9 @@ function parseDurationSeconds(durationText: string | undefined): number | undefi
 }
 
 /** CSS 이스케이프 */
-function escapeCssId(value: string): string { return value.replace(/([ #;?%&,.+*~':"!^$[\]()=>|/@])/g, "\\$1"); }
+function escapeCssId(value: string): string {
+  return value.replace(/([ #;?%&,.+*~':"!^$[\]()=>|/@])/g, "\\$1");
+}
 
 /** 고도의 미디어 분석 엔진: 실제 스트리밍 주소 도출 */
 export async function getElearningMp4Url(
@@ -584,7 +848,8 @@ export async function getElearningMp4Url(
   context: { crsCreCd: string; lessonCntsId: string }
 ): Promise<ElearningMp4UrlResult> {
   const { crsCreCd, lessonCntsId } = context;
-  if (!contentUrl) return { success: false, message: "URL 유실", debugInfo: { crsCreCd, lessonCntsId } };
+  if (!contentUrl)
+    return { success: false, message: "URL 유실", debugInfo: { crsCreCd, lessonCntsId } };
 
   try {
     const res = await http.get<string>(contentUrl);
@@ -592,11 +857,14 @@ export async function getElearningMp4Url(
     const $ = cheerio.load(html);
 
     // 1. 소스 태그 우선
-    let mp4Url = $('source[type="video/mp4"]').first()?.attr("src") || $("source#lessonVodSrc")?.attr("src");
+    let mp4Url =
+      $('source[type="video/mp4"]').first()?.attr("src") || $("source#lessonVodSrc")?.attr("src");
 
     // 2. 내부 스토리지 정규식 패턴
     if (!mp4Url) {
-      const match = html.match(/https:\/\/eplus\.seowon\.ac\.kr\/WebContentStorage\/[^"\s]+\.mp4\?tsdata=[^"\s]+/);
+      const match = html.match(
+        /https:\/\/eplus\.seowon\.ac\.kr\/WebContentStorage\/[^"\s]+\.mp4\?tsdata=[^"\s]+/
+      );
       if (match?.[0]) mp4Url = match[0];
     }
 
@@ -635,14 +903,19 @@ export async function downloadElearningMp4(
     fs.mkdirSync(downloadPath, { recursive: true });
 
     // .env에서 I/O 튜닝을 위한 하이워터마크 확보
-    const hwmConfig = process.env.DOWNLOAD_HIGH_WATER_MARK ? parseInt(process.env.DOWNLOAD_HIGH_WATER_MARK) : 1024;
+    const hwmConfig = process.env.DOWNLOAD_HIGH_WATER_MARK
+      ? parseInt(process.env.DOWNLOAD_HIGH_WATER_MARK)
+      : 1024;
     const hwmBytes = (isNaN(hwmConfig) ? 1024 : hwmConfig) * 1024;
 
     const res = await http.get(mp4Url, {
       responseType: "stream",
       onDownloadProgress: (ev) => {
         if (progressCallback && ev.total) {
-          progressCallback({ loaded: ev.loaded, percent: Math.round((ev.loaded / ev.total) * 100) });
+          progressCallback({
+            loaded: ev.loaded,
+            percent: Math.round((ev.loaded / ev.total) * 100)
+          });
         }
       }
     });
@@ -652,7 +925,10 @@ export async function downloadElearningMp4(
 
     return new Promise((resolve, reject) => {
       writer.on("finish", () => resolve({ success: true, filePath }));
-      writer.on("error", (err) => { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); reject(err); });
+      writer.on("error", (err) => {
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        reject(err);
+      });
     });
   } catch (err) {
     return { success: false, message: err instanceof Error ? err.message : util.inspect(err) };
@@ -661,5 +937,9 @@ export async function downloadElearningMp4(
 
 /** 파일 시스템 호환성을 위한 파일명 정제 */
 function sanitizeFilename(name: string): string {
-  return name.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, " ").trim().substring(0, 100);
+  return name
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .substring(0, 100);
 }

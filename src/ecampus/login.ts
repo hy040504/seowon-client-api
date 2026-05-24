@@ -100,9 +100,9 @@ export interface OpenElearningLessonOptions {
 
 /** 로그인 수행 절차의 최종 결과를 나타내는 합집합 타입 */
 export type LoginResult =
-  | { type: "redirect"; data: EcampusLoginResponse; url: string; }
-  | { type: "reload"; data: EcampusLoginResponse; }
-  | { type: "error"; data?: EcampusLoginResponse; message: string; };
+  | { type: "redirect"; data: EcampusLoginResponse; url: string }
+  | { type: "reload"; data: EcampusLoginResponse }
+  | { type: "error"; data?: EcampusLoginResponse; message: string };
 
 /** e-campus 서버가 반환하는 로그인 응답의 원시 구조 */
 export interface EcampusLoginResponse {
@@ -143,18 +143,21 @@ export class EcampusClient {
     this.cookieFilePath = options.cookieFilePath;
     this.loginCredentials = options.loginCredentials;
     this.cookieJar = this.loadCookieJar();
-    
+
     // 세션 유지 및 쿠키 자동 처리를 위해 axios-cookiejar-support 래퍼 적용
-    this.http = options.axios ?? wrapper(
-      axios.create({
-        baseURL: this.baseUrl,
-        jar: this.cookieJar,
-        withCredentials: true,
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
-        }
-      })
-    );
+    this.http =
+      options.axios ??
+      wrapper(
+        axios.create({
+          baseURL: this.baseUrl,
+          jar: this.cookieJar,
+          withCredentials: true,
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+          }
+        })
+      );
   }
 
   /**
@@ -300,7 +303,9 @@ export class EcampusClient {
    * @param {GetClassroomResourcesOptions} options - 조회 정보
    * @returns {Promise<EcampusClassroomResources>} 통합된 리소스 묶음
    */
-  async getClassroomResources(options: GetClassroomResourcesOptions): Promise<EcampusClassroomResources> {
+  async getClassroomResources(
+    options: GetClassroomResourcesOptions
+  ): Promise<EcampusClassroomResources> {
     const resources = createEmptyEcampusClassroomResources();
     const [notices, materials, assignments] = await Promise.all([
       this.getNoticeList(options),
@@ -323,20 +328,34 @@ export class EcampusClient {
   /** 강의자료실 목록 조회 및 파싱 */
   async getMaterialList(options: GetClassroomBoardListOptions): Promise<EcampusClassroomItem[]> {
     const html = await this.postBoardList(options, "PDS", `BBS_${options.crsCreCd}_P`);
-    return parseEcampusMaterialListHtml(html, { baseUrl: this.baseUrl, crsCreCd: options.crsCreCd });
+    return parseEcampusMaterialListHtml(html, {
+      baseUrl: this.baseUrl,
+      crsCreCd: options.crsCreCd
+    });
   }
 
   /** 과제함 목록 및 개인별 제출 상태 조회 */
-  async getAssignmentList(options: GetClassroomAssignmentListOptions): Promise<EcampusClassroomItem[]> {
+  async getAssignmentList(
+    options: GetClassroomAssignmentListOptions
+  ): Promise<EcampusClassroomItem[]> {
     const html = await this.postForm("/asmnt/asmntHome/stuAsmntGridList", {
-      pageIndex: "1", listScale: String(options.listScale ?? 10), searchValue: "",
-      crsCreCd: options.crsCreCd, userNo: options.userNo, userName: options.userName ?? ""
+      pageIndex: "1",
+      listScale: String(options.listScale ?? 10),
+      searchValue: "",
+      crsCreCd: options.crsCreCd,
+      userNo: options.userNo,
+      userName: options.userName ?? ""
     });
-    return parseEcampusAssignmentListHtml(html, { baseUrl: this.baseUrl, crsCreCd: options.crsCreCd });
+    return parseEcampusAssignmentListHtml(html, {
+      baseUrl: this.baseUrl,
+      crsCreCd: options.crsCreCd
+    });
   }
 
   /** 온라인 강의(e-learning) 전체 차시 목록 조회 */
-  async getElearningLessonList(options: GetElearningLessonListOptions): Promise<EcampusLessonItem[]> {
+  async getElearningLessonList(
+    options: GetElearningLessonListOptions
+  ): Promise<EcampusLessonItem[]> {
     const html = await this.getElearningLessonListHtml(options);
     return parseEcampusLessonListHtml(html, {
       baseUrl: this.baseUrl,
@@ -360,25 +379,32 @@ export class EcampusClient {
     });
 
     // 해당 과목의 진도 체크 방식 등 부가 정보를 비동기로 획득
-    const creInfoRes = await this.http.post<{ result?: number; returnVO?: { progressTypeCd?: string; }; }>(
-      "/crs/creCrsLect/creInfo",
-      new URLSearchParams({ crsCreCd: options.crsCreCd }),
-      {
-        headers: {
-          Accept: "application/json, text/javascript, */*; q=0.01",
-          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-          "X-Requested-With": "XMLHttpRequest"
-        }
+    const creInfoRes = await this.http.post<{
+      result?: number;
+      returnVO?: { progressTypeCd?: string };
+    }>("/crs/creCrsLect/creInfo", new URLSearchParams({ crsCreCd: options.crsCreCd }), {
+      headers: {
+        Accept: "application/json, text/javascript, */*; q=0.01",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "X-Requested-With": "XMLHttpRequest"
       }
-    );
+    });
 
-    const progressTypeCd = options.progressTypeCd ?? creInfoRes.data.returnVO?.progressTypeCd ?? DEFAULT_PROGRESS_TYPE_CD;
+    const progressTypeCd =
+      options.progressTypeCd ??
+      creInfoRes.data.returnVO?.progressTypeCd ??
+      DEFAULT_PROGRESS_TYPE_CD;
 
     const response = await this.http.post<string>(
       "/lesson/lessonLect/lessonList",
       new URLSearchParams({
-        pageIndex: "1", listScale: "10", searchValue: "",
-        crsCreCd: options.crsCreCd, lessonScheduleId: "", subParam: "GRID", progressTypeCd
+        pageIndex: "1",
+        listScale: "10",
+        searchValue: "",
+        crsCreCd: options.crsCreCd,
+        lessonScheduleId: "",
+        subParam: "GRID",
+        progressTypeCd
       }),
       {
         headers: {
@@ -418,11 +444,19 @@ export class EcampusClient {
     try {
       const windowInfo = await this.openLessonWindow({ crsCreCd, lessonCntsId });
       if (!windowInfo.contentUrl) {
-        return { success: false, message: "콘텐츠 페이지 경로 확보 실패", debugInfo: { crsCreCd, lessonCntsId } };
+        return {
+          success: false,
+          message: "콘텐츠 페이지 경로 확보 실패",
+          debugInfo: { crsCreCd, lessonCntsId }
+        };
       }
       return getElearningMp4Url(this.http, windowInfo.contentUrl, { crsCreCd, lessonCntsId });
     } catch (error: any) {
-      return { success: false, message: `URL 분석 과정 중 예외 발생: ${error.message}`, debugInfo: { crsCreCd, lessonCntsId } };
+      return {
+        success: false,
+        message: `URL 분석 과정 중 예외 발생: ${error.message}`,
+        debugInfo: { crsCreCd, lessonCntsId }
+      };
     }
   }
 
@@ -440,9 +474,19 @@ export class EcampusClient {
       if (!urlResult.success || !urlResult.mp4Url) {
         return { success: false, message: urlResult.message || "스트리밍 주소 유실" };
       }
-      return await downloadElearningMp4File(this.http, urlResult.mp4Url, courseTitle, lessonTitle, baseDir, progressCallback);
+      return await downloadElearningMp4File(
+        this.http,
+        urlResult.mp4Url,
+        courseTitle,
+        lessonTitle,
+        baseDir,
+        progressCallback
+      );
     } catch (error) {
-      return { success: false, message: error instanceof Error ? error.message : util.inspect(error) };
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : util.inspect(error)
+      };
     }
   }
 
@@ -452,7 +496,10 @@ export class EcampusClient {
     const request = createStudyRecordRequest(this.baseUrl, options);
     const response = await this.http.get<any>(new URL(request.url).pathname, {
       params: request.query,
-      headers: { Accept: "application/json, text/javascript, */*; q=0.01", "X-Requested-With": "XMLHttpRequest" }
+      headers: {
+        Accept: "application/json, text/javascript, */*; q=0.01",
+        "X-Requested-With": "XMLHttpRequest"
+      }
     });
     await this.persistCookieJar();
     return response.data;
@@ -464,18 +511,32 @@ export class EcampusClient {
     const request = createViewLessonStudyDetailRequest(this.baseUrl, lessonCntsId, crsCreCd);
     const response = await this.http.get<any>(new URL(request.url).pathname, {
       params: request.query,
-      headers: { Accept: "application/json, text/javascript, */*; q=0.01", "X-Requested-With": "XMLHttpRequest" }
+      headers: {
+        Accept: "application/json, text/javascript, */*; q=0.01",
+        "X-Requested-With": "XMLHttpRequest"
+      }
     });
     await this.persistCookieJar();
     return response.data;
   }
 
   /** 게시판류 리소스 조회를 위한 내부 전용 POST 도우미 */
-  private async postBoardList(options: GetClassroomBoardListOptions, bbsCd: "NOTICE" | "PDS", bbsId: string): Promise<string> {
+  private async postBoardList(
+    options: GetClassroomBoardListOptions,
+    bbsCd: "NOTICE" | "PDS",
+    bbsId: string
+  ): Promise<string> {
     return this.postForm("/bbs/bbsLect/atclList", {
-      formType: "LIST", bbsId, atclId: "", searchKey: "all", searchValue: "",
-      listScale: String(options.listScale ?? 10), pageIndex: "1", headCd: "",
-      bbsCd, crsCreCd: options.crsCreCd
+      formType: "LIST",
+      bbsId,
+      atclId: "",
+      searchKey: "all",
+      searchValue: "",
+      listScale: String(options.listScale ?? 10),
+      pageIndex: "1",
+      headCd: "",
+      bbsCd,
+      crsCreCd: options.crsCreCd
     });
   }
 
@@ -503,8 +564,15 @@ export function createEcampusClient(options: EcampusClientOptions = {}): Ecampus
 
 /** 서버 응답 분석: 결과 상태에 따른 캡슐화 처리 */
 export function parseLoginResponse(data: EcampusLoginResponse): LoginResult {
-  if (!data.redirectUrl) return { type: "error", data, message: data.message ?? "아이디/비밀번호 정합성 오류" };
-  if (data.otpLogin === "Y" && data.otpUserYn === "Y" && data.otpUserType?.includes("LEARNER") && data.userId && data.userNo) {
+  if (!data.redirectUrl)
+    return { type: "error", data, message: data.message ?? "아이디/비밀번호 정합성 오류" };
+  if (
+    data.otpLogin === "Y" &&
+    data.otpUserYn === "Y" &&
+    data.otpUserType?.includes("LEARNER") &&
+    data.userId &&
+    data.userNo
+  ) {
     const url = new URL(data.redirectUrl, DEFAULT_BASE_URL);
     url.searchParams.set("userId", data.userId);
     url.searchParams.set("userNo", data.userNo);

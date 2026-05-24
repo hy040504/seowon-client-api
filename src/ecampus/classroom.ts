@@ -72,12 +72,18 @@ export function createEmptyEcampusClassroomResources(): EcampusClassroomResource
 }
 
 /** 공지사항 게시판 리스트 파싱 */
-export function parseEcampusNoticeListHtml(html: string, options: EcampusClassroomResourceOptions = {}): EcampusClassroomItem[] {
+export function parseEcampusNoticeListHtml(
+  html: string,
+  options: EcampusClassroomResourceOptions = {}
+): EcampusClassroomItem[] {
   return parseBbsListHtml(html, "notices", options);
 }
 
 /** 강의자료실 게시판 리스트 파싱 */
-export function parseEcampusMaterialListHtml(html: string, options: EcampusClassroomResourceOptions = {}): EcampusClassroomItem[] {
+export function parseEcampusMaterialListHtml(
+  html: string,
+  options: EcampusClassroomResourceOptions = {}
+): EcampusClassroomItem[] {
   return parseBbsListHtml(html, "materials", options);
 }
 
@@ -88,10 +94,13 @@ export function parseEcampusMaterialListHtml(html: string, options: EcampusClass
  * @param {EcampusClassroomResourceOptions} options - 설정
  * @returns {EcampusClassroomItem[]} 파싱된 과제 항목 배열
  */
-export function parseEcampusAssignmentListHtml(html: string, options: EcampusClassroomResourceOptions = {}): EcampusClassroomItem[] {
+export function parseEcampusAssignmentListHtml(
+  html: string,
+  options: EcampusClassroomResourceOptions = {}
+): EcampusClassroomItem[] {
   const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
   const $ = cheerio.load(html);
-  
+
   // 제출 처리에 필요한 모든 기본 폼 데이터(token 등) 수집
   const formValues = getFormValues($, "form#asmntListForm");
   const crsCreCd = options.crsCreCd ?? formValues.crsCreCd ?? "";
@@ -105,11 +114,11 @@ export function parseEcampusAssignmentListHtml(html: string, options: EcampusCla
       const card = $link.closest(".card");
       const text = normalizeSpace(card.text());
       const title = normalizeSpace($link.text());
-      
+
       // 제출 기간 및 현재 상태(제출완료/미제출) 정규식 매칭
       const period = text.match(/제출기간\s*([0-9.() :~]+)/)?.[1]?.trim();
       const status = text.match(/(과제를 제출하였습니다|미제출|종료|진행중)/)?.[1];
-      
+
       // 개별 과제 조회를 위한 맞춤형 요청 정보 구성
       const body = { ...formValues, crsCreCd, asmntCd };
 
@@ -136,7 +145,10 @@ export function parseEcampusAssignmentListHtml(html: string, options: EcampusCla
  * @param {EcampusClassroomResourceOptions} options - 옵션
  * @returns {EcampusClassroomResources} 복원된 통합 리소스 객체
  */
-export function parseEcampusClassroomResourcesFromSaz(sazFile: Uint8Array, options: EcampusClassroomResourceOptions = {}): EcampusClassroomResources {
+export function parseEcampusClassroomResourcesFromSaz(
+  sazFile: Uint8Array,
+  options: EcampusClassroomResourceOptions = {}
+): EcampusClassroomResources {
   const sessions = parseFiddlerSazSessions(sazFile);
   const resources = createEmptyEcampusClassroomResources();
   const seenMap = new Map<EcampusClassroomSection, Map<string, EcampusClassroomItem>>();
@@ -150,9 +162,10 @@ export function parseEcampusClassroomResourcesFromSaz(sazFile: Uint8Array, optio
     if (!section) continue;
 
     const crsCreCd = options.crsCreCd ?? session.request.body.crsCreCd;
-    const list = section === "assignments"
-      ? parseEcampusAssignmentListHtml(session.responseBody, { ...options, crsCreCd })
-      : parseBbsListHtml(session.responseBody, section, { ...options, crsCreCd });
+    const list =
+      section === "assignments"
+        ? parseEcampusAssignmentListHtml(session.responseBody, { ...options, crsCreCd })
+        : parseBbsListHtml(session.responseBody, section, { ...options, crsCreCd });
 
     for (const item of list) {
       const bucket = seenMap.get(section)!;
@@ -170,17 +183,26 @@ export function parseEcampusClassroomResourcesFromSaz(sazFile: Uint8Array, optio
 }
 
 /** SAZ 데이터에서 공지사항만 선별 추출 */
-export function parseEcampusNoticeListFromSaz(sazFile: Uint8Array, options: EcampusClassroomResourceOptions = {}): EcampusClassroomItem[] {
+export function parseEcampusNoticeListFromSaz(
+  sazFile: Uint8Array,
+  options: EcampusClassroomResourceOptions = {}
+): EcampusClassroomItem[] {
   return parseEcampusClassroomResourcesFromSaz(sazFile, options).notices;
 }
 
 /** SAZ 데이터에서 과제 목록만 선별 추출 */
-export function parseEcampusAssignmentListFromSaz(sazFile: Uint8Array, options: EcampusClassroomResourceOptions = {}): EcampusClassroomItem[] {
+export function parseEcampusAssignmentListFromSaz(
+  sazFile: Uint8Array,
+  options: EcampusClassroomResourceOptions = {}
+): EcampusClassroomItem[] {
   return parseEcampusClassroomResourcesFromSaz(sazFile, options).assignments;
 }
 
 /** SAZ 데이터에서 강의자료실 항목만 선별 추출 */
-export function parseEcampusMaterialListFromSaz(sazFile: Uint8Array, options: EcampusClassroomResourceOptions = {}): EcampusClassroomItem[] {
+export function parseEcampusMaterialListFromSaz(
+  sazFile: Uint8Array,
+  options: EcampusClassroomResourceOptions = {}
+): EcampusClassroomItem[] {
   return parseEcampusClassroomResourcesFromSaz(sazFile, options).materials;
 }
 
@@ -198,7 +220,11 @@ export function stringifyEcampusClassroomItems(items: EcampusClassroomItem[]): s
  * 일반적인 게시판(NOTICE, PDS) 형태의 HTML 리스트를 공통 파싱한다.
  * @private
  */
-function parseBbsListHtml(html: string, section: Exclude<EcampusClassroomSection, "assignments">, options: EcampusClassroomResourceOptions): EcampusClassroomItem[] {
+function parseBbsListHtml(
+  html: string,
+  section: Exclude<EcampusClassroomSection, "assignments">,
+  options: EcampusClassroomResourceOptions
+): EcampusClassroomItem[] {
   const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
   const $ = cheerio.load(html);
 
@@ -235,21 +261,30 @@ function parseFiddlerSazSessions(sazFile: Uint8Array): RawHttpSession[] {
   const zip = new AdmZip(Buffer.from(sazFile));
   const decoder = new TextDecoder("utf-8");
   const entries = new Map(zip.getEntries().map((e) => [e.entryName.replace(/\\/g, "/"), e]));
-  const nums = Array.from(entries.keys()).map((name) => name.match(/^raw\/(\d+)_c\.txt$/)?.[1]).filter((n): n is string => !!n).sort((a, b) => Number(a) - Number(b));
+  const nums = Array.from(entries.keys())
+    .map((name) => name.match(/^raw\/(\d+)_c\.txt$/)?.[1])
+    .filter((n): n is string => !!n)
+    .sort((a, b) => Number(a) - Number(b));
 
-  return nums.map((n) => {
-    const reqEntry = entries.get(`raw/${n}_c.txt`);
-    const resEntry = entries.get(`raw/${n}_s.txt`);
-    if (!reqEntry || !resEntry) return undefined;
+  return nums
+    .map((n) => {
+      const reqEntry = entries.get(`raw/${n}_c.txt`);
+      const resEntry = entries.get(`raw/${n}_s.txt`);
+      if (!reqEntry || !resEntry) return undefined;
 
-    const [reqHeader, reqBody] = splitHttpMessage(decoder.decode(reqEntry.getData()));
-    const [resHeader, resBody] = splitHttpMessage(decoder.decode(resEntry.getData()));
-    const [method = "", url = ""] = (reqHeader.split(/\r?\n/)[0] ?? "").split(" ");
+      const [reqHeader, reqBody] = splitHttpMessage(decoder.decode(reqEntry.getData()));
+      const [resHeader, resBody] = splitHttpMessage(decoder.decode(resEntry.getData()));
+      const [method = "", url = ""] = (reqHeader.split(/\r?\n/)[0] ?? "").split(" ");
 
-    if (!resHeader.startsWith("HTTP/")) return undefined;
+      if (!resHeader.startsWith("HTTP/")) return undefined;
 
-    return { number: Number(n), request: { method, url, body: parseFormBody(reqBody) }, responseBody: resBody };
-  }).filter((s): s is RawHttpSession => !!s);
+      return {
+        number: Number(n),
+        request: { method, url, body: parseFormBody(reqBody) },
+        responseBody: resBody
+      };
+    })
+    .filter((s): s is RawHttpSession => !!s);
 }
 
 /** 세션의 목적지를 식별하여 게시판 종류를 분류한다 */
@@ -286,9 +321,13 @@ function extractDate(text: string): string | undefined {
 }
 
 /** 데이터 완성도를 위한 속성 단위 병합 */
-function mergeItem(current: EcampusClassroomItem, next: EcampusClassroomItem): EcampusClassroomItem {
+function mergeItem(
+  current: EcampusClassroomItem,
+  next: EcampusClassroomItem
+): EcampusClassroomItem {
   return {
-    ...current, ...next,
+    ...current,
+    ...next,
     date: next.date ?? current.date,
     period: next.period ?? current.period,
     status: next.status ?? current.status,

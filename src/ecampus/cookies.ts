@@ -36,7 +36,10 @@ export function saveCookieJarToFile(filePath: string, cookieJar: CookieJar): voi
  * @param {number} [now=Date.now()] - 기준 시각
  * @returns {boolean} 즉시 사용 가능한 유효 쿠키 존재 여부
  */
-export function isSerializedCookieJarUsable(serialized: SerializedCookieJar | undefined, now: number = Date.now()): boolean {
+export function isSerializedCookieJarUsable(
+  serialized: SerializedCookieJar | undefined,
+  now: number = Date.now()
+): boolean {
   if (!serialized?.cookies?.length) return false;
 
   return serialized.cookies.some((cookie) => {
