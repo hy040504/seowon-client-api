@@ -468,12 +468,16 @@ export function parseEcampusLessonSchedulesHtml(
 
       const text = normalizeSpace(card.text());
       const durationText = extractDurationText(text);
+      const period = extractLabeledText(text, "기간");
       const item: EcampusLessonItem = {
         lessonScheduleId,
         lessonCntsId,
         title: normalizeSpace(card.find("a.header").first().text()),
+        period,
+        extraPeriod: extractLabeledText(text, "기간 외 학습기간"),
         durationText,
         durationSeconds: parseDurationSeconds(durationText),
+        attendanceStatus: extractLabeledText(text, "출결상태"),
         viewRequest: createLessonViewRequest(baseUrl, crsCreCd, lessonScheduleId, lessonCntsId),
         studyWindowRequest: createLessonStudyWindowRequest(baseUrl, crsCreCd, lessonCntsId)
       };
@@ -487,12 +491,59 @@ export function parseEcampusLessonSchedulesHtml(
   return schedules;
 }
 
+function parseLooseLessonCards(
+  html: string,
+  options: EcampusLessonParseOptions = {}
+): EcampusLessonItem[] {
+  const $ = cheerio.load(html);
+  const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
+  const crsCreCd =
+    options.crsCreCd ??
+    extractFirstValue(html, /crsCreCd["']?\s*(?:value=|:)\s*["']([^"']+)/) ??
+    "";
+  const lessons: EcampusLessonItem[] = [];
+
+  $(".card").each((_, cardElement) => {
+    const card = $(cardElement);
+    const href = card.find("a.header").first().attr("href") ?? "";
+    const buttonOnclick = card.find("button[onclick]").first().attr("onclick") ?? "";
+    const viewArgs = parseFunctionArguments(href);
+    const buttonArgs = parseFunctionArguments(buttonOnclick);
+    const lessonScheduleId =
+      viewArgs[0] ??
+      extractFirstValue(html, /lessonScheduleId["']?\s*(?:value=|:)\s*["']([^"']+)/) ??
+      "";
+    const lessonCntsId = viewArgs[1] ?? buttonArgs[0] ?? "";
+
+    if (!lessonScheduleId || !lessonCntsId) return;
+
+    const text = normalizeSpace(card.text());
+    const durationText = extractDurationText(text);
+    const period = extractAnyLabeledText(text, ["기간"]);
+    lessons.push({
+      lessonScheduleId,
+      lessonCntsId,
+      title: normalizeSpace(card.find("a.header").first().text()),
+      period,
+      extraPeriod: cleanOptionalText(extractAnyLabeledText(text, ["기간 외 학습기간"])),
+      durationText,
+      durationSeconds: parseDurationSeconds(durationText),
+      attendanceStatus: extractAnyLabeledText(text, ["출결상태"]),
+      viewRequest: createLessonViewRequest(baseUrl, crsCreCd, lessonScheduleId, lessonCntsId),
+      studyWindowRequest: createLessonStudyWindowRequest(baseUrl, crsCreCd, lessonCntsId)
+    });
+  });
+
+  return lessons;
+}
+
 /** HTML 차시 목록을 평탄화된 배열로 추출 */
 export function parseEcampusLessonListHtml(
   html: string,
   options: EcampusLessonParseOptions = {}
 ): EcampusLessonItem[] {
-  return parseEcampusLessonSchedulesHtml(html, options).flatMap((s) => s.lessons);
+  const lessons = parseEcampusLessonSchedulesHtml(html, options).flatMap((s) => s.lessons);
+  return lessons.length > 0 ? lessons : parseLooseLessonCards(html, options);
 }
 
 /** SAZ 패킷에서 주차별 강의 구조를 복원 */
@@ -818,6 +869,19 @@ function extractLabeledText(text: string, label: string): string | undefined {
     .join("|");
   const pattern = new RegExp(`${escapeRegExp(label)}\\s*(.*?)(?=\\s*(?:${other})\\s*|$)`);
   return norm.match(pattern)?.[1]?.trim() || undefined;
+}
+
+function extractAnyLabeledText(text: string, labels: string[]): string | undefined {
+  for (const label of labels) {
+    const value = extractLabeledText(text, label);
+    if (value) return value;
+  }
+  return undefined;
+}
+
+function cleanOptionalText(value: string | undefined): string | undefined {
+  if (!value || value.trim() === "-") return undefined;
+  return value.trim();
 }
 
 /** 강의 시간 텍스트 추출 */

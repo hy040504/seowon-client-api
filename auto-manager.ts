@@ -4,6 +4,7 @@ import path from "node:path";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import util from "node:util";
+import * as cheerio from "cheerio";
 
 import {
   ANSI,
@@ -23,10 +24,27 @@ import {
   createEcampusClient,
   isCookieJarUsable,
   watchLesson,
-  type EcampusClient
+  type EcampusClient,
+  type EcampusClassroomItem,
+  type EcampusCourseListItem,
+  type EcampusLessonItem
 } from "./src/index.js";
 
 const DEFAULT_COOKIE_FILE = path.resolve(process.cwd(), ".seowon-ecampus.cookies.json");
+const WATCH_SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴"];
+const STUDY_DETAIL_CONFIRM_MESSAGE = "[ElearningSession] ✅ viewLessonStudyDetail (학습 이력 확인)";
+const STUDY_DETAIL_WAITING_MESSAGE = "[ElearningSession] 학습 이력 갱신 대기 중";
+const STUDY_DETAIL_FADE_MS = 5000;
+
+interface WatchQueueItem {
+  course: EcampusCourseListItem;
+  lesson: EcampusLessonItem;
+}
+
+interface AvailableAssignmentItem {
+  course: EcampusCourseListItem;
+  assignment: EcampusClassroomItem;
+}
 
 /**
  * 실전 자동화 매니저 (TS)
@@ -57,6 +75,15 @@ async function run() {
       console.log(
         `${color("4", ANSI.yellow)}. ${color("📝 전체 교과목 미제출 과제 전수 조사", ANSI.bold)}`
       );
+      console.log(
+        `${color("5", ANSI.yellow)}. ${color("📡 전 과목 기간 내 미완료 이러닝 자동 시청", ANSI.bold)}`
+      );
+      console.log(
+        `${color("6", ANSI.yellow)}. ${color("현재 수행 가능한 전 과목 미제출 과제 목록", ANSI.bold)}`
+      );
+      console.log(
+        `${color("7", ANSI.yellow)}. ${color("현재 수행 가능한 과제 선택 및 상세내용 보기", ANSI.bold)}`
+      );
       console.log(`${color("0", ANSI.yellow)}. ${color("종료", ANSI.bold)}`);
 
       const menu = (await rl.question("\n메뉴 선택: ")).trim();
@@ -74,6 +101,15 @@ async function run() {
           break;
         case "4":
           await withAuthRetry(client, rl, () => checkAllAssignments(client));
+          break;
+        case "5":
+          await withAuthRetry(client, rl, () => watchAvailableUnwatchedLessons(client, rl));
+          break;
+        case "6":
+          await withAuthRetry(client, rl, () => listAvailableAssignments(client));
+          break;
+        case "7":
+          await withAuthRetry(client, rl, () => viewAvailableAssignmentDetail(client, rl));
           break;
         default:
           printErrorMessage("올바른 메뉴를 선택하세요.");
@@ -252,50 +288,232 @@ async function batchWatch(client: EcampusClient, rl: readline.Interface) {
     (l) => `${l.title} [${l.durationText || "시간미정"}]`
   );
   const stdNo = await ask(rl, "학번 (stdNo 확인용)", `${course.crsCreCd}_${process.env.SEOWON_ID}`);
+  const queue = selectedLessons.map((lesson) => ({ course, lesson }));
 
-  printSection(`\n🚀 총 ${selectedLessons.length}개의 강의를 순차적으로 시청합니다.`);
+  await watchLessonQueue(client, queue, stdNo);
+}
 
-  for (let i = 0; i < selectedLessons.length; i++) {
-    const lesson = selectedLessons[i]!;
+/** 5. 전 과목에서 현재 수강 기간에 속한 미학습/학습중 이러닝을 자동 시청 */
+async function watchAvailableUnwatchedLessons(client: EcampusClient, rl: readline.Interface) {
+  printInfo("\n🔍 전 과목에서 현재 기간 내 미학습/학습중 이러닝을 찾고 있습니다...");
+  const courses = await client.getCourseList();
+  const now = new Date();
+  const queue: WatchQueueItem[] = [];
+
+  for (const course of courses) {
+    process.stdout.write(`\r조회 중: ${course.title}...                    `);
+    try {
+      const lessons = await client.getElearningLessonList({ crsCreCd: course.crsCreCd });
+      const periodMatches = lessons.filter((lesson) => isLessonPeriodActive(lesson, now));
+      const statusMatches = lessons.filter(isLessonUnwatched);
+      const targets = lessons.filter(
+        (lesson) => isLessonPeriodActive(lesson, now) && isLessonUnwatched(lesson)
+      );
+
+      if (targets.length === 0 && (periodMatches.length > 0 || statusMatches.length > 0)) {
+        process.stdout.write("\r\u001b[K");
+        printWarning(
+          `[진단] ${course.title}: 전체 ${lessons.length}개 / 기간 내 ${periodMatches.length}개 / 학습중·미학습 ${statusMatches.length}개 / 대상 0개`
+        );
+      }
+
+      if (targets.length > 0) {
+        process.stdout.write("\r\u001b[K");
+        console.log(color(`\n[${course.title}]`, ANSI.bold, ANSI.yellow));
+        targets.forEach((lesson) => {
+          console.log(
+            `  - ${lesson.title} (${lesson.period || lesson.extraPeriod || "기간 미정"} / ${lesson.attendanceStatus || "상태 미정"})`
+          );
+          queue.push({ course, lesson });
+        });
+      }
+    } catch (err) {
+      process.stdout.write("\r\u001b[K");
+      printWarning(
+        `[SKIP] ${course.title}: ${err instanceof Error ? err.message : util.inspect(err)}`
+      );
+    }
+  }
+
+  process.stdout.write("\r\u001b[K");
+  if (queue.length === 0) {
+    printSuccess("\n✅ 현재 날짜 기준으로 기간 내 미학습/학습중 이러닝이 없습니다.");
+    return;
+  }
+
+  const answer = await ask(rl, `총 ${queue.length}개 차시를 자동 시청할까요? (Y/n)`, "Y");
+  if (!["y", "yes", "예", "네"].includes(answer.trim().toLowerCase())) {
+    printWarning("자동 시청을 취소했습니다.");
+    return;
+  }
+
+  const stdNoFallback = `${queue[0]!.course.crsCreCd}_${process.env.SEOWON_ID}`;
+  const stdNo = await ask(rl, "학번 (stdNo 확인용)", stdNoFallback);
+
+  await watchLessonQueue(client, queue, stdNo);
+}
+
+async function watchLessonQueue(client: EcampusClient, queue: WatchQueueItem[], stdNo: string) {
+  printSection(`\n🚀 총 ${queue.length}개의 강의를 순차적으로 시청합니다.`);
+
+  for (let i = 0; i < queue.length; i++) {
+    const { course, lesson } = queue[i]!;
     const totalSeconds = lesson.durationSeconds || 3600;
-    printWarning(`\n[${i + 1}/${selectedLessons.length}] 시청 대기: ${lesson.title}`);
+    printWarning(`\n[${i + 1}/${queue.length}] 시청 대기: [${course.title}] ${lesson.title}`);
 
     const originalLog = console.log;
-    let currentBarLine = "";
+    const originalWarn = console.warn;
+    const originalError = console.error;
+    let elapsed = 0;
+    let latestStudyRecordLog = "[ElearningSession] ⏰ addStudyRecord 호출 대기 중";
+    let studyDetailConfirmedAt: number | undefined;
+    let spinnerIndex = 0;
+    let progressInterval: NodeJS.Timeout | undefined;
+    let spinnerInterval: NodeJS.Timeout | undefined;
+    let liveBlockActive = false;
+    let hasRenderedLiveBlock = false;
+    const useFixedLiveBlock = Boolean(process.stdout.isTTY);
 
-    /** Safe Logger: 진행바 줄을 지우고 로그 출력 후 다시 진행바 복구 */
-    const safeLog = (...args: any[]) => {
-      process.stdout.write("\r\u001b[K");
-      originalLog(...args);
-      process.stdout.write(currentBarLine);
+    const formatStudyDetailWaitingStatus = () => {
+      const dots = ".".repeat((Math.floor(Date.now() / 500) % 3) + 1);
+      return `${STUDY_DETAIL_WAITING_MESSAGE}${dots}`;
     };
 
-    console.log = safeLog;
-    console.warn = safeLog;
-    console.error = safeLog;
-    const session = await watchLesson(
-      client.http,
-      client.baseUrl,
-      lesson.lessonCntsId,
-      course.crsCreCd,
-      stdNo
-    );
+    const formatStudyDetailStatus = () => {
+      if (studyDetailConfirmedAt === undefined) return formatStudyDetailWaitingStatus();
 
-    await new Promise((resolve) => {
-      let elapsed = 0;
-      const interval = setInterval(() => {
-        elapsed += 1;
-        const bar = getProgressBar(elapsed, totalSeconds, 40);
-        currentBarLine = `\r${bar} ${color(`${formatTime(elapsed)} / ${formatTime(totalSeconds)}`, ANSI.gray)}`;
-        process.stdout.write(currentBarLine);
-        if (elapsed >= totalSeconds) {
-          clearInterval(interval);
-          process.stdout.write("\n");
-          console.log = originalLog;
-          session.stopWatchingLesson().then(() => resolve(null));
+      const fadeRatio = Math.min((Date.now() - studyDetailConfirmedAt) / STUDY_DETAIL_FADE_MS, 1);
+      if (fadeRatio >= 1) return formatStudyDetailWaitingStatus();
+      if (process.env.NO_COLOR) return STUDY_DETAIL_CONFIRM_MESSAGE;
+
+      const green = [34, 197, 94];
+      const white = [255, 255, 255];
+      const rgb = green.map((channel, index) =>
+        Math.round(channel + (white[index]! - channel) * fadeRatio)
+      );
+      return `\u001b[38;2;${rgb.join(";")}m${STUDY_DETAIL_CONFIRM_MESSAGE}${ANSI.reset}`;
+    };
+
+    const renderLiveBlock = () => {
+      if (!liveBlockActive) return;
+
+      const bar = getProgressBar(elapsed, totalSeconds, 40);
+      const elapsedText = color(`${formatTime(elapsed)} / ${formatTime(totalSeconds)}`, ANSI.gray);
+      const spinner = WATCH_SPINNER_FRAMES[spinnerIndex]!;
+      const progressLine = `${bar} ${elapsedText}`;
+
+      if (!useFixedLiveBlock) {
+        process.stdout.write(`\r\u001b[K${progressLine}`);
+        hasRenderedLiveBlock = true;
+        return;
+      }
+
+      if (hasRenderedLiveBlock) {
+        process.stdout.write("\u001b[2A");
+      }
+      process.stdout.write(
+        [
+          `${latestStudyRecordLog} ${color(spinner, ANSI.cyan)}`,
+          formatStudyDetailStatus(),
+          progressLine
+        ]
+          .map((line) => `\r\u001b[2K${line}`)
+          .join("\n")
+      );
+      hasRenderedLiveBlock = true;
+    };
+
+    const clearLiveBlock = () => {
+      if (!hasRenderedLiveBlock) return;
+
+      if (!useFixedLiveBlock) {
+        process.stdout.write("\r\u001b[K");
+        hasRenderedLiveBlock = false;
+        return;
+      }
+
+      process.stdout.write("\u001b[2A");
+      process.stdout.write(["", "", ""].map(() => "\r\u001b[2K").join("\n"));
+      process.stdout.write("\r");
+      hasRenderedLiveBlock = false;
+    };
+
+    /** 반복 갱신 로그는 고정된 상태 영역에 흡수하고, 나머지 로그만 별도 줄에 출력한다. */
+    const createSafeLogger =
+      (logger: (...args: any[]) => void) =>
+      (...args: any[]) => {
+        const message = typeof args[0] === "string" ? args[0] : "";
+
+        if (message.startsWith("[ElearningSession] ⏰ addStudyRecord 호출")) {
+          latestStudyRecordLog = message;
+          renderLiveBlock();
+          return;
         }
-      }, 1000);
-    });
+
+        if (message === STUDY_DETAIL_CONFIRM_MESSAGE) {
+          studyDetailConfirmedAt = Date.now();
+          renderLiveBlock();
+          return;
+        }
+
+        clearLiveBlock();
+        logger(...args);
+        renderLiveBlock();
+      };
+
+    console.log = createSafeLogger(originalLog);
+    console.warn = createSafeLogger(originalWarn);
+    console.error = createSafeLogger(originalError);
+    try {
+      const session = await watchLesson(
+        client.http,
+        client.baseUrl,
+        lesson.lessonCntsId,
+        course.crsCreCd,
+        stdNo
+      );
+
+      await new Promise<void>((resolve) => {
+        liveBlockActive = true;
+        renderLiveBlock();
+
+        if (useFixedLiveBlock) {
+          spinnerInterval = setInterval(() => {
+            spinnerIndex = (spinnerIndex + 1) % WATCH_SPINNER_FRAMES.length;
+            renderLiveBlock();
+          }, 120);
+        }
+
+        progressInterval = setInterval(() => {
+          elapsed += 1;
+          renderLiveBlock();
+          if (elapsed >= totalSeconds) {
+            clearInterval(progressInterval);
+            clearInterval(spinnerInterval);
+            progressInterval = undefined;
+            spinnerInterval = undefined;
+            liveBlockActive = false;
+            clearLiveBlock();
+            session
+              .stopWatchingLesson()
+              .catch((err) => {
+                printErrorMessage(
+                  `종료 패킷 전송 실패: ${err instanceof Error ? err.message : util.inspect(err)}`
+                );
+              })
+              .finally(() => resolve());
+          }
+        }, 1000);
+      });
+    } finally {
+      if (progressInterval) clearInterval(progressInterval);
+      if (spinnerInterval) clearInterval(spinnerInterval);
+      liveBlockActive = false;
+      clearLiveBlock();
+      console.log = originalLog;
+      console.warn = originalWarn;
+      console.error = originalError;
+    }
   }
   printSuccess("\n✅ 선택한 모든 강의 시청이 완료되었습니다.");
 }
@@ -332,6 +550,179 @@ async function checkAllAssignments(client: EcampusClient) {
   );
 }
 
+/** 현재 날짜가 제출 기간 안에 있고 아직 제출 완료되지 않은 과제를 전 과목에서 조회한다. */
+async function listAvailableAssignments(client: EcampusClient) {
+  printInfo("\n현재 날짜 기준으로 수행 가능한 미제출 과제를 전 과목에서 찾고 있습니다...");
+  const targets = await collectAvailableAssignments(client, true);
+
+  process.stdout.write("\r\u001b[K");
+  const totalAvailable = targets.length;
+  const finalColor = totalAvailable > 0 ? ANSI.red : ANSI.green;
+  console.log(
+    color(
+      `\n조사 완료! 현재 수행 가능한 미제출 과제 ${totalAvailable}개가 발견되었습니다.`,
+      finalColor
+    )
+  );
+}
+
+/** 6번과 동일한 조건의 과제 목록에서 하나를 선택해 상세 화면 내용을 조회한다. */
+async function viewAvailableAssignmentDetail(client: EcampusClient, rl: readline.Interface) {
+  printInfo("\n현재 수행 가능한 미제출 과제를 불러오고 있습니다...");
+  const targets = await collectAvailableAssignments(client, false);
+  process.stdout.write("\r\u001b[K");
+
+  if (targets.length === 0) {
+    printSuccess("\n현재 선택 가능한 미제출 과제가 없습니다.");
+    return;
+  }
+
+  const selected = await pickFromList(
+    rl,
+    "상세내용을 확인할 과제",
+    targets,
+    ({ course, assignment }) =>
+      `[${course.title}] ${assignment.title} (기한: ${assignment.period || "미정"} / 상태: ${assignment.status || "미정"})`
+  );
+
+  printInfo(`\n과제 상세내용을 조회합니다: ${selected.assignment.title}`);
+  const html = await fetchAssignmentDetailHtml(client, selected.assignment);
+  printAssignmentDetail(html);
+}
+
+async function collectAvailableAssignments(
+  client: EcampusClient,
+  printMatches: boolean
+): Promise<AvailableAssignmentItem[]> {
+  const courses = await client.getCourseList();
+  const userNo = process.env.SEOWON_ID!;
+  const now = new Date();
+  const results: AvailableAssignmentItem[] = [];
+
+  for (const course of courses) {
+    process.stdout.write(`\r조회 중: ${course.title}...                    `);
+    try {
+      const assignments = await client.getAssignmentList({ crsCreCd: course.crsCreCd, userNo });
+      const periodMatches = assignments.filter((assignment) =>
+        isAssignmentPeriodActive(assignment, now)
+      );
+      const notSubmittedMatches = assignments.filter(isAssignmentNotSubmitted);
+      const targets = assignments.filter(
+        (assignment) =>
+          isAssignmentPeriodActive(assignment, now) && isAssignmentNotSubmitted(assignment)
+      );
+
+      if (targets.length === 0 && (periodMatches.length > 0 || notSubmittedMatches.length > 0)) {
+        process.stdout.write("\r\u001b[K");
+        printWarning(
+          `[진단] ${course.title}: 전체 ${assignments.length}개 / 기간 내 ${periodMatches.length}개 / 미제출 ${notSubmittedMatches.length}개 / 표시 대상 0개`
+        );
+      }
+
+      if (targets.length > 0) {
+        process.stdout.write("\r\u001b[K");
+        if (printMatches) {
+          console.log(color(`\n[${course.title}]`, ANSI.bold, ANSI.yellow));
+        }
+        targets.forEach((assignment) => {
+          if (printMatches) {
+            console.log(
+              `  - ${assignment.title} (기한: ${assignment.period || "미정"} / 상태: ${assignment.status || "미정"})`
+            );
+          }
+          results.push({ course, assignment });
+        });
+      }
+    } catch (err) {
+      process.stdout.write("\r\u001b[K");
+      printWarning(
+        `[SKIP] ${course.title}: ${err instanceof Error ? err.message : util.inspect(err)}`
+      );
+    }
+  }
+
+  return results;
+}
+
+async function fetchAssignmentDetailHtml(
+  client: EcampusClient,
+  assignment: EcampusClassroomItem
+): Promise<string> {
+  await client.ensureAuthenticated();
+  const requestUrl = new URL(assignment.request.url, client.baseUrl);
+  const response = await client.http.post<string>(
+    requestUrl.pathname + requestUrl.search,
+    new URLSearchParams(assignment.request.body),
+    {
+      headers: {
+        Accept: "text/html, */*; q=0.01",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        Origin: client.baseUrl.replace(/\/$/, ""),
+        Referer: client.baseUrl,
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
+  return response.data;
+}
+
+function printAssignmentDetail(html: string) {
+  const lines = extractAssignmentContentLines(html);
+
+  printSection("\n[과제내용]");
+
+  if (lines.length === 0) {
+    printWarning("상세 화면에서 과제내용을 찾지 못했습니다.");
+    return;
+  }
+
+  lines.forEach(printAssignmentContentLine);
+}
+
+function extractAssignmentContentLines(html: string): string[] {
+  const $ = cheerio.load(html);
+  $("script, style, noscript").remove();
+
+  const contentField = $(".inline.field")
+    .filter((_, field) => $(field).find("label.label-title").first().text().trim() === "과제내용")
+    .first();
+  const content = contentField.find(".note-editable").first();
+  if (content.length === 0) return [];
+
+  content.find("br").replaceWith("\n");
+  content.find("p, div, li, h1, h2, h3, h4, h5, h6, blockquote, pre, tr").each((_, block) => {
+    $(block).append("\n");
+  });
+
+  return content
+    .text()
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
+function printAssignmentContentLine(line: string) {
+  const sectionMatch = line.match(/^<(.+)>$/);
+  if (sectionMatch) {
+    console.log(`\n${color(line, ANSI.bold, ANSI.cyan)}`);
+    return;
+  }
+
+  const numberedMatch = line.match(/^(\d+\.)\s*(.*)$/);
+  if (numberedMatch) {
+    console.log(`${color(numberedMatch[1]!, ANSI.bold, ANSI.yellow)} ${numberedMatch[2]}`);
+    return;
+  }
+
+  const bulletMatch = line.match(/^([*•-])\s*(.*)$/);
+  if (bulletMatch) {
+    console.log(`${color(bulletMatch[1]!, ANSI.bold, ANSI.green)} ${bulletMatch[2]}`);
+    return;
+  }
+
+  console.log(line);
+}
+
 /** 번호 기반 다중 선택 유틸리티 */
 async function pickMultipleFromList<T>(
   rl: readline.Interface,
@@ -353,6 +744,67 @@ async function pickMultipleFromList<T>(
 
 function pathToFileURL(p: string) {
   return new URL(`file:///${p.replace(/\\/g, "/")}`);
+}
+
+function isLessonUnwatched(lesson: EcampusLessonItem): boolean {
+  const status = normalizeKoreanStatus(lesson.attendanceStatus);
+  if (!status) return false;
+  return status.includes("학습중(지각)") || status.includes("미학습(결석)");
+}
+
+function isLessonPeriodActive(lesson: EcampusLessonItem, now: Date): boolean {
+  return isPeriodActive(lesson.period, now);
+}
+
+function isAssignmentPeriodActive(assignment: EcampusClassroomItem, now: Date): boolean {
+  return isPeriodActive(assignment.period, now);
+}
+
+function isAssignmentNotSubmitted(assignment: EcampusClassroomItem): boolean {
+  const status = normalizeKoreanStatus(assignment.status);
+  if (!status) return true;
+  return !(
+    status.includes("\uacfc\uc81c\ub97c\uc81c\ucd9c") || status.includes("\uc81c\ucd9c\ud558")
+  );
+}
+
+function isPeriodActive(period: string | undefined, now: Date): boolean {
+  const range = parseDateRange(period);
+  if (!range) return false;
+  const current = now.getTime();
+  return range.start.getTime() <= current && current <= range.end.getTime();
+}
+
+function parseDateRange(period: string | undefined): { start: Date; end: Date } | undefined {
+  if (!period) return undefined;
+  const cleaned = period.replace(/\([^)]*\)/g, " ");
+  const matches = [
+    ...cleaned.matchAll(
+      /(20\d{2})[.\-/년\s]+(\d{1,2})[.\-/월\s]+(\d{1,2})일?(?:\s+(\d{1,2}):(\d{2}))?/g
+    )
+  ];
+
+  if (matches.length < 2) return undefined;
+
+  const start = dateFromMatch(matches[0]!);
+  const end = dateFromMatch(matches[1]!, true);
+  if (!start || !end) return undefined;
+  return { start, end };
+}
+
+function dateFromMatch(match: RegExpMatchArray, endOfDay = false): Date | undefined {
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = match[4] === undefined ? (endOfDay ? 23 : 0) : Number(match[4]);
+  const minute = match[5] === undefined ? (endOfDay ? 59 : 0) : Number(match[5]);
+
+  if (!year || !month || !day) return undefined;
+  return new Date(year, month - 1, day, hour, minute, endOfDay ? 59 : 0);
+}
+
+function normalizeKoreanStatus(status: string | undefined): string {
+  return (status ?? "").replace(/\s+/g, "").toLowerCase();
 }
 
 run().catch((err) => {

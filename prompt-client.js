@@ -70,6 +70,8 @@ async function main() {
           case "materials":
           case "assignments":
           case "elearning-lessons":
+          case "elearning-open":
+          case "elearning-mp4":
           case "elearning-watch":
           case "elearning-download":
           case "classroom-resources":
@@ -99,7 +101,20 @@ async function main() {
               );
               options.lessonCntsId = lesson.lessonCntsId;
 
-              if (command === "elearning-watch") {
+              if (command === "elearning-open") {
+                prettyPrint(
+                  await client.openLessonWindow({
+                    crsCreCd: options.crsCreCd,
+                    lessonCntsId: lesson.lessonCntsId
+                  })
+                );
+              } else if (command === "elearning-mp4") {
+                const urlResult = await client.getElearningMp4Url(
+                  options.crsCreCd,
+                  lesson.lessonCntsId
+                );
+                prettyPrint(urlResult);
+              } else if (command === "elearning-watch") {
                 const stdNo = await ask(
                   rl,
                   "학번 (stdNo)",
