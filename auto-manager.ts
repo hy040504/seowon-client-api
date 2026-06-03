@@ -365,7 +365,7 @@ async function watchLessonQueue(client: EcampusClient, queue: WatchQueueItem[], 
     const originalWarn = console.warn;
     const originalError = console.error;
     let elapsed = 0;
-    let latestStudyRecordLog = "[ElearningSession] ⏰ addStudyRecord 호출 대기 중";
+    let latestStudyRecordLog = "[ElearningSession] 학습 중... (서버 학습 률: 0%, 누적 0초)";
     let studyDetailConfirmedAt: number | undefined;
     let spinnerIndex = 0;
     let progressInterval: NodeJS.Timeout | undefined;
@@ -444,7 +444,10 @@ async function watchLessonQueue(client: EcampusClient, queue: WatchQueueItem[], 
       (...args: any[]) => {
         const message = typeof args[0] === "string" ? args[0] : "";
 
-        if (message.startsWith("[ElearningSession] ⏰ addStudyRecord 호출")) {
+        if (
+          message.startsWith("[ElearningSession] ⏰ addStudyRecord 호출") ||
+          message.startsWith("[ElearningSession] 학습 중...")
+        ) {
           latestStudyRecordLog = message;
           renderLiveBlock();
           return;

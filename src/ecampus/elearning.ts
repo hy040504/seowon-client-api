@@ -210,6 +210,7 @@ export class ElearningSession {
   private studyDetailId: string | null = null;
   private totalStudyTime: number = 0;
   private progressPercent: number = 0;
+  private progressPercentText: string = "0%";
   private intervalId: NodeJS.Timeout | null = null;
   private isWatching = false;
 
@@ -228,6 +229,20 @@ export class ElearningSession {
     private readonly crsCreCd: string,
     private readonly stdNo: string
   ) {}
+
+  private formatProgressPercent(rawRatio: unknown): string {
+    const ratioText =
+      typeof rawRatio === "string" ? rawRatio.trim().replace(/%$/, "").trim() : rawRatio;
+    const parsedRatio = Number(ratioText);
+    if (!Number.isFinite(parsedRatio)) return "0%";
+    return `${ratioText}%`;
+  }
+
+  private logStudyProgressStatus() {
+    console.log(
+      `[ElearningSession] 학습 중... (서버 학습 률: ${this.progressPercentText}, 누적 ${this.totalStudyTime}초)`
+    );
+  }
 
   /**
    * 서버 측 시퀀스를 하나씩 실행하여 실제 학습 중인 상태로 전환한다.
@@ -291,6 +306,7 @@ export class ElearningSession {
     if (data?.returnVO?.studyDetailId) {
       this.studyDetailId = data.returnVO.studyDetailId;
       this.totalStudyTime = initialTm;
+      this.logStudyProgressStatus();
       console.log(`[ElearningSession] ✅ studyDetailId 생성: ${this.studyDetailId}`);
     } else {
       console.warn("[ElearningSession] ⚠️ studyDetailId 확보 실패: 기록 누락 우려");
@@ -329,6 +345,7 @@ export class ElearningSession {
       const parsedRatio = Number(rawRatio);
       if (!isNaN(parsedRatio)) {
         this.progressPercent = parsedRatio;
+        this.progressPercentText = this.formatProgressPercent(rawRatio);
       }
     }
 
@@ -345,6 +362,7 @@ export class ElearningSession {
 
       console.log(`[ElearningSession] ⏰ addStudyRecord 호출 → 누적 ${this.totalStudyTime}초`);
       await this.callAddStudyRecord(this.totalStudyTime);
+      this.logStudyProgressStatus();
 
       // 세션 정합성을 위해 학습 상세 조회를 병행 호출 (패킷 모사)
       await this.verifyStudyDetail();
