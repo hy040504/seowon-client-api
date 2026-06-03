@@ -46,6 +46,38 @@ interface AvailableAssignmentItem {
   assignment: EcampusClassroomItem;
 }
 
+function extractWeekNumber(text: string | undefined): number | undefined {
+  const match = text?.match(/(\d+)\s*주차/);
+  return match?.[1] ? Number(match[1]) : undefined;
+}
+
+function stripLeadingWeekMarker(title: string): string {
+  return title
+    .replace(/^\s*\[\s*\d+\s*주차\s*\]\s*/, "")
+    .replace(/^\s*\d+\s*주차\s*[:.)-]?\s*/, "")
+    .trim();
+}
+
+function formatTitleWithWeek(title: string, weekSource?: string): string {
+  const weekNumber = extractWeekNumber(weekSource) ?? extractWeekNumber(title);
+  if (!weekNumber) return title;
+
+  const displayTitle = stripLeadingWeekMarker(title) || title.trim();
+  return `[${weekNumber} 주차] ${displayTitle}`;
+}
+
+function formatLessonTitleWithWeek(lesson: EcampusLessonItem): string {
+  return formatTitleWithWeek(lesson.title, lesson.scheduleTitle);
+}
+
+function formatDownloadLessonLabel(lesson: EcampusLessonItem): string {
+  return `${formatLessonTitleWithWeek(lesson)} [${lesson.durationText || "시간미정"}]`;
+}
+
+function formatAssignmentTitleWithWeek(assignment: EcampusClassroomItem): string {
+  return formatTitleWithWeek(assignment.title);
+}
+
 /**
  * 실전 자동화 매니저 (TS)
  * 대량의 영상 다운로드 및 시청 작업을 순차적/병렬적으로 처리하는 고성능 자동화 도구.
@@ -202,14 +234,14 @@ async function batchDownload(client: EcampusClient, rl: readline.Interface) {
     rl,
     "다운로드할 강의",
     lessons,
-    (l) => `${l.title} [${l.durationText || "시간미정"}]`
+    formatDownloadLessonLabel
   );
 
   const concurrencyInput = await ask(rl, "동시 다운로드 수", "3");
   const concurrency = Math.min(Math.max(parseInt(concurrencyInput) || 1, 1), 5);
 
   const itemStatuses = selectedLessons.map((l) => ({
-    title: l.title,
+    title: formatLessonTitleWithWeek(l),
     percent: 0,
     status: "pending" as any
   }));
@@ -285,7 +317,7 @@ async function batchWatch(client: EcampusClient, rl: readline.Interface) {
     rl,
     "자동 시청할 강의",
     lessons,
-    (l) => `${l.title} [${l.durationText || "시간미정"}]`
+    formatDownloadLessonLabel
   );
   const stdNo = await ask(rl, "학번 (stdNo 확인용)", `${course.crsCreCd}_${process.env.SEOWON_ID}`);
   const queue = selectedLessons.map((lesson) => ({ course, lesson }));
@@ -322,7 +354,7 @@ async function watchAvailableUnwatchedLessons(client: EcampusClient, rl: readlin
         console.log(color(`\n[${course.title}]`, ANSI.bold, ANSI.yellow));
         targets.forEach((lesson) => {
           console.log(
-            `  - ${lesson.title} (${lesson.period || lesson.extraPeriod || "기간 미정"} / ${lesson.attendanceStatus || "상태 미정"})`
+            `  - ${formatLessonTitleWithWeek(lesson)} (${lesson.period || lesson.extraPeriod || "기간 미정"} / ${lesson.attendanceStatus || "상태 미정"})`
           );
           queue.push({ course, lesson });
         });
@@ -359,7 +391,9 @@ async function watchLessonQueue(client: EcampusClient, queue: WatchQueueItem[], 
   for (let i = 0; i < queue.length; i++) {
     const { course, lesson } = queue[i]!;
     const totalSeconds = lesson.durationSeconds || 3600;
-    printWarning(`\n[${i + 1}/${queue.length}] 시청 대기: [${course.title}] ${lesson.title}`);
+    printWarning(
+      `\n[${i + 1}/${queue.length}] 시청 대기: [${course.title}] ${formatLessonTitleWithWeek(lesson)}`
+    );
 
     const originalLog = console.log;
     const originalWarn = console.warn;
@@ -538,7 +572,7 @@ async function checkAllAssignments(client: EcampusClient) {
       if (missing.length > 0) {
         console.log(color(`\n[${course.title}]`, ANSI.bold, ANSI.yellow));
         missing.forEach((a) => {
-          console.log(`  - 📝 ${a.title} (기한: ${a.period || "미정"})`);
+          console.log(`  - 📝 ${formatAssignmentTitleWithWeek(a)} (기한: ${a.period || "미정"})`);
           totalMissing++;
         });
       }
@@ -585,10 +619,10 @@ async function viewAvailableAssignmentDetail(client: EcampusClient, rl: readline
     "상세내용을 확인할 과제",
     targets,
     ({ course, assignment }) =>
-      `[${course.title}] ${assignment.title} (기한: ${assignment.period || "미정"} / 상태: ${assignment.status || "미정"})`
+      `[${course.title}] ${formatAssignmentTitleWithWeek(assignment)} (기한: ${assignment.period || "미정"} / 상태: ${assignment.status || "미정"})`
   );
 
-  printInfo(`\n과제 상세내용을 조회합니다: ${selected.assignment.title}`);
+  printInfo(`\n과제 상세내용을 조회합니다: ${formatAssignmentTitleWithWeek(selected.assignment)}`);
   const html = await fetchAssignmentDetailHtml(client, selected.assignment);
   printAssignmentDetail(html);
 }
@@ -630,7 +664,7 @@ async function collectAvailableAssignments(
         targets.forEach((assignment) => {
           if (printMatches) {
             console.log(
-              `  - ${assignment.title} (기한: ${assignment.period || "미정"} / 상태: ${assignment.status || "미정"})`
+              `  - ${formatAssignmentTitleWithWeek(assignment)} (기한: ${assignment.period || "미정"} / 상태: ${assignment.status || "미정"})`
             );
           }
           results.push({ course, assignment });

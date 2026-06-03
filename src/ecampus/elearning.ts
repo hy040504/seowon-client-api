@@ -35,6 +35,8 @@ export interface EcampusLessonGetRequest {
 export interface EcampusLessonItem {
   /** 주차별 묶음 식별자 */
   lessonScheduleId: string;
+  /** 주차별 묶음 제목 */
+  scheduleTitle?: string;
   /** 콘텐츠 고유 식별자 */
   lessonCntsId: string;
   /** 강의 제목 */
@@ -489,6 +491,7 @@ export function parseEcampusLessonSchedulesHtml(
       const period = extractLabeledText(text, "기간");
       const item: EcampusLessonItem = {
         lessonScheduleId,
+        scheduleTitle: schedule.title,
         lessonCntsId,
         title: normalizeSpace(card.find("a.header").first().text()),
         period,
