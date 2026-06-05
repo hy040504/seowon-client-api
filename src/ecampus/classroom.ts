@@ -38,6 +38,12 @@ export interface EcampusClassroomItem {
   hasAttachment?: boolean;
 }
 
+/** 강의자료/공지 상세 화면에서 추출한 첨부파일 정보 */
+export interface EcampusClassroomAttachment {
+  title: string;
+  url: string;
+}
+
 /** 강의실 내부의 모든 리소스를 수집한 통합 데이터 구조 */
 export interface EcampusClassroomResources {
   notices: EcampusClassroomItem[];
@@ -216,6 +222,51 @@ export function stringifyEcampusClassroomItems(items: EcampusClassroomItem[]): s
   return JSON.stringify(items, null, 2);
 }
 
+/** 강의실 상세 HTML에서 다운로드 가능한 첨부파일 링크를 추출한다 */
+export function parseEcampusClassroomAttachmentsHtml(
+  html: string,
+  options: EcampusClassroomResourceOptions = {}
+): EcampusClassroomAttachment[] {
+  const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
+  const $ = cheerio.load(html);
+  const attachments: EcampusClassroomAttachment[] = [];
+  const seen = new Set<string>();
+
+  $("script, style, noscript").remove();
+
+  $("a[href], a[onclick], button[onclick], [data-url], [data-href]").each((_, element) => {
+    const node = $(element);
+    const rawText = normalizeSpace(
+      [
+        node.text(),
+        node.attr("href") ?? "",
+        node.attr("onclick") ?? "",
+        node.attr("data-url") ?? "",
+        node.attr("data-href") ?? "",
+        node
+          .closest(
+            ".inline.field, .file, .filebox, .attach, .attachment, .paperclip, li, tr, td, dd"
+          )
+          .text()
+      ]
+        .filter(Boolean)
+        .join(" ")
+    );
+    if (!looksLikeAttachmentCandidate(rawText)) return;
+
+    const url = extractAttachmentUrl(node, baseUrl);
+    if (!url) return;
+
+    const title = extractAttachmentTitle(node, url);
+    const key = `${title}::${url}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    attachments.push({ title, url });
+  });
+
+  return attachments;
+}
+
 /**
  * 일반적인 게시판(NOTICE, PDS) 형태의 HTML 리스트를 공통 파싱한다.
  * @private
@@ -251,6 +302,81 @@ function parseBbsListHtml(
       };
     })
     .filter((item) => item.id && item.title);
+}
+
+function extractAttachmentUrl(node: cheerio.Cheerio<any>, baseUrl: string): string | undefined {
+  const attributes = [
+    node.attr("data-url"),
+    node.attr("data-href"),
+    node.attr("href"),
+    node.attr("onclick")
+  ].filter((value): value is string => !!value);
+
+  for (const attribute of attributes) {
+    const url = extractUrlCandidate(attribute, baseUrl);
+    if (url) return url;
+  }
+
+  return undefined;
+}
+
+function extractUrlCandidate(source: string, baseUrl: string): string | undefined {
+  const trimmed = source.trim();
+  if (!trimmed) return undefined;
+
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("/")) {
+    return absoluteUrl(trimmed, baseUrl);
+  }
+
+  const directMatch = trimmed.match(/(?:https?:\/\/[^"'`\s<>]+|\/[^"'`\s<>]+(?:\?[^"'`\s<>]*)?)/i);
+  if (directMatch?.[0]) {
+    return absoluteUrl(directMatch[0], baseUrl);
+  }
+
+  const quotedMatches = Array.from(trimmed.matchAll(/["'`]([^"'`]+)["'`]/g)).map((m) => m[1]!);
+  for (const quoted of quotedMatches) {
+    if (/^(https?:\/\/|\/)/i.test(quoted)) {
+      return absoluteUrl(quoted, baseUrl);
+    }
+    if (/\.(pdf|hwp|docx?|pptx?|xlsx?|zip|rar|txt|jpg|jpeg|png|gif)(\?|$)/i.test(quoted)) {
+      return absoluteUrl(quoted, baseUrl);
+    }
+    if (/(download|down|file|attach|첨부)/i.test(quoted)) {
+      return absoluteUrl(quoted, baseUrl);
+    }
+  }
+
+  return undefined;
+}
+
+function extractAttachmentTitle(node: cheerio.Cheerio<any>, url: string): string {
+  const downloadAttr = node.attr("download");
+  if (downloadAttr && downloadAttr.trim() !== "true") {
+    return downloadAttr.trim();
+  }
+
+  const text = normalizeSpace(node.text());
+  if (text && !/^(다운로드|download|첨부|보기|열기)$/i.test(text)) {
+    return text;
+  }
+
+  try {
+    const parsed = new URL(url);
+    const fileNameKeys = ["fileName", "filename", "fileNm", "oriFileNm", "saveFileNm", "name"];
+    for (const key of fileNameKeys) {
+      const value = parsed.searchParams.get(key);
+      if (value) return value;
+    }
+
+    const lastPath = parsed.pathname.split("/").filter(Boolean).pop();
+    if (lastPath) return decodeURIComponent(lastPath);
+  } catch {}
+
+  return "attachment";
+}
+
+function looksLikeAttachmentCandidate(text: string): boolean {
+  return /(첨부|첨부파일|파일|download|다운로드|down|attach|paperclip|자료)/i.test(text);
 }
 
 /**

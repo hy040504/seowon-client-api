@@ -126,6 +126,7 @@ export {
 
 export {
   createEmptyEcampusClassroomResources,
+  parseEcampusClassroomAttachmentsHtml,
   parseEcampusAssignmentListHtml,
   parseEcampusAssignmentListFromSaz,
   parseEcampusClassroomResourcesFromSaz,
@@ -136,6 +137,7 @@ export {
   stringifyEcampusClassroomItems,
   stringifyEcampusClassroomResources,
   type EcampusClassroomItem,
+  type EcampusClassroomAttachment,
   type EcampusClassroomResources,
   type EcampusClassroomResourceOptions,
   type EcampusClassroomSection,

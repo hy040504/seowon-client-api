@@ -23,6 +23,7 @@ import {
 import {
   createEcampusClient,
   isCookieJarUsable,
+  parseEcampusClassroomAttachmentsHtml,
   watchLesson,
   type EcampusClient,
   type EcampusClassroomItem,
@@ -44,6 +45,13 @@ interface WatchQueueItem {
 interface AvailableAssignmentItem {
   course: EcampusCourseListItem;
   assignment: EcampusClassroomItem;
+}
+
+interface MaterialDownloadState {
+  title: string;
+  percent: number;
+  status: "pending" | "downloading" | "completed" | "failed";
+  detail?: string;
 }
 
 function extractWeekNumber(text: string | undefined): number | undefined {
@@ -76,6 +84,49 @@ function formatDownloadLessonLabel(lesson: EcampusLessonItem): string {
 
 function formatAssignmentTitleWithWeek(assignment: EcampusClassroomItem): string {
   return formatTitleWithWeek(assignment.title);
+}
+
+function formatMaterialSelectionLabel(material: EcampusClassroomItem): string {
+  const title = formatTitleWithWeek(material.title);
+  const date = material.date ? ` / ${material.date}` : "";
+  const attachment = material.hasAttachment ? " / 첨부 있음" : "";
+  return `${title}${date}${attachment}`;
+}
+
+function sanitizeFilename(name: string): string {
+  return name
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .substring(0, 100);
+}
+
+function ensureUniqueFilePath(filePath: string): string {
+  if (!fs.existsSync(filePath)) return filePath;
+
+  const parsed = path.parse(filePath);
+  for (let i = 1; i < 1000; i++) {
+    const candidate = path.resolve(parsed.dir, `${parsed.name} (${i})${parsed.ext}`);
+    if (!fs.existsSync(candidate)) return candidate;
+  }
+
+  return path.resolve(parsed.dir, `${parsed.name} (${Date.now()})${parsed.ext}`);
+}
+
+function guessFileNameFromUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const queryKeys = ["fileName", "filename", "fileNm", "oriFileNm", "saveFileNm", "name"];
+    for (const key of queryKeys) {
+      const value = parsed.searchParams.get(key);
+      if (value) return decodeURIComponent(value);
+    }
+
+    const lastSegment = parsed.pathname.split("/").filter(Boolean).pop();
+    if (lastSegment) return decodeURIComponent(lastSegment);
+  } catch {}
+
+  return "attachment";
 }
 
 /**
@@ -116,6 +167,9 @@ async function run() {
       console.log(
         `${color("7", ANSI.yellow)}. ${color("현재 수행 가능한 과제 선택 및 상세내용 보기", ANSI.bold)}`
       );
+      console.log(
+        `${color("8", ANSI.yellow)}. ${color("강의자료 일괄 다운로드 (전체 첨부 시각화)", ANSI.bold)}`
+      );
       console.log(`${color("0", ANSI.yellow)}. ${color("종료", ANSI.bold)}`);
 
       const menu = (await rl.question("\n메뉴 선택: ")).trim();
@@ -142,6 +196,9 @@ async function run() {
           break;
         case "7":
           await withAuthRetry(client, rl, () => viewAvailableAssignmentDetail(client, rl));
+          break;
+        case "8":
+          await withAuthRetry(client, rl, () => batchDownloadMaterials(client, rl));
           break;
         default:
           printErrorMessage("올바른 메뉴를 선택하세요.");
@@ -306,6 +363,240 @@ async function batchDownload(client: EcampusClient, rl: readline.Interface) {
 
   await Promise.all(Array.from({ length: concurrency }, () => downloadWorker()));
   console.log(color("\n✅ 모든 영상 다운로드가 성공적으로 완료되었습니다!", ANSI.bold, ANSI.green));
+}
+
+/** 2-확장. 강의자료를 선택해 첨부파일을 일괄 다운로드한다 */
+async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interface) {
+  const courses = await client.getCourseList();
+  const course = await pickFromList(rl, "과목", courses, (c) => c.title);
+
+  const materials = await client.getMaterialList({ crsCreCd: course.crsCreCd, listScale: 1000 });
+  const selectedMaterials = await pickMultipleFromList(
+    rl,
+    "다운로드할 강의자료",
+    materials,
+    formatMaterialSelectionLabel
+  );
+
+  if (selectedMaterials.length === 0) {
+    printWarning("다운로드할 강의자료가 선택되지 않았습니다.");
+    return;
+  }
+
+  const concurrencyInput = await ask(rl, "동시 다운로드 수", "3");
+  const concurrency = Math.min(Math.max(parseInt(concurrencyInput) || 1, 1), 5);
+
+  const itemStatuses: MaterialDownloadState[] = selectedMaterials.map((material) => ({
+    title: formatMaterialSelectionLabel(material),
+    percent: 0,
+    status: "pending"
+  }));
+  let isStarted = false;
+
+  const renderQueue = () => {
+    if (!isStarted) return;
+    process.stdout.write(`\u001b[${selectedMaterials.length}A`);
+    itemStatuses.forEach((item, i) => {
+      process.stdout.write("\r\u001b[K");
+      const prefix = `[${i + 1}/${selectedMaterials.length}]`;
+      const detail = item.detail ? ` ${color(`(${item.detail})`, ANSI.gray)}` : "";
+
+      if (item.status === "downloading") {
+        console.log(
+          `${prefix} ${getProgressBar(item.percent, 100, 15)} ${color(item.title, ANSI.yellow)}${detail}`
+        );
+      } else if (item.status === "completed") {
+        console.log(
+          `${prefix} ${color("✅ 완료", ANSI.green)}      ${color(item.title, ANSI.green)}${detail}`
+        );
+      } else if (item.status === "failed") {
+        console.log(
+          `${prefix} ${color("❌ 실패", ANSI.red)}      ${color(item.title, ANSI.red)}${detail}`
+        );
+      } else {
+        console.log(`${prefix} ${color("⏳ 대기", ANSI.gray)}      ${item.title}${detail}`);
+      }
+    });
+  };
+
+  printInfo(
+    `\n📚 총 ${selectedMaterials.length}개의 강의자료 첨부파일을 다운로드합니다. (동시 작업: ${concurrency}개)\n`
+  );
+  selectedMaterials.forEach(() => console.log(""));
+  isStarted = true;
+
+  const queueIdxs = Array.from({ length: selectedMaterials.length }, (_, i) => i);
+
+  const downloadWorker = async () => {
+    while (queueIdxs.length > 0) {
+      const idx = queueIdxs.shift();
+      if (idx === undefined) break;
+
+      const material = selectedMaterials[idx]!;
+      const state = itemStatuses[idx]!;
+      state.status = "downloading";
+      state.detail = "첨부파일 분석 중";
+      renderQueue();
+
+      const res = await downloadMaterialAttachmentBundle(client, course, material, (progress) => {
+        state.percent = progress.percent;
+        state.detail = progress.detail;
+        renderQueue();
+      });
+
+      state.status = res.success ? "completed" : "failed";
+      state.percent = res.success ? 100 : state.percent;
+      state.detail = res.message;
+      renderQueue();
+    }
+  };
+
+  await Promise.all(Array.from({ length: concurrency }, () => downloadWorker()));
+  console.log(
+    color("\n✅ 모든 강의자료 다운로드가 성공적으로 완료되었습니다!", ANSI.bold, ANSI.green)
+  );
+}
+
+async function downloadMaterialAttachmentBundle(
+  client: EcampusClient,
+  course: EcampusCourseListItem,
+  material: EcampusClassroomItem,
+  progressCallback?: (progress: { percent: number; detail?: string }) => void
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const html = await fetchClassroomDetailHtml(client, material);
+    const attachments = parseEcampusClassroomAttachmentsHtml(html, { baseUrl: client.baseUrl });
+    if (attachments.length === 0) {
+      return { success: false, message: "첨부파일을 찾지 못했습니다." };
+    }
+
+    const materialDir = path.resolve(
+      "./downloads",
+      sanitizeFilename(course.title),
+      sanitizeFilename(formatTitleWithWeek(material.title))
+    );
+    fs.mkdirSync(materialDir, { recursive: true });
+
+    for (let i = 0; i < attachments.length; i++) {
+      const attachment = attachments[i]!;
+      const fileName = sanitizeFilename(attachment.title || guessFileNameFromUrl(attachment.url));
+      const filePath = ensureUniqueFilePath(path.resolve(materialDir, fileName));
+      progressCallback?.({
+        percent: Math.round((i / attachments.length) * 100),
+        detail: `${i + 1}/${attachments.length} ${fileName}`
+      });
+
+      const result = await downloadRemoteFile(
+        client,
+        attachment.url,
+        filePath,
+        material.url,
+        (p) => {
+          const overallPercent = Math.max(
+            0,
+            Math.min(99, Math.round(((i + p.percent / 100) / attachments.length) * 100))
+          );
+          progressCallback?.({
+            percent: overallPercent,
+            detail: `${i + 1}/${attachments.length} ${fileName}`
+          });
+        }
+      );
+
+      if (!result.success) {
+        return { success: false, message: result.message || "첨부파일 다운로드 실패" };
+      }
+    }
+
+    return { success: true, message: `${attachments.length}개 첨부파일 다운로드 완료` };
+  } catch (err) {
+    return {
+      success: false,
+      message: err instanceof Error ? err.message : util.inspect(err)
+    };
+  }
+}
+
+async function fetchClassroomDetailHtml(
+  client: EcampusClient,
+  item: EcampusClassroomItem
+): Promise<string> {
+  await client.ensureAuthenticated();
+  const requestUrl = new URL(item.request.url, client.baseUrl);
+  const response = await client.http.post<string>(
+    requestUrl.pathname + requestUrl.search,
+    new URLSearchParams(item.request.body),
+    {
+      headers: {
+        Accept: "text/html, */*; q=0.01",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        Origin: client.baseUrl.replace(/\/$/, ""),
+        Referer: client.baseUrl,
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }
+  );
+  return response.data;
+}
+
+async function downloadRemoteFile(
+  client: EcampusClient,
+  url: string,
+  filePath: string,
+  refererUrl: string,
+  progressCallback?: (progress: { percent: number; loaded: number }) => void
+): Promise<{ success: boolean; filePath?: string; message?: string }> {
+  const hwmConfig = process.env.DOWNLOAD_HIGH_WATER_MARK
+    ? parseInt(process.env.DOWNLOAD_HIGH_WATER_MARK)
+    : 1024;
+  const hwmBytes = (isNaN(hwmConfig) ? 1024 : hwmConfig) * 1024;
+  const finalPath = ensureUniqueFilePath(filePath);
+
+  try {
+    const res = await client.http.get(url, {
+      responseType: "stream",
+      headers: {
+        Accept: "*/*",
+        Origin: client.baseUrl.replace(/\/$/, ""),
+        Referer: refererUrl,
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      onDownloadProgress: (ev) => {
+        if (progressCallback && ev.total) {
+          progressCallback({
+            loaded: ev.loaded,
+            percent: Math.round((ev.loaded / ev.total) * 100)
+          });
+        }
+      }
+    });
+
+    const writer = fs.createWriteStream(finalPath, { highWaterMark: hwmBytes });
+    res.data.pipe(writer);
+
+    return await new Promise((resolve, reject) => {
+      res.data.on("error", (err: Error) => {
+        if (fs.existsSync(finalPath)) fs.unlinkSync(finalPath);
+        reject(err);
+      });
+      writer.on("finish", () => resolve({ success: true, filePath: finalPath }));
+      writer.on("error", (err) => {
+        if (fs.existsSync(finalPath)) fs.unlinkSync(finalPath);
+        reject(err);
+      });
+    });
+  } catch (err) {
+    if (fs.existsSync(finalPath)) {
+      try {
+        fs.unlinkSync(finalPath);
+      } catch {}
+    }
+
+    return {
+      success: false,
+      message: err instanceof Error ? err.message : util.inspect(err)
+    };
+  }
 }
 
 /** 2. 이러닝 순차 자동 시청: Safe Logging 시스템으로 진행바와 로그 간 충돌 방지 */
