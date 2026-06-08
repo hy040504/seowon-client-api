@@ -23,9 +23,9 @@ import {
 import {
   createEcampusClient,
   isCookieJarUsable,
-  parseEcampusClassroomAttachmentsHtml,
   watchLesson,
   type EcampusClient,
+  type EcampusClassroomAttachment,
   type EcampusClassroomItem,
   type EcampusCourseListItem,
   type EcampusLessonItem
@@ -37,6 +37,8 @@ const STUDY_DETAIL_CONFIRM_MESSAGE = "[ElearningSession] ✅ viewLessonStudyDeta
 const STUDY_DETAIL_WAITING_MESSAGE = "[ElearningSession] 학습 이력 갱신 대기 중";
 const STUDY_DETAIL_FADE_MS = 5000;
 
+const LECTURE_MATERIALS_DIR = "강의자료들";
+
 interface WatchQueueItem {
   course: EcampusCourseListItem;
   lesson: EcampusLessonItem;
@@ -47,6 +49,7 @@ interface AvailableAssignmentItem {
   assignment: EcampusClassroomItem;
 }
 
+/** 강의자료 다운로드 큐에서 각 항목의 실시간 상태를 추적하기 위한 내부 인터페이스 (renderQueue 용) */
 interface MaterialDownloadState {
   title: string;
   percent: number;
@@ -86,6 +89,10 @@ function formatAssignmentTitleWithWeek(assignment: EcampusClassroomItem): string
   return formatTitleWithWeek(assignment.title);
 }
 
+/**
+ * 강의자료 선택 목록에 표시할 라벨을 생성한다.
+ * 주차 정보 + 날짜 + 첨부 여부 표시 (기존 8번/9번 공통 사용)
+ */
 function formatMaterialSelectionLabel(material: EcampusClassroomItem): string {
   const title = formatTitleWithWeek(material.title);
   const date = material.date ? ` / ${material.date}` : "";
@@ -168,7 +175,7 @@ async function run() {
         `${color("7", ANSI.yellow)}. ${color("현재 수행 가능한 과제 선택 및 상세내용 보기", ANSI.bold)}`
       );
       console.log(
-        `${color("8", ANSI.yellow)}. ${color("강의자료 일괄 다운로드 (전체 첨부 시각화)", ANSI.bold)}`
+        `${color("8", ANSI.yellow)}. ${color("강의자료 다운로드 (일괄 + 첨부 분석/미리보기)", ANSI.bold)}`
       );
       console.log(`${color("0", ANSI.yellow)}. ${color("종료", ANSI.bold)}`);
 
@@ -198,6 +205,7 @@ async function run() {
           await withAuthRetry(client, rl, () => viewAvailableAssignmentDetail(client, rl));
           break;
         case "8":
+          // 통합된 강의자료 다운로드 (이전 8번 일괄 + 9번 분석 기능)
           await withAuthRetry(client, rl, () => batchDownloadMaterials(client, rl));
           break;
         default:
@@ -365,7 +373,15 @@ async function batchDownload(client: EcampusClient, rl: readline.Interface) {
   console.log(color("\n✅ 모든 영상 다운로드가 성공적으로 완료되었습니다!", ANSI.bold, ANSI.green));
 }
 
-/** 2-확장. 강의자료를 선택해 첨부파일을 일괄 다운로드한다 */
+/**
+ * 강의자료 일괄 다운로드 (메뉴 8, 이전 8번 일괄 + 9번 상세 분석 통합 버전).
+ * - 과목 선택 후 listScale=1000으로 전체 자료 조회
+ * - 다중 선택 지원 (pickMultipleFromList)
+ * - 선택 자료에 대해 client.getMaterialAttachments 로 첨부 미리 분석/미리보기 (live 트래픽 기반 /viewAtcl + fileDown 파싱)
+ * - 분석 결과 요약 출력 후 concurrency 워커로 다운로드 (preloadedAttachments로 중복 fetch 방지)
+ * - renderQueue 로 실시간 진행률 표시 (기존 8번 UI 재사용)
+ * - 저장 경로: downloads/<과목>/강의자료들/<자료 제목(주차)>/...
+ */
 async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interface) {
   const courses = await client.getCourseList();
   const course = await pickFromList(rl, "과목", courses, (c) => c.title);
@@ -383,96 +399,186 @@ async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interf
     return;
   }
 
+  // 이전 메뉴 8+9 통합: 선택된 자료 각각에 대해 모듈의 getMaterialAttachments 호출로 첨부 미리보기 수행
+  // (내부에서 fetchClassroomDetailHtml + parseEcampusClassroomAttachmentsHtml 사용)
+  const preloadedAttachments = new Map<string, EcampusClassroomAttachment[]>();
+  printInfo(`\n선택한 ${selectedMaterials.length}개 자료의 첨부파일을 request 객체로 분석 중...`);
+  for (const material of selectedMaterials) {
+    try {
+      const atts = await client.getMaterialAttachments(material);
+      preloadedAttachments.set(material.id, atts);
+      const names =
+        atts
+          .slice(0, 3)
+          .map((a) => a.title)
+          .join(", ") + (atts.length > 3 ? "..." : "");
+      console.log(
+        `  ${color("•", ANSI.gray)} ${formatMaterialSelectionLabel(material)} — ${color(String(atts.length), ANSI.cyan)}개${names ? " (" + names + ")" : ""}`
+      );
+    } catch (err: any) {
+      console.log(
+        `  ${color("•", ANSI.gray)} ${formatMaterialSelectionLabel(material)} — ${color("분석 실패", ANSI.red)}: ${err.message}`
+      );
+      preloadedAttachments.set(material.id, []);
+    }
+  }
+
+  // 첨부가 0개인 항목은 다운로드 큐에서 제외 (실패 메시지 도배 방지 + 의미 없는 실패 방지)
+  // preview에서 이미 "— 0개" 로 표시됐으므로 큐와 render 블록에서는 완전히 빼서
+  // [N/M] 숫자와 render 라인 수가 실제 다운로드할 항목 수와 일치하게 함.
+  const downloadMaterials = selectedMaterials.filter((material) => {
+    const atts = preloadedAttachments.get(material.id) || [];
+    return atts.length > 0;
+  });
+
+  if (downloadMaterials.length === 0) {
+    printWarning("선택한 자료 중 첨부파일이 있는 항목이 없습니다.");
+    return;
+  }
+
   const concurrencyInput = await ask(rl, "동시 다운로드 수", "3");
   const concurrency = Math.min(Math.max(parseInt(concurrencyInput) || 1, 1), 5);
 
-  const itemStatuses: MaterialDownloadState[] = selectedMaterials.map((material) => ({
+  const itemStatuses: MaterialDownloadState[] = downloadMaterials.map((material) => ({
     title: formatMaterialSelectionLabel(material),
     percent: 0,
     status: "pending"
   }));
   let isStarted = false;
+  let renderScheduled = false;
+  let lastRenderTime = 0;
+  const RENDER_THROTTLE_MS = 60; // progress 이벤트가 매우 자주 오므로 throttle로 도배 방지
 
-  const renderQueue = () => {
+  const renderQueue = (force = false) => {
     if (!isStarted) return;
-    process.stdout.write(`\u001b[${selectedMaterials.length}A`);
-    itemStatuses.forEach((item, i) => {
-      process.stdout.write("\r\u001b[K");
-      const prefix = `[${i + 1}/${selectedMaterials.length}]`;
-      const detail = item.detail ? ` ${color(`(${item.detail})`, ANSI.gray)}` : "";
+    if (renderScheduled) return;
 
-      if (item.status === "downloading") {
-        console.log(
-          `${prefix} ${getProgressBar(item.percent, 100, 15)} ${color(item.title, ANSI.yellow)}${detail}`
-        );
-      } else if (item.status === "completed") {
-        console.log(
-          `${prefix} ${color("✅ 완료", ANSI.green)}      ${color(item.title, ANSI.green)}${detail}`
-        );
-      } else if (item.status === "failed") {
-        console.log(
-          `${prefix} ${color("❌ 실패", ANSI.red)}      ${color(item.title, ANSI.red)}${detail}`
-        );
-      } else {
-        console.log(`${prefix} ${color("⏳ 대기", ANSI.gray)}      ${item.title}${detail}`);
-      }
+    const now = Date.now();
+    if (!force && now - lastRenderTime < RENDER_THROTTLE_MS) {
+      renderScheduled = true;
+      setTimeout(() => {
+        renderScheduled = false;
+        renderQueue(true);
+      }, RENDER_THROTTLE_MS);
+      return;
+    }
+
+    lastRenderTime = now;
+    renderScheduled = true;
+
+    // nextTick 직렬화 + throttle
+    // 전체 블록을 한 번에 atomic write로 그려서 각 항목의 라인이 고정된 위치에서만 업데이트되게 함.
+    process.nextTick(() => {
+      renderScheduled = false;
+      if (!isStarted) return;
+
+      let output = `\r\u001b[${downloadMaterials.length}A`;
+      itemStatuses.forEach((item, i) => {
+        const prefix = `[${i + 1}/${downloadMaterials.length}]`;
+        const detail = item.detail ? ` ${color(`(${item.detail})`, ANSI.gray)}` : "";
+
+        let line: string;
+        if (item.status === "downloading") {
+          line = `${prefix} ${getProgressBar(item.percent, 100, 15)} ${color(item.title, ANSI.yellow)}${detail}`;
+        } else if (item.status === "completed") {
+          line = `${prefix} ${color("✅ 완료", ANSI.green)}      ${color(item.title, ANSI.green)}${detail}`;
+        } else if (item.status === "failed") {
+          line = `${prefix} ${color("❌ 실패", ANSI.red)}      ${color(item.title, ANSI.red)}${detail}`;
+        } else {
+          line = `${prefix} ${color("⏳ 대기", ANSI.gray)}      ${item.title}${detail}`;
+        }
+        output += `\u001b[K${line}\n`;
+      });
+
+      process.stdout.write(output);
     });
   };
 
   printInfo(
-    `\n📚 총 ${selectedMaterials.length}개의 강의자료 첨부파일을 다운로드합니다. (동시 작업: ${concurrency}개)\n`
+    `\n📚 총 ${downloadMaterials.length}개의 강의자료 첨부파일을 다운로드합니다. (동시 작업: ${concurrency}개)\n`
   );
-  selectedMaterials.forEach(() => console.log(""));
+  // N줄의 공간을 미리 확보 (이후 render에서 위로 올라가서 덮어씀)
+  downloadMaterials.forEach(() => console.log(""));
   isStarted = true;
+  renderQueue(true); // 초기 대기 상태를 바로 그림 (throttle 무시)
 
-  const queueIdxs = Array.from({ length: selectedMaterials.length }, (_, i) => i);
+  const queueIdxs = Array.from({ length: downloadMaterials.length }, (_, i) => i);
 
+  // 동시 워커: preloadedAttachments 를 활용해 분석 없이 바로 다운로드 진행
   const downloadWorker = async () => {
     while (queueIdxs.length > 0) {
       const idx = queueIdxs.shift();
       if (idx === undefined) break;
 
-      const material = selectedMaterials[idx]!;
+      const material = downloadMaterials[idx]!;
       const state = itemStatuses[idx]!;
       state.status = "downloading";
-      state.detail = "첨부파일 분석 중";
-      renderQueue();
+      state.detail = preloadedAttachments.get(material.id)?.length
+        ? "다운로드 중 (분석 완료)"
+        : "첨부 분석 중";
+      renderQueue(true); // 다운로드 시작 시 강제 redraw
 
-      const res = await downloadMaterialAttachmentBundle(client, course, material, (progress) => {
-        state.percent = progress.percent;
-        state.detail = progress.detail;
-        renderQueue();
-      });
+      const preloaded = preloadedAttachments.get(material.id) ?? [];
+      const res = await downloadMaterialAttachmentBundle(
+        client,
+        course,
+        material,
+        (progress) => {
+          state.percent = progress.percent;
+          state.detail = progress.detail;
+          renderQueue();
+        },
+        preloaded.length > 0 ? preloaded : undefined
+      );
 
       state.status = res.success ? "completed" : "failed";
       state.percent = res.success ? 100 : state.percent;
       state.detail = res.message;
-      renderQueue();
+      renderQueue(true); // 완료/실패 시 최종 상태 강제 redraw (throttle 무시)
     }
   };
 
   await Promise.all(Array.from({ length: concurrency }, () => downloadWorker()));
+
+  isStarted = false; // 이후 늦은 콜백이 render를 호출해도 무시 (메뉴 출력과 겹치지 않게)
+  renderQueue(true); // 마지막 최종 상태 한 번 더 확실히 그림
+
+  // 진행률 블록 아래로 커서를 내려서 메뉴가 깔끔하게 시작되도록 함
+  process.stdout.write("\n");
+
   console.log(
     color("\n✅ 모든 강의자료 다운로드가 성공적으로 완료되었습니다!", ANSI.bold, ANSI.green)
   );
 }
 
+/**
+ * 단일 강의자료의 첨부파일들을 다운로드한다.
+ * preloadedAttachments 가 있으면 재사용 (중복 분석 방지).
+ * 없으면 내부에서 client.getMaterialAttachments 호출.
+ * 다운로드 경로는 downloads/<과목>/강의자료들/<자료 제목(주차 포함)>/ 아래에 저장.
+ */
 async function downloadMaterialAttachmentBundle(
   client: EcampusClient,
   course: EcampusCourseListItem,
   material: EcampusClassroomItem,
-  progressCallback?: (progress: { percent: number; detail?: string }) => void
+  progressCallback?: (progress: { percent: number; detail?: string }) => void,
+  preloadedAttachments?: EcampusClassroomAttachment[]
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const html = await fetchClassroomDetailHtml(client, material);
-    const attachments = parseEcampusClassroomAttachmentsHtml(html, { baseUrl: client.baseUrl });
+    // preloaded 가 있으면(미리 분석 완료) 바로 사용, 없으면 모듈 메서드로 분석 수행
+    let attachments: EcampusClassroomAttachment[] = preloadedAttachments ?? [];
+    if (attachments.length === 0) {
+      attachments = await client.getMaterialAttachments(material);
+    }
     if (attachments.length === 0) {
       return { success: false, message: "첨부파일을 찾지 못했습니다." };
     }
 
+    // 다운로드 디렉토리: downloads/<과목명>/강의자료들/<강의자료 제목(주차 포함)>/
     const materialDir = path.resolve(
       "./downloads",
       sanitizeFilename(course.title),
+      LECTURE_MATERIALS_DIR,
       sanitizeFilename(formatTitleWithWeek(material.title))
     );
     fs.mkdirSync(materialDir, { recursive: true });
@@ -481,6 +587,8 @@ async function downloadMaterialAttachmentBundle(
       const attachment = attachments[i]!;
       const fileName = sanitizeFilename(attachment.title || guessFileNameFromUrl(attachment.url));
       const filePath = ensureUniqueFilePath(path.resolve(materialDir, fileName));
+
+      // 개별 파일 진행률을 상위 전체 진행률에 반영
       progressCallback?.({
         percent: Math.round((i / attachments.length) * 100),
         detail: `${i + 1}/${attachments.length} ${fileName}`
@@ -492,6 +600,7 @@ async function downloadMaterialAttachmentBundle(
         filePath,
         material.url,
         (p) => {
+          // 서브 진행률(p)을 전체 첨부 개수 기준으로 환산하여 상위 콜백에 전달
           const overallPercent = Math.max(
             0,
             Math.min(99, Math.round(((i + p.percent / 100) / attachments.length) * 100))
@@ -504,6 +613,7 @@ async function downloadMaterialAttachmentBundle(
       );
 
       if (!result.success) {
+        // 하나라도 실패하면 전체 번들 실패로 처리 (기존 동작 유지)
         return { success: false, message: result.message || "첨부파일 다운로드 실패" };
       }
     }
@@ -517,28 +627,9 @@ async function downloadMaterialAttachmentBundle(
   }
 }
 
-async function fetchClassroomDetailHtml(
-  client: EcampusClient,
-  item: EcampusClassroomItem
-): Promise<string> {
-  await client.ensureAuthenticated();
-  const requestUrl = new URL(item.request.url, client.baseUrl);
-  const response = await client.http.post<string>(
-    requestUrl.pathname + requestUrl.search,
-    new URLSearchParams(item.request.body),
-    {
-      headers: {
-        Accept: "text/html, */*; q=0.01",
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        Origin: client.baseUrl.replace(/\/$/, ""),
-        Referer: client.baseUrl,
-        "X-Requested-With": "XMLHttpRequest"
-      }
-    }
-  );
-  return response.data;
-}
-
+/** 원격 파일(첨부)을 스트림으로 다운로드하고 로컬에 저장한다.
+ * highWaterMark 로 버퍼 제어, 고유 파일명 보장, 진행률 콜백 지원.
+ */
 async function downloadRemoteFile(
   client: EcampusClient,
   url: string,

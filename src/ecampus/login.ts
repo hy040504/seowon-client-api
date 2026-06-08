@@ -6,10 +6,12 @@ import { isCookieJarUsable, loadCookieJarFromFile, saveCookieJarToFile } from ".
 import {
   createEmptyEcampusClassroomResources,
   parseEcampusAssignmentListHtml,
+  parseEcampusClassroomAttachmentsHtml,
   parseEcampusMaterialListHtml,
   parseEcampusNoticeListHtml,
   stringifyEcampusClassroomItems,
   stringifyEcampusClassroomResources,
+  type EcampusClassroomAttachment,
   type EcampusClassroomItem,
   type EcampusClassroomResources
 } from "./classroom.js";
@@ -321,16 +323,23 @@ export class EcampusClient {
 
   /** 공지사항 목록 조회 및 파싱 */
   async getNoticeList(options: GetClassroomBoardListOptions): Promise<EcampusClassroomItem[]> {
-    const html = await this.postBoardList(options, "NOTICE", `BBS_${options.crsCreCd}_N`);
-    return parseEcampusNoticeListHtml(html, { baseUrl: this.baseUrl, crsCreCd: options.crsCreCd });
+    const bbsId = `BBS_${options.crsCreCd}_N`;
+    const html = await this.postBoardList(options, "NOTICE", bbsId);
+    return parseEcampusNoticeListHtml(html, {
+      baseUrl: this.baseUrl,
+      crsCreCd: options.crsCreCd,
+      bbsId
+    });
   }
 
   /** 강의자료실 목록 조회 및 파싱 */
   async getMaterialList(options: GetClassroomBoardListOptions): Promise<EcampusClassroomItem[]> {
-    const html = await this.postBoardList(options, "PDS", `BBS_${options.crsCreCd}_P`);
+    const bbsId = `BBS_${options.crsCreCd}_P`;
+    const html = await this.postBoardList(options, "PDS", bbsId);
     return parseEcampusMaterialListHtml(html, {
       baseUrl: this.baseUrl,
-      crsCreCd: options.crsCreCd
+      crsCreCd: options.crsCreCd,
+      bbsId
     });
   }
 
@@ -554,6 +563,48 @@ export class EcampusClient {
     });
     await this.persistCookieJar();
     return response.data;
+  }
+
+  /**
+   * 강의자료 상세 HTML(fetchClassroomDetailHtml)을 가져온다.
+   * Live traffic 분석(2026-06-05 capture-live) 결과에 따라
+   * item.request는 /bbs/bbsLect/viewAtcl + {formType: 'VIEW', bbsCd, ...} 형태를 사용한다.
+   * (과거 viewAtclForm 요청은 shell HTML만 반환하므로 실제 콘텐츠/첨부는 이 엔드포인트로 조회)
+   * @private
+   * @param {EcampusClassroomItem} item - getMaterialList 등으로 얻은 항목 (request 필드 포함)
+   * @returns {Promise<string>} 상세 화면 HTML (post_view fragment 등)
+   */
+  private async fetchClassroomDetailHtml(item: EcampusClassroomItem): Promise<string> {
+    await this.ensureAuthenticated();
+    const requestUrl = new URL(item.request.url, this.baseUrl);
+    const response = await this.http.post<string>(
+      requestUrl.pathname + requestUrl.search,
+      new URLSearchParams(item.request.body),
+      {
+        headers: {
+          Accept: "text/html, */*; q=0.01",
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          Origin: this.baseUrl.replace(/\/$/, ""),
+          Referer: this.baseUrl,
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      }
+    );
+    await this.persistCookieJar();
+    return response.data;
+  }
+
+  /**
+   * 강의자료의 첨부파일 목록을 조회한다.
+   * request 객체를 사용해 상세 HTML을 가져온 뒤,
+   * parseEcampusClassroomAttachmentsHtml로 fileDown('TOKEN') 패턴 등을 파싱하여
+   * 실제 다운로드 가능한 /file/download/<token> URL 목록을 반환한다.
+   * @param {EcampusClassroomItem} item - 강의자료 항목 (id, request 포함)
+   * @returns {Promise<EcampusClassroomAttachment[]>} 첨부파일 {title, url} 배열
+   */
+  async getMaterialAttachments(item: EcampusClassroomItem): Promise<EcampusClassroomAttachment[]> {
+    const html = await this.fetchClassroomDetailHtml(item);
+    return parseEcampusClassroomAttachmentsHtml(html, { baseUrl: this.baseUrl });
   }
 }
 

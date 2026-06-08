@@ -55,6 +55,8 @@ export interface EcampusClassroomResources {
 export interface EcampusClassroomResourceOptions {
   baseUrl?: string;
   crsCreCd?: string;
+  /** 게시판 ID (bbsId). /atclList 등 일부 목록 응답 조각에는 onclick 인자에 bbsId가 없으므로 컨텍스트에서 주입 */
+  bbsId?: string;
 }
 
 /** 패킷 로그 분석을 위한 원시 세션 구조체 */
@@ -70,6 +72,7 @@ interface RawHttpSession {
 
 const DEFAULT_BASE_URL = "https://ecampus.seowon.ac.kr";
 const VIEW_ATCL_PATH = "/bbs/bbsLect/Form/viewAtclForm";
+const VIEW_ATCL_CONTENT_PATH = "/bbs/bbsLect/viewAtcl";
 const VIEW_ASMNT_PATH = "/asmnt/asmntLect/Form/asmntStuMain";
 
 /** 신규 리소스 컨테이너 초기화 */
@@ -171,7 +174,11 @@ export function parseEcampusClassroomResourcesFromSaz(
     const list =
       section === "assignments"
         ? parseEcampusAssignmentListHtml(session.responseBody, { ...options, crsCreCd })
-        : parseBbsListHtml(session.responseBody, section, { ...options, crsCreCd });
+        : parseBbsListHtml(session.responseBody, section, {
+            ...options,
+            crsCreCd,
+            bbsId: session.request.body.bbsId
+          });
 
     for (const item of list) {
       const bucket = seenMap.get(section)!;
@@ -236,6 +243,9 @@ export function parseEcampusClassroomAttachmentsHtml(
 
   $("a[href], a[onclick], button[onclick], [data-url], [data-href]").each((_, element) => {
     const node = $(element);
+    const url = extractAttachmentUrl(node, baseUrl);
+    if (!url) return;
+
     const rawText = normalizeSpace(
       [
         node.text(),
@@ -252,10 +262,8 @@ export function parseEcampusClassroomAttachmentsHtml(
         .filter(Boolean)
         .join(" ")
     );
-    if (!looksLikeAttachmentCandidate(rawText)) return;
 
-    const url = extractAttachmentUrl(node, baseUrl);
-    if (!url) return;
+    if (!looksLikeAttachmentCandidate(rawText) && !looksLikeAttachmentUrl(url)) return;
 
     const title = extractAttachmentTitle(node, url);
     const key = `${title}::${url}`;
@@ -263,6 +271,20 @@ export function parseEcampusClassroomAttachmentsHtml(
     seen.add(key);
     attachments.push({ title, url });
   });
+
+  if (attachments.length === 0) {
+    $("a[href], button[onclick], [data-url], [data-href]").each((_, element) => {
+      const node = $(element);
+      const url = extractAttachmentUrl(node, baseUrl);
+      if (!url || !looksLikeAttachmentUrl(url)) return;
+
+      const title = extractAttachmentTitle(node, url);
+      const key = `${title}::${url}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      attachments.push({ title, url });
+    });
+  }
 
   return attachments;
 }
@@ -278,30 +300,124 @@ function parseBbsListHtml(
 ): EcampusClassroomItem[] {
   const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
   const $ = cheerio.load(html);
+  const items: EcampusClassroomItem[] = [];
+  const seenIds = new Set<string>();
 
-  return $("a[href^='javascript:viewAtcl']")
-    .toArray()
-    .map((link) => {
-      const $link = $(link);
-      const args = parseFunctionArguments($link.attr("href") ?? "");
-      const bbsId = args[0] ?? "";
-      const atclId = args[1] ?? "";
-      const li = $link.closest("li");
-      const title = normalizeSpace($link.find("span").first().text() || $link.text());
-      const date = extractDate(li.text());
-      const crsCreCd = options.crsCreCd ?? extractCrsCreCdFromBbsId(bbsId);
-      const body = { bbsId, atclId, crsCreCd };
+  // 1) Direct <a href="javascript:viewAtcl(...)"> style (classRoomAtclList, older atclListForm pages, SAZ fixtures)
+  $("a[href^='javascript:viewAtcl']").each((_, link) => {
+    const $link = $(link);
+    const args = parseFunctionArguments($link.attr("href") ?? "");
+    let bbsId = args[0] ?? "";
+    let atclId = args[1] ?? "";
+    // 방어: 첫 arg가 ATCL이면 순서가 반대인 경우 처리 (일부 onclick 변형)
+    if (atclId && atclId.startsWith("ATCL_") && bbsId.startsWith("ATCL_")) {
+      [bbsId, atclId] = [atclId, bbsId];
+    }
+    if (!atclId && bbsId.startsWith("ATCL_")) {
+      atclId = bbsId;
+      bbsId = "";
+    }
+    const li = $link.closest("li");
+    const title = normalizeSpace($link.find("span").first().text() || $link.text());
+    const date = extractDate(li.text() || $link.closest("li, tr, .item").text());
+    const crsCreCd = options.crsCreCd ?? extractCrsCreCdFromBbsId(bbsId);
+    const resolvedBbsId =
+      bbsId ||
+      options.bbsId ||
+      (crsCreCd ? `BBS_${crsCreCd}_${section === "materials" ? "P" : "N"}` : "");
+    const bbsCd = resolvedBbsId.endsWith("_P")
+      ? "PDS"
+      : resolvedBbsId.endsWith("_N")
+        ? "NOTICE"
+        : "";
+    const body = {
+      formType: "VIEW",
+      bbsId: resolvedBbsId,
+      atclId,
+      bbsCd,
+      crsCreCd: crsCreCd || ""
+    };
 
-      return {
+    if (atclId && title && !seenIds.has(atclId)) {
+      seenIds.add(atclId);
+      items.push({
         id: atclId,
         title,
         url: absoluteUrl(VIEW_ATCL_PATH, baseUrl),
-        request: { method: "POST" as const, url: absoluteUrl(VIEW_ATCL_PATH, baseUrl), body },
+        request: {
+          method: "POST" as const,
+          url: absoluteUrl(VIEW_ATCL_CONTENT_PATH, baseUrl),
+          body
+        },
         date,
         hasAttachment: li.find(".paperclip").length > 0 || /paperclip/.test(li.html() ?? "")
-      };
-    })
-    .filter((item) => item.id && item.title);
+      });
+    }
+  });
+
+  // 2) li[onclick*="viewAtcl"] style from current /atclList ajax fragment responses (postBoardList)
+  //    예: <li onclick="javascript:viewAtcl('ATCL_xxx', null, '10291');"> ... <a href="javascript:void(0)"><span>title</span><i class="paperclip"></i></a>
+  $("li[onclick*='viewAtcl'], li[onclick*=\"viewAtcl\"]").each((_, li) => {
+    const $li = $(li);
+    const onclick = $li.attr("onclick") || $li.attr("onClick") || "";
+    const args = parseFunctionArguments(onclick);
+    let bbsIdFromArg = "";
+    let atclId = "";
+    if (args.length > 0) {
+      if (args[0] && args[0].startsWith("BBS_")) {
+        bbsIdFromArg = args[0];
+        atclId = args[1] || "";
+      } else if (args[0] && args[0].startsWith("ATCL_")) {
+        atclId = args[0];
+        bbsIdFromArg = args[1] && args[1].startsWith("BBS_") ? args[1] : "";
+      } else {
+        atclId = args.find((a) => a.startsWith("ATCL_")) || "";
+        bbsIdFromArg = args.find((a) => a.startsWith("BBS_")) || "";
+      }
+    }
+    const resolvedBbsId =
+      bbsIdFromArg ||
+      options.bbsId ||
+      (options.crsCreCd ? `BBS_${options.crsCreCd}_${section === "materials" ? "P" : "N"}` : "");
+    if (!atclId || !resolvedBbsId) return;
+    const crsCreCd = options.crsCreCd ?? extractCrsCreCdFromBbsId(resolvedBbsId);
+    const bbsCd = resolvedBbsId.endsWith("_P")
+      ? "PDS"
+      : resolvedBbsId.endsWith("_N")
+        ? "NOTICE"
+        : "";
+    const body = {
+      formType: "VIEW",
+      bbsId: resolvedBbsId,
+      atclId,
+      bbsCd,
+      crsCreCd: crsCreCd || ""
+    };
+
+    const title = normalizeSpace(
+      $li.find("a span").first().text() || $li.find("span").last().text() || $li.text()
+    );
+    const date = extractDate($li.text());
+    const hasAttachment = $li.find(".paperclip").length > 0 || /paperclip/.test($li.html() ?? "");
+
+    if (title && !seenIds.has(atclId)) {
+      seenIds.add(atclId);
+      items.push({
+        id: atclId,
+        title,
+        url: absoluteUrl(VIEW_ATCL_PATH, baseUrl),
+        request: {
+          method: "POST" as const,
+          url: absoluteUrl(VIEW_ATCL_CONTENT_PATH, baseUrl),
+          body
+        },
+        date,
+        hasAttachment
+      });
+    }
+  });
+
+  return items.filter((item) => item.id && item.title);
 }
 
 function extractAttachmentUrl(node: cheerio.Cheerio<any>, baseUrl: string): string | undefined {
@@ -328,6 +444,13 @@ function extractUrlCandidate(source: string, baseUrl: string): string | undefine
     return absoluteUrl(trimmed, baseUrl);
   }
 
+  // javascript:fileDown('TOKEN') 패턴 지원 (실제 브라우저 캡처에서 확인된 첨부 다운로드 트리거)
+  const fileDownMatch = trimmed.match(/fileDown\s*\(\s*['"]([^'"]+)['"]\s*\)/i);
+  if (fileDownMatch?.[1]) {
+    const token = fileDownMatch[1];
+    return absoluteUrl(`/file/download/${token}`, baseUrl);
+  }
+
   const directMatch = trimmed.match(/(?:https?:\/\/[^"'`\s<>]+|\/[^"'`\s<>]+(?:\?[^"'`\s<>]*)?)/i);
   if (directMatch?.[0]) {
     return absoluteUrl(directMatch[0], baseUrl);
@@ -341,7 +464,11 @@ function extractUrlCandidate(source: string, baseUrl: string): string | undefine
     if (/\.(pdf|hwp|docx?|pptx?|xlsx?|zip|rar|txt|jpg|jpeg|png|gif)(\?|$)/i.test(quoted)) {
       return absoluteUrl(quoted, baseUrl);
     }
-    if (/(download|down|file|attach|첨부)/i.test(quoted)) {
+    if (
+      /(download|down|file|attach|첨부|fileNo|fileId|fileSn|fileSeq|atch|attachNo|downFile|downloadFile)/i.test(
+        quoted
+      )
+    ) {
       return absoluteUrl(quoted, baseUrl);
     }
   }
@@ -376,7 +503,46 @@ function extractAttachmentTitle(node: cheerio.Cheerio<any>, url: string): string
 }
 
 function looksLikeAttachmentCandidate(text: string): boolean {
-  return /(첨부|첨부파일|파일|download|다운로드|down|attach|paperclip|자료)/i.test(text);
+  return /(첨부|첨부파일|파일|download|다운로드|down|attach|paperclip|자료|fileDown)/i.test(text);
+}
+
+function looksLikeAttachmentUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const pathname = parsed.pathname.toLowerCase();
+    const query = parsed.searchParams;
+
+    if (/\.(pdf|hwp|docx?|pptx?|xlsx?|zip|rar|txt|jpg|jpeg|png|gif)(\?|$)/i.test(pathname)) {
+      return true;
+    }
+
+    if (/(download|down|file|attach|paperclip|자료)/i.test(pathname)) {
+      return true;
+    }
+    if (/^\/file\/download\//i.test(pathname)) {
+      return true;
+    }
+
+    const queryKeys = [
+      "fileNo",
+      "fileId",
+      "fileSn",
+      "fileSeq",
+      "atchFileId",
+      "atchFileNo",
+      "attachNo",
+      "attachId",
+      "downFile",
+      "downloadFile",
+      "fileName",
+      "filename",
+      "oriFileNm",
+      "saveFileNm"
+    ];
+    return queryKeys.some((key) => query.has(key));
+  } catch {
+    return false;
+  }
 }
 
 /**

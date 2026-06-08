@@ -17,6 +17,8 @@
 - 단일 또는 복수 차시의 순차 학습 기록 갱신
 - 현재 기간 내 미완료 이러닝 자동 탐색
 - 현재 제출 가능한 미제출 과제 목록과 과제 본문 조회
+- 강의자료 첨부파일 사전 분석, 미리보기, 일괄 다운로드
+- Puppeteer 기반 live traffic 캡처 도구
 - 로컬 SAZ 패킷 기반 파서 검증 지원
 
 ## 요구 사항
@@ -98,20 +100,20 @@ npm run auto:manager
 5. 전 과목 기간 내 미완료 이러닝 자동 시청
 6. 현재 수행 가능한 전 과목 미제출 과제 목록
 7. 현재 수행 가능한 과제 선택 및 상세내용 보기
-8. 과목별 강의자료 일괄 다운로드
+8. 강의자료 다운로드 (일괄 + 첨부 분석/미리보기)
 0. 종료
 ```
 
-| 메뉴 | 기능                              | 동작                                                                               |
-| :--- | :-------------------------------- | :--------------------------------------------------------------------------------- |
-| `1`  | 로그인·세션 갱신                  | 계정 정보를 입력하여 쿠키 세션을 새로 저장                                         |
-| `2`  | 이러닝 일괄 다운로드              | 과목과 차시를 선택하고 최대 `5`개의 다운로드 워커로 병렬 처리                      |
-| `3`  | 이러닝 순차 자동 시청             | 한 과목의 여러 차시를 선택하고 영상 길이에 맞춰 순차 처리                          |
-| `4`  | 전체 과목 미제출 과제 조사        | 교과 과목을 순회하여 `미제출` 또는 `진행중` 과제를 출력                            |
-| `5`  | 기간 내 미완료 이러닝 자동 시청   | 전 과목에서 현재 기간 내 `학습중(지각)` 또는 `미학습(결석)` 차시를 찾아 순차 처리  |
-| `6`  | 현재 수행 가능한 미제출 과제 목록 | 전 과목에서 현재 제출 기간 안에 있으며 제출 완료되지 않은 과제를 출력              |
-| `7`  | 과제 선택 및 본문 보기            | 메뉴 `6`과 같은 조건의 과제를 선택하고 상세 화면의 `과제내용` 본문만 정리하여 출력 |
-| `8`  | 강의자료 일괄 다운로드            | 과목의 강의자료 목록을 선택하고 첨부파일을 일괄 저장                               |
+| 메뉴 | 기능                              | 동작                                                                                               |
+| :--- | :-------------------------------- | :------------------------------------------------------------------------------------------------- |
+| `1`  | 로그인·세션 갱신                  | 계정 정보를 입력하여 쿠키 세션을 새로 저장                                                         |
+| `2`  | 이러닝 일괄 다운로드              | 과목과 차시를 선택하고 최대 `5`개의 다운로드 워커로 병렬 처리                                      |
+| `3`  | 이러닝 순차 자동 시청             | 한 과목의 여러 차시를 선택하고 영상 길이에 맞춰 순차 처리                                          |
+| `4`  | 전체 과목 미제출 과제 조사        | 교과 과목을 순회하여 `미제출` 또는 `진행중` 과제를 출력                                            |
+| `5`  | 기간 내 미완료 이러닝 자동 시청   | 전 과목에서 현재 기간 내 `학습중(지각)` 또는 `미학습(결석)` 차시를 찾아 순차 처리                  |
+| `6`  | 현재 수행 가능한 미제출 과제 목록 | 전 과목에서 현재 제출 기간 안에 있으며 제출 완료되지 않은 과제를 출력                              |
+| `7`  | 과제 선택 및 본문 보기            | 메뉴 `6`과 같은 조건의 과제를 선택하고 상세 화면의 `과제내용` 본문만 정리하여 출력                 |
+| `8`  | 강의자료 다운로드                 | 과목의 강의자료 목록을 여러 개 선택하고, 첨부파일을 request 객체 기반으로 미리 분석한 뒤 일괄 저장 |
 
 메뉴 `5`는 탐색 후 자동 시청 여부를 묻습니다. 기본값은 `Y`입니다.
 
@@ -126,7 +128,7 @@ npm run auto:manager
 ```
 
 다운로드 파일은 기본적으로 `downloads/<과목명>/<차시명>.mp4`에 저장됩니다.
-강의자료 다운로드는 `downloads/<과목명>/<강의자료명>/` 아래에 첨부파일을 저장합니다.
+강의자료 다운로드는 `downloads/<과목명>/강의자료들/<강의자료명>/` 아래에 첨부파일을 저장합니다.
 
 메뉴 `2`, `3`, `5`의 이러닝 목록과 시청 대기 문구는 차시가 속한 주차를 앞에 붙입니다. 다운로드 파일명은 기존 차시명을 그대로 사용합니다.
 
@@ -244,6 +246,7 @@ const groups = await client.getCourseGroups();
 ```typescript
 const notices = await client.getNoticeList({ crsCreCd: "COURSE_CODE" });
 const materials = await client.getMaterialList({ crsCreCd: "COURSE_CODE" });
+const attachments = await client.getMaterialAttachments(materials[0]);
 const assignments = await client.getAssignmentList({
   crsCreCd: "COURSE_CODE",
   userNo: "USER_NO"
@@ -279,7 +282,8 @@ await client.downloadElearningMp4("COURSE_CODE", "LESSON_CONTENT_ID", "과목명
 | `getCourseList()`          | 전체 과목 목록 조회                              |
 | `getCourseGroups()`        | 교과·비교과 과목 그룹 조회                       |
 | `getNoticeList()`          | 공지사항 조회                                    |
-| `getMaterialList()`        | 강의자료 조회                                    |
+| `getMaterialList()`        | 강의자료 조회, 상세 조회용 `request` 객체 포함   |
+| `getMaterialAttachments()` | 강의자료 상세 fragment에서 첨부파일 URL 추출     |
 | `getAssignmentList()`      | 개인별 과제 목록과 제출 상태 조회                |
 | `getClassroomResources()`  | 공지·강의자료·과제 병렬 통합 조회                |
 | `getElearningLessonList()` | 이러닝 차시 목록 조회                            |
@@ -322,6 +326,7 @@ scripts/
   copy-legacy.cjs              빌드 결과에 레거시 모듈 복사
   register-ts-node.mjs         CLI TypeScript 실행 로더
   analyze-saz.mjs              SAZ 패킷 분석 도구
+  capture-live.mjs             visible Chrome 기반 live traffic 캡처 도구
 prompt-client.js               개별 API 진단 CLI
 auto-manager.ts                반복 작업 CLI
 ```
@@ -333,6 +338,7 @@ auto-manager.ts                반복 작업 CLI
 | `npm run prompt:client` | 개별 API 진단 CLI 실행                   |
 | `npm run auto:manager`  | 반복 작업 CLI 실행                       |
 | `npm run analyze:saz`   | SAZ 패킷 분석                            |
+| `npm run capture:live`  | visible Chrome으로 LMS 요청/응답 캡처    |
 | `npm run typecheck`     | TypeScript 검사                          |
 | `npm run format:check`  | Prettier 검사                            |
 | `npm run lint`          | ESLint 검사                              |
@@ -367,7 +373,8 @@ test/
 *.saz
 *.mp4
 tmp-*.html
-handover.txt
+tmp-sample-material-detail*.html (로컬 분석용 강의자료 상세 샘플)
+captures/live/ (puppeteer live capture 결과물: request/response/HTML/실제 다운로드. 분석/회귀 테스트용)
 ```
 
-`test/`, `files/`, `handover.txt`는 로컬 검증과 인수인계를 위한 자료이며 `.gitignore`에 포함되어 있습니다. 공개 저장소에 올리기 전에는 개인정보와 LMS 캡처 데이터가 없는지 반드시 확인하십시오.
+`test/`, `files/`, `captures/`는 로컬 검증과 캡처를 위한 자료이며 `.gitignore`에 포함되어 있습니다. 공개 저장소에 올리기 전에는 개인정보와 LMS 캡처 데이터가 없는지 반드시 확인하십시오.

@@ -5,10 +5,12 @@
     "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
     "request": {
       "method": "POST",
-      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/viewAtcl",
       "body": {
+        "formType": "VIEW",
         "bbsId": "BBS_2026_1_736078_01_P",
         "atclId": "ATCL_260511T144458_33d02b9",
+        "bbsCd": "PDS",
         "crsCreCd": "2026_1_736078_01"
       }
     },
@@ -21,10 +23,12 @@
     "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
     "request": {
       "method": "POST",
-      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/viewAtcl",
       "body": {
+        "formType": "VIEW",
         "bbsId": "BBS_2026_1_736078_01_P",
         "atclId": "ATCL_260510T093215_44e13ca",
+        "bbsCd": "PDS",
         "crsCreCd": "2026_1_736078_01"
       }
     },
@@ -37,10 +41,12 @@
     "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
     "request": {
       "method": "POST",
-      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/viewAtcl",
       "body": {
+        "formType": "VIEW",
         "bbsId": "BBS_2026_1_736078_01_P",
         "atclId": "ATCL_260509T165044_55f24db",
+        "bbsCd": "PDS",
         "crsCreCd": "2026_1_736078_01"
       }
     },
@@ -53,10 +59,12 @@
     "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
     "request": {
       "method": "POST",
-      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/viewAtcl",
       "body": {
+        "formType": "VIEW",
         "bbsId": "BBS_2026_1_736078_01_P",
         "atclId": "ATCL_260508T110630_66g35ec",
+        "bbsCd": "PDS",
         "crsCreCd": "2026_1_736078_01"
       }
     },
@@ -69,10 +77,12 @@
     "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
     "request": {
       "method": "POST",
-      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/viewAtcl",
       "body": {
+        "formType": "VIEW",
         "bbsId": "BBS_2026_1_736078_01_P",
         "atclId": "ATCL_260507T152821_77h46fd",
+        "bbsCd": "PDS",
         "crsCreCd": "2026_1_736078_01"
       }
     },
@@ -85,10 +95,12 @@
     "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
     "request": {
       "method": "POST",
-      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/viewAtcl",
       "body": {
+        "formType": "VIEW",
         "bbsId": "BBS_2026_1_736078_01_P",
         "atclId": "ATCL_260506T134512_88i57ge",
+        "bbsCd": "PDS",
         "crsCreCd": "2026_1_736078_01"
       }
     },
@@ -101,10 +113,12 @@
     "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
     "request": {
       "method": "POST",
-      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/viewAtcl",
       "body": {
+        "formType": "VIEW",
         "bbsId": "BBS_2026_1_736078_01_P",
         "atclId": "ATCL_260505T101745_99j68hf",
+        "bbsCd": "PDS",
         "crsCreCd": "2026_1_736078_01"
       }
     },
@@ -117,10 +131,12 @@
     "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
     "request": {
       "method": "POST",
-      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/Form/viewAtclForm",
+      "url": "https://ecampus.seowon.ac.kr/bbs/bbsLect/viewAtcl",
       "body": {
+        "formType": "VIEW",
         "bbsId": "BBS_2026_1_736078_01_P",
         "atclId": "ATCL_260504T143020_aak79ig",
+        "bbsCd": "PDS",
         "crsCreCd": "2026_1_736078_01"
       }
     },
