@@ -93,6 +93,7 @@ export function colorizeJson(text: string): string {
 /**
  * 객체 또는 JSON 문자열을 터미널에 미려한 형식으로 출력한다.
  * @param {any} value - 출력할 데이터
+ * @returns {void} 반환값 없음
  */
 export function prettyPrint(value: any): void {
   if (typeof value === "string") {
@@ -100,30 +101,54 @@ export function prettyPrint(value: any): void {
       console.log(colorizeJson(JSON.stringify(JSON.parse(value), null, 2)));
       return;
     } catch {
-      console.log(value); // 일반 문자열은 그대로 출력
+      console.log(value);
       return;
     }
   }
   console.log(colorizeJson(JSON.stringify(value, null, 2)));
 }
 
-/** 섹션 구분선을 포함한 제목을 출력한다 */
+/**
+ * 섹션 제목을 강조 색상으로 출력한다.
+ * @param {string} title - 표시할 섹션 제목
+ * @returns {void} 반환값 없음
+ */
 export function printSection(title: string): void {
   console.log(color(title, ANSI.bold, ANSI.blue));
 }
-/** 일반적인 안내 정보를 출력한다 */
+
+/**
+ * 보조 안내 메시지를 낮은 강조도로 출력한다.
+ * @param {string} message - 표시할 안내 메시지
+ * @returns {void} 반환값 없음
+ */
 export function printInfo(message: string): void {
   console.log(color(message, ANSI.gray));
 }
-/** 작업 성공 상태를 출력한다 */
+
+/**
+ * 성공 메시지를 성공 색상으로 출력한다.
+ * @param {string} message - 표시할 성공 메시지
+ * @returns {void} 반환값 없음
+ */
 export function printSuccess(message: string): void {
   console.log(color(message, ANSI.green));
 }
-/** 주의가 필요한 경고 메시지를 출력한다 */
+
+/**
+ * 경고 메시지를 경고 색상으로 출력한다.
+ * @param {string} message - 표시할 경고 메시지
+ * @returns {void} 반환값 없음
+ */
 export function printWarning(message: string): void {
   console.log(color(message, ANSI.yellow));
 }
-/** 치명적인 에러 메시지를 출력한다 */
+
+/**
+ * 에러 메시지를 표준 에러 스트림에 출력한다.
+ * @param {string} message - 표시할 에러 메시지
+ * @returns {void} 반환값 없음
+ */
 export function printErrorMessage(message: string): void {
   console.error(color(message, ANSI.red));
 }
@@ -152,7 +177,7 @@ export async function ask(
 export async function chooseCommand(rl: readline.Interface): Promise<string> {
   printSection("사용 가능한 명령:");
   INTERACTIVE_COMMANDS.forEach((item, i) => {
-    // 0번 종료를 위한 특수 인덱싱 처리
+    // CLI에서 0은 종료라는 관례를 유지하기 위해 exit만 별도 번호를 사용한다.
     const num = item.key === "exit" ? "0" : String(i + 1);
     console.log(
       `${color(num, ANSI.yellow)}. ${color(item.label, ANSI.bold)} ${color(`(${item.key})`, ANSI.gray)}`
@@ -165,10 +190,13 @@ export async function chooseCommand(rl: readline.Interface): Promise<string> {
     const found = INTERACTIVE_COMMANDS[num - 1];
     if (found) return found.key;
   }
-  return COMMAND_ALIASES[answer] ?? answer; // 직접 키워드 입력 시 대응
+  return COMMAND_ALIASES[answer] ?? answer;
 }
 
-/** CLI 도구 사용법에 대한 도움말 텍스트를 출력한다 */
+/**
+ * CLI 도구 사용법에 대한 도움말 텍스트를 출력한다.
+ * @returns {void} 반환값 없음
+ */
 export function printHelp(): void {
   printSection("도움말");
   console.log(`

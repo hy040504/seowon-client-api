@@ -23,12 +23,20 @@ const VIEW_ATCL_PATH = "/bbs/bbsLect/Form/viewAtclForm";
 const VIEW_ATCL_CONTENT_PATH = "/bbs/bbsLect/viewAtcl";
 const VIEW_ASMNT_PATH = "/asmnt/asmntLect/Form/asmntStuMain";
 
-/** 신규 리소스 컨테이너 초기화 */
+/**
+ * 강의실 리소스 수집 결과의 기본 컨테이너를 만든다.
+ * @returns {EcampusClassroomResources} 빈 공지/과제/자료 배열을 가진 객체
+ */
 export function createEmptyEcampusClassroomResources(): EcampusClassroomResources {
   return { notices: [], assignments: [], materials: [] };
 }
 
-/** 공지사항 게시판 리스트 파싱 */
+/**
+ * 공지사항 게시판 HTML을 공통 항목 구조로 파싱한다.
+ * @param {string} html - 게시판 목록 HTML
+ * @param {EcampusClassroomResourceOptions} options - 파싱 옵션
+ * @returns {EcampusClassroomItem[]} 공지사항 항목 배열
+ */
 export function parseEcampusNoticeListHtml(
   html: string,
   options: EcampusClassroomResourceOptions = {}
@@ -36,7 +44,12 @@ export function parseEcampusNoticeListHtml(
   return parseBbsListHtml(html, "notices", options);
 }
 
-/** 강의자료실 게시판 리스트 파싱 */
+/**
+ * 강의자료실 게시판 HTML을 공통 항목 구조로 파싱한다.
+ * @param {string} html - 게시판 목록 HTML
+ * @param {EcampusClassroomResourceOptions} options - 파싱 옵션
+ * @returns {EcampusClassroomItem[]} 강의자료 항목 배열
+ */
 export function parseEcampusMaterialListHtml(
   html: string,
   options: EcampusClassroomResourceOptions = {}
@@ -95,17 +108,30 @@ export function parseEcampusAssignmentListHtml(
     .filter((item) => item.id && item.title);
 }
 
-/** 통합 리소스 데이터를 가독성 있는 JSON으로 직렬화 */
+/**
+ * 통합 리소스 데이터를 CLI 출력에 적합한 JSON으로 직렬화한다.
+ * @param {EcampusClassroomResources} resources - 통합 리소스 데이터
+ * @returns {string} 들여쓰기된 JSON 문자열
+ */
 export function stringifyEcampusClassroomResources(resources: EcampusClassroomResources): string {
   return JSON.stringify(resources, null, 2);
 }
 
-/** 항목 리스트를 가독성 있는 JSON으로 직렬화 */
+/**
+ * 강의실 항목 배열을 CLI 출력에 적합한 JSON으로 직렬화한다.
+ * @param {EcampusClassroomItem[]} items - 강의실 항목 배열
+ * @returns {string} 들여쓰기된 JSON 문자열
+ */
 export function stringifyEcampusClassroomItems(items: EcampusClassroomItem[]): string {
   return JSON.stringify(items, null, 2);
 }
 
-/** 강의실 상세 HTML에서 다운로드 가능한 첨부파일 링크를 추출한다 */
+/**
+ * 강의실 상세 HTML에서 다운로드 가능한 첨부파일 링크를 추출한다.
+ * @param {string} html - 상세 화면 HTML
+ * @param {EcampusClassroomResourceOptions} options - URL 보정 옵션
+ * @returns {EcampusClassroomAttachment[]} 첨부파일 제목과 URL 배열
+ */
 export function parseEcampusClassroomAttachmentsHtml(
   html: string,
   options: EcampusClassroomResourceOptions = {}
@@ -167,7 +193,10 @@ export function parseEcampusClassroomAttachmentsHtml(
 
 /**
  * 일반적인 게시판(NOTICE, PDS) 형태의 HTML 리스트를 공통 파싱한다.
- * @private
+ * @param {string} html - 게시판 목록 HTML
+ * @param {Exclude<EcampusClassroomSection, "assignments">} section - 공지 또는 강의자료 섹션
+ * @param {EcampusClassroomResourceOptions} options - 파싱 옵션
+ * @returns {EcampusClassroomItem[]} 게시판 항목 배열
  */
 function parseBbsListHtml(
   html: string,
@@ -179,7 +208,7 @@ function parseBbsListHtml(
   const items: EcampusClassroomItem[] = [];
   const seenIds = new Set<string>();
 
-  // 1) Direct <a href="javascript:viewAtcl(...)"> style (classRoomAtclList, older atclListForm pages, SAZ fixtures)
+  // 구버전 화면과 SAZ fixture에는 링크 자체에 viewAtcl 호출이 들어간다.
   $("a[href^='javascript:viewAtcl']").each((_, link) => {
     const $link = $(link);
     const args = parseFunctionArguments($link.attr("href") ?? "");
@@ -231,8 +260,7 @@ function parseBbsListHtml(
     }
   });
 
-  // 2) li[onclick*="viewAtcl"] style from current /atclList ajax fragment responses (postBoardList)
-  //    예: <li onclick="javascript:viewAtcl('ATCL_xxx', null, '10291');"> ... <a href="javascript:void(0)"><span>title</span><i class="paperclip"></i></a>
+  // 현재 AJAX fragment는 li onclick에만 게시글 식별자를 담는다.
   $("li[onclick*='viewAtcl'], li[onclick*=\"viewAtcl\"]").each((_, li) => {
     const $li = $(li);
     const onclick = $li.attr("onclick") || $li.attr("onClick") || "";
@@ -296,6 +324,12 @@ function parseBbsListHtml(
   return items.filter((item) => item.id && item.title);
 }
 
+/**
+ * 링크 속성 후보에서 첨부파일 URL을 추출한다.
+ * @param {cheerio.Cheerio<any>} node - URL 후보를 가진 DOM 노드
+ * @param {string} baseUrl - 상대 경로 보정용 기준 URL
+ * @returns {string | undefined} 다운로드 URL
+ */
 function extractAttachmentUrl(node: cheerio.Cheerio<any>, baseUrl: string): string | undefined {
   const attributes = [
     node.attr("data-url"),
@@ -312,6 +346,12 @@ function extractAttachmentUrl(node: cheerio.Cheerio<any>, baseUrl: string): stri
   return undefined;
 }
 
+/**
+ * href, onclick, data 속성에서 실제 다운로드 후보 URL을 찾아낸다.
+ * @param {string} source - URL 또는 JavaScript 호출 문자열
+ * @param {string} baseUrl - 상대 경로 보정용 기준 URL
+ * @returns {string | undefined} 절대 URL 문자열
+ */
 function extractUrlCandidate(source: string, baseUrl: string): string | undefined {
   const trimmed = source.trim();
   if (!trimmed) return undefined;
@@ -352,6 +392,12 @@ function extractUrlCandidate(source: string, baseUrl: string): string | undefine
   return undefined;
 }
 
+/**
+ * 화면 텍스트와 URL 메타데이터를 조합해 첨부파일 제목을 결정한다.
+ * @param {cheerio.Cheerio<any>} node - 첨부파일 링크 DOM 노드
+ * @param {string} url - 추출된 첨부파일 URL
+ * @returns {string} 첨부파일 표시 제목
+ */
 function extractAttachmentTitle(node: cheerio.Cheerio<any>, url: string): string {
   const downloadAttr = node.attr("download");
   if (downloadAttr && downloadAttr.trim() !== "true") {
@@ -378,10 +424,20 @@ function extractAttachmentTitle(node: cheerio.Cheerio<any>, url: string): string
   return "attachment";
 }
 
+/**
+ * 링크 주변 텍스트가 첨부파일 UI인지 판별한다.
+ * @param {string} text - 링크와 주변 영역에서 모은 텍스트
+ * @returns {boolean} 첨부파일 후보 여부
+ */
 function looksLikeAttachmentCandidate(text: string): boolean {
   return /(첨부|첨부파일|파일|download|다운로드|down|attach|paperclip|자료|fileDown)/i.test(text);
 }
 
+/**
+ * URL 패턴만으로 첨부파일 다운로드 가능성을 판별한다.
+ * @param {string} url - 검사할 URL
+ * @returns {boolean} 첨부파일 URL 후보 여부
+ */
 function looksLikeAttachmentUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -421,7 +477,12 @@ function looksLikeAttachmentUrl(url: string): boolean {
   }
 }
 
-/** HTML 폼 내부의 모든 Hidden 및 데이터 필드를 수집한다 */
+/**
+ * 상세 조회에 필요한 HTML 폼 필드를 수집한다.
+ * @param {cheerio.CheerioAPI} $ - cheerio 파서 인스턴스
+ * @param {string} selector - 폼 선택자
+ * @returns {Record<string, string>} input name/value 맵
+ */
 function getFormValues($: cheerio.CheerioAPI, selector: string): Record<string, string> {
   const values: Record<string, string> = {};
   $(`${selector} input[name]`).each((_, input) => {
@@ -431,12 +492,20 @@ function getFormValues($: cheerio.CheerioAPI, selector: string): Record<string, 
   return values;
 }
 
-/** 게시판 식별 코드에서 과목 고유 ID를 분리한다 */
+/**
+ * 게시판 식별 코드에서 과목 고유 ID를 분리한다.
+ * @param {string} bbsId - BBS_로 시작하는 게시판 식별자
+ * @returns {string} 과목 고유 ID 또는 빈 문자열
+ */
 function extractCrsCreCdFromBbsId(bbsId: string): string {
   return bbsId.match(/^BBS_(.+)_[A-Z]$/)?.[1] ?? "";
 }
 
-/** 텍스트 내에서 날짜 리터럴을 탐색한다 */
+/**
+ * 게시글 텍스트에서 e-campus 날짜 리터럴을 추출한다.
+ * @param {string} text - 게시글 행 텍스트
+ * @returns {string | undefined} yyyy.MM.dd 형식의 날짜 문자열
+ */
 function extractDate(text: string): string | undefined {
   return text.match(/\b20\d{2}\.\d{2}\.\d{2}\b/)?.[0];
 }

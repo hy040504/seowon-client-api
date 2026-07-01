@@ -34,7 +34,11 @@ export function parseEcampusCourseList(html: string): EcampusCourseListItem[] {
   }));
 }
 
-/** 과목 목록을 가독성 좋은 JSON 문자열로 직렬화한다 */
+/**
+ * 과목 목록을 CLI 출력에 적합한 JSON 문자열로 직렬화한다.
+ * @param {string} html - e-campus 대시보드 HTML 응답 본문
+ * @returns {string} 들여쓰기된 과목 목록 JSON 문자열
+ */
 export function parseEcampusCourseListJson(html: string): string {
   return JSON.stringify(parseEcampusCourseList(html), null, 2);
 }
@@ -57,19 +61,31 @@ export function parseEcampusCourseGroups(html: string): EcampusCourseGroups {
   };
 }
 
-/** [Deprecated] 구 API와의 호환성을 위한 별칭 */
+/**
+ * 구 API 이름으로 과목 목록을 조회한다.
+ * @param {string} html - e-campus 대시보드 HTML 응답 본문
+ * @returns {EcampusCourseListItem[]} 과목 정보 배열
+ * @deprecated parseEcampusCourseList를 사용한다.
+ */
 export function parseEcampusCourseNames(html: string): EcampusCourseListItem[] {
   return parseEcampusCourseList(html);
 }
 
-/** [Deprecated] 구 API와의 호환성을 위한 JSON 별칭 */
+/**
+ * 구 API 이름으로 과목 목록 JSON을 생성한다.
+ * @param {string} html - e-campus 대시보드 HTML 응답 본문
+ * @returns {string} 들여쓰기된 과목 목록 JSON 문자열
+ * @deprecated parseEcampusCourseListJson을 사용한다.
+ */
 export function parseEcampusCourseNamesJson(html: string): string {
   return parseEcampusCourseListJson(html);
 }
 
 /**
  * 드롭다운 메뉴 아이템을 탐색하여 메타데이터와 학사 정보를 정밀 추출한다.
- * @private
+ * @param {string} html - e-campus 대시보드 HTML 응답 본문
+ * @returns {EcampusCourse[]} 과목 메타데이터 배열
+ * @throws {Error} 세션 만료로 판단되는 로그인 화면 응답일 때 발생
  */
 function parseEcampusCourses(html: string): EcampusCourse[] {
   const $ = cheerio.load(html);
@@ -125,7 +141,9 @@ function parseEcampusCourses(html: string): EcampusCourse[] {
 
 /**
  * 시스템 코드 및 텍스트 라벨을 기반으로 과목의 성격을 결정한다.
- * @private
+ * @param {string} typeCode - e-campus 과목 유형 코드
+ * @param {string} label - 화면에 노출된 과목 유형 라벨
+ * @returns {EcampusCourseCategory} 정규/비교과 분류
  */
 function resolveCourseCategory(typeCode: string, label: string): EcampusCourseCategory {
   // 'CO' 코드는 일반적으로 비교과(Co-curricular) 센터 과목을 의미

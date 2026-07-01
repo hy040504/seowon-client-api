@@ -195,29 +195,28 @@ SAZ 파일 자체는 민감 캡처 데이터로 취급하며 기본적으로 Git
 
 ## 주요 공개 메서드
 
-| 메서드                          | 설명                                              |
-| :------------------------------ | :------------------------------------------------ |
-| `login()`                       | 계정 정보로 로그인하고 쿠키 저장                  |
-| `ensureAuthenticated()`         | 사용 가능한 쿠키가 없으면 저장된 계정으로 로그인  |
-| `getCourseList()`               | 전체 과목 목록 조회                               |
-| `getCourseGroups()`             | 교과/비교과 과목 그룹 조회                        |
-| `getNoticeList()`               | 공지사항 조회                                     |
-| `getMaterialList()`             | 강의자료 조회, 상세 조회용 `request` 포함         |
-| `getMaterialAttachments()`      | 강의자료 상세 fragment에서 첨부 파일 URL 추출     |
-| `downloadMaterialAttachments()` | 강의자료 첨부 파일 다운로드                       |
-| `getAssignmentList()`           | 개인별 과제 목록과 제출 상태 조회                 |
-| `getClassroomResources()`       | 공지/강의자료/과제 통합 조회                      |
-| `getScoreOpenInfo()`            | 성적 공개 시간과 공개 여부 조회                   |
-| `getScoreAccessInfo()`          | 성적 공개 조건과 설문 게이트 통합 판정            |
-| `getScore()`                    | 성적 접근 가능 시 성적 페이지 HTML 조회           |
-| `getScorePageHtml()`            | 성적 페이지 HTML 반환                             |
-| `getScoreSummary()`             | 성적 요약 fragment에서 항목별 점수/총점/등급 조회 |
-| `getElearningLessonList()`      | 이러닝 차시 목록 조회                             |
-| `openLessonWindow()`            | 차시 시청 창 메타데이터 조회                      |
-| `getElearningMp4Url()`          | 콘텐츠 페이지에서 MP4 주소 분석                   |
-| `downloadElearningMp4()`        | 영상 스트리밍 다운로드                            |
-| `addStudyRecord()`              | 단일 학습 기록 요청 전송                          |
-| `viewLessonStudyDetail()`       | 학습 이력 상세 정보 조회                          |
+| 메서드                     | 설명                                              |
+| :------------------------- | :------------------------------------------------ |
+| `login()`                  | 계정 정보로 로그인하고 쿠키 저장                  |
+| `ensureAuthenticated()`    | 사용 가능한 쿠키가 없으면 저장된 계정으로 로그인  |
+| `getCourseList()`          | 전체 과목 목록 조회                               |
+| `getCourseGroups()`        | 교과/비교과 과목 그룹 조회                        |
+| `getNoticeList()`          | 공지사항 조회                                     |
+| `getMaterialList()`        | 강의자료 조회, 상세 조회용 `request` 포함         |
+| `getMaterialAttachments()` | 강의자료 상세 fragment에서 첨부 파일 URL 추출     |
+| `getAssignmentList()`      | 개인별 과제 목록과 제출 상태 조회                 |
+| `getClassroomResources()`  | 공지/강의자료/과제 통합 조회                      |
+| `getScoreOpenInfo()`       | 성적 공개 시간과 공개 여부 조회                   |
+| `getScoreAccessInfo()`     | 성적 공개 조건과 설문 게이트 통합 판정            |
+| `getScore()`               | 성적 접근 가능 시 성적 페이지 HTML 조회           |
+| `getScorePageHtml()`       | 성적 페이지 HTML 반환                             |
+| `getScoreSummary()`        | 성적 요약 fragment에서 항목별 점수/총점/등급 조회 |
+| `getElearningLessonList()` | 이러닝 차시 목록 조회                             |
+| `openLessonWindow()`       | 차시 시청 창 메타데이터 조회                      |
+| `getElearningMp4Url()`     | 콘텐츠 페이지에서 MP4 주소 분석                   |
+| `downloadElearningMp4()`   | 영상 스트리밍 다운로드                            |
+| `addStudyRecord()`         | 단일 학습 기록 요청 전송                          |
+| `viewLessonStudyDetail()`  | 학습 이력 상세 정보 조회                          |
 
 ## 프로젝트 구조
 
@@ -261,6 +260,12 @@ auto-manager.ts                반복 작업 CLI
 | `npm test`              | Vitest 실행                            |
 | `npm run build`         | legacy 암호화 모듈 준비 후 패키지 빌드 |
 
+## 코드 주석 규칙
+
+모든 함수는 한국어 JSDoc을 유지합니다. `@param`, `@returns`, 예외가 발생할 수 있는 경우 `@throws`를 작성하고, 일반 주석은 코드가 무엇을 하는지보다 왜 필요한지를 설명합니다.
+
+중복 설명은 주석으로 남기기보다 이름과 구조를 정리하는 쪽을 우선합니다. 서버 API 제약, LMS HTML 구조 의존성, 터미널 렌더링 보정처럼 맥락 없이는 이해하기 어려운 로직에만 짧은 한국어 주석을 둡니다.
+
 ## 빌드와 로컬 원본 파일
 
 `npm run build`, `npm test`, `npm run prepack`, `npm run test:login`은 먼저 `scripts/build-legacy-crypto.cjs`를 실행합니다.
@@ -297,14 +302,16 @@ captures/live/
 
 ## 현재 검증 상태
 
-2026-07-01 기준 최근 확인 명령:
+2026-07-02 기준 최근 확인 명령:
 
 ```bash
 npm run typecheck
-npx tsc --ignoreConfig --noEmit --target es2022 --module nodenext --moduleResolution nodenext --esModuleInterop --skipLibCheck auto-manager.ts
-npx prettier --check auto-manager.ts src/types/auto-manager.ts README.md
-npx vitest run test/ecampus-score.test.ts
-npm run build
+npx prettier --check src auto-manager.ts prompt-client.js scripts/analyze-saz.mjs scripts/capture-live.mjs
+git diff --check
 ```
 
+추가로 함수 JSDoc 누락 스캔을 실행해 대상 소스의 named function/method 기준 누락 0건을 확인했습니다.
+
 `npm test` 전체 실행은 로컬 fixture가 없는 환경에서 일부 실패할 수 있습니다. 누락될 수 있는 fixture는 로그인 메인 HTML, 비교과/강의실 캡처, 일부 SAZ 원본 캡처 등 민감 데이터입니다.
+
+`npm run lint`는 현재 `.puppeteer-user-data` 등 생성 파일과 기존 진단 스크립트까지 검사해 실패할 수 있습니다. 린트 범위를 소스/테스트 대상으로 제한하는 설정 보완이 필요합니다.

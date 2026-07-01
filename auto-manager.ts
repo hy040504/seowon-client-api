@@ -45,11 +45,21 @@ const STUDY_DETAIL_FADE_MS = 5000;
 
 const LECTURE_MATERIALS_DIR = "강의자료들";
 
+/**
+ * 제목이나 주차 라벨에서 주차 번호를 추출한다.
+ * @param {string | undefined} text - 주차 정보가 포함될 수 있는 텍스트
+ * @returns {number | undefined} 추출된 주차 번호
+ */
 function extractWeekNumber(text: string | undefined): number | undefined {
   const match = text?.match(/(\d+)\s*주차/);
   return match?.[1] ? Number(match[1]) : undefined;
 }
 
+/**
+ * 제목 앞의 중복 주차 표기를 제거한다.
+ * @param {string} title - 정리할 원본 제목
+ * @returns {string} 주차 접두어가 제거된 제목
+ */
 function stripLeadingWeekMarker(title: string): string {
   return title
     .replace(/^\s*\[\s*\d+\s*주차\s*\]\s*/, "")
@@ -57,6 +67,12 @@ function stripLeadingWeekMarker(title: string): string {
     .trim();
 }
 
+/**
+ * 목록에서 주차를 먼저 볼 수 있도록 제목을 표준 라벨로 보정한다.
+ * @param {string} title - 원본 제목
+ * @param {string} [weekSource] - 주차 정보를 우선 추출할 텍스트
+ * @returns {string} 주차 라벨이 붙은 제목
+ */
 function formatTitleWithWeek(title: string, weekSource?: string): string {
   const weekNumber = extractWeekNumber(weekSource) ?? extractWeekNumber(title);
   if (!weekNumber) return title;
@@ -65,14 +81,29 @@ function formatTitleWithWeek(title: string, weekSource?: string): string {
   return `[${weekNumber} 주차] ${displayTitle}`;
 }
 
+/**
+ * 강의 차시 제목을 주차 기준으로 표시한다.
+ * @param {EcampusLessonItem} lesson - 표시할 강의 차시
+ * @returns {string} 주차 라벨이 포함된 차시 제목
+ */
 function formatLessonTitleWithWeek(lesson: EcampusLessonItem): string {
   return formatTitleWithWeek(lesson.title, lesson.scheduleTitle);
 }
 
+/**
+ * 다운로드 선택 목록에 표시할 강의 라벨을 만든다.
+ * @param {EcampusLessonItem} lesson - 표시할 강의 차시
+ * @returns {string} 제목과 강의 시간이 포함된 라벨
+ */
 function formatDownloadLessonLabel(lesson: EcampusLessonItem): string {
   return `${formatLessonTitleWithWeek(lesson)} [${lesson.durationText || "시간미정"}]`;
 }
 
+/**
+ * 과제 제목을 주차 기준으로 표시한다.
+ * @param {EcampusClassroomItem} assignment - 표시할 과제 항목
+ * @returns {string} 주차 라벨이 포함된 과제 제목
+ */
 function formatAssignmentTitleWithWeek(assignment: EcampusClassroomItem): string {
   return formatTitleWithWeek(assignment.title);
 }
@@ -80,6 +111,8 @@ function formatAssignmentTitleWithWeek(assignment: EcampusClassroomItem): string
 /**
  * 강의자료 선택 목록에 표시할 라벨을 생성한다.
  * 주차 정보 + 날짜 + 첨부 여부 표시 (기존 8번/9번 공통 사용)
+ * @param {EcampusClassroomItem} material - 표시할 강의자료 항목
+ * @returns {string} 선택 목록용 강의자료 라벨
  */
 function formatMaterialSelectionLabel(material: EcampusClassroomItem): string {
   const title = formatTitleWithWeek(material.title);
@@ -88,6 +121,11 @@ function formatMaterialSelectionLabel(material: EcampusClassroomItem): string {
   return `${title}${date}${attachment}`;
 }
 
+/**
+ * 파일 시스템에서 안전하게 사용할 수 있는 이름으로 정제한다.
+ * @param {string} name - 원본 파일 또는 폴더 이름
+ * @returns {string} 저장 가능한 파일명
+ */
 function sanitizeFilename(name: string): string {
   const sanitized = name
     .replace(/[\\/:*?"<>|]/g, "_")
@@ -99,6 +137,11 @@ function sanitizeFilename(name: string): string {
   return sanitized || "untitled";
 }
 
+/**
+ * 기존 파일을 덮어쓰지 않도록 고유한 저장 경로를 만든다.
+ * @param {string} filePath - 저장하려는 원본 경로
+ * @returns {string} 충돌이 없는 저장 경로
+ */
 function ensureUniqueFilePath(filePath: string): string {
   if (!fs.existsSync(filePath)) return filePath;
 
@@ -113,15 +156,29 @@ function ensureUniqueFilePath(filePath: string): string {
 
 const ANSI_ESCAPE_PATTERN = /\u001b\[[0-9;]*m/g;
 
+/**
+ * 터미널 제어 문자를 제외한 실제 표시 텍스트를 얻는다.
+ * @param {string} value - ANSI 코드가 포함될 수 있는 문자열
+ * @returns {string} ANSI 코드가 제거된 문자열
+ */
 function stripAnsi(value: string): string {
   return value.replace(ANSI_ESCAPE_PATTERN, "");
 }
 
+/**
+ * 터미널 자동 줄바꿈을 피하기 위한 실제 사용 가능 폭을 계산한다.
+ * @returns {number} 최소 폭이 보장된 터미널 콘텐츠 너비
+ */
 function getTerminalContentWidth(): number {
   const columns = process.stdout.columns || 100;
   return Math.max(40, columns - 1);
 }
 
+/**
+ * 한글과 emoji처럼 폭이 2칸인 문자를 고려해 표시 폭을 계산한다.
+ * @param {string} char - 폭을 계산할 단일 문자
+ * @returns {number} 터미널 표시 폭
+ */
 function getCharDisplayWidth(char: string): number {
   const code = char.codePointAt(0) ?? 0;
   if (code === 0 || (code >= 0x0300 && code <= 0x036f) || (code >= 0xfe00 && code <= 0xfe0f)) {
@@ -149,6 +206,11 @@ function getCharDisplayWidth(char: string): number {
   return 1;
 }
 
+/**
+ * ANSI 코드가 섞인 문자열의 터미널 표시 폭을 계산한다.
+ * @param {string} value - 폭을 계산할 문자열
+ * @returns {number} 터미널 표시 폭
+ */
 function getDisplayWidth(value: string): number {
   let width = 0;
   for (const char of stripAnsi(value)) {
@@ -157,6 +219,12 @@ function getDisplayWidth(value: string): number {
   return width;
 }
 
+/**
+ * 한글 폭을 고려해 터미널 한 줄에 맞도록 문자열을 줄인다.
+ * @param {string} value - 원본 문자열
+ * @param {number} maxWidth - 허용할 최대 표시 폭
+ * @returns {string} 필요한 경우 말줄임 처리된 문자열
+ */
 function truncateDisplay(value: string, maxWidth: number): string {
   if (maxWidth <= 0) return "";
   if (getDisplayWidth(value) <= maxWidth) return value;
@@ -174,6 +242,11 @@ function truncateDisplay(value: string, maxWidth: number): string {
   return `${output}...`;
 }
 
+/**
+ * 다운로드 상태를 진행바 또는 상태 라벨로 변환한다.
+ * @param {MaterialDownloadState} item - 다운로드 상태 항목
+ * @returns {string} 터미널에 표시할 상태 텍스트
+ */
 function getDownloadStatusText(item: MaterialDownloadState): string {
   switch (item.status) {
     case "downloading":
@@ -187,6 +260,11 @@ function getDownloadStatusText(item: MaterialDownloadState): string {
   }
 }
 
+/**
+ * 다운로드 상태별 강조 색상을 결정한다.
+ * @param {MaterialDownloadState["status"]} status - 다운로드 상태 값
+ * @returns {string | undefined} 적용할 ANSI 색상 코드
+ */
 function getDownloadStatusLabelColor(status: MaterialDownloadState["status"]): string | undefined {
   switch (status) {
     case "downloading":
@@ -200,6 +278,13 @@ function getDownloadStatusLabelColor(status: MaterialDownloadState["status"]): s
   }
 }
 
+/**
+ * 다운로드 대기열의 한 줄 표시 문자열을 생성한다.
+ * @param {MaterialDownloadState} item - 다운로드 상태 항목
+ * @param {number} index - 현재 항목 인덱스
+ * @param {number} total - 전체 항목 수
+ * @returns {string} 터미널 한 줄 상태 문자열
+ */
 function formatDownloadStatusLine(
   item: MaterialDownloadState,
   index: number,
@@ -216,12 +301,21 @@ function formatDownloadStatusLine(
   return `${fixedPart}${labelColor ? color(label, labelColor) : label}`;
 }
 
+/**
+ * 여러 다운로드 항목을 고정 위치에서 갱신하는 렌더러를 만든다.
+ * @param {MaterialDownloadState[]} itemStatuses - 렌더링할 다운로드 상태 배열
+ * @returns {{ start: () => void; render: (force?: boolean) => void; stop: () => void }} 대기열 렌더러
+ */
 function createDownloadQueueRenderer(itemStatuses: MaterialDownloadState[]) {
   let isStarted = false;
   let renderTimer: NodeJS.Timeout | undefined;
   let lastRenderTime = 0;
   const RENDER_THROTTLE_MS = 60;
 
+  /**
+   * 현재 상태 배열을 터미널에 다시 그린다.
+   * @returns {void} 반환값 없음
+   */
   const draw = () => {
     if (!isStarted) return;
     lastRenderTime = Date.now();
@@ -234,6 +328,11 @@ function createDownloadQueueRenderer(itemStatuses: MaterialDownloadState[]) {
     process.stdout.write(output);
   };
 
+  /**
+   * 과도한 stdout 갱신을 줄이기 위해 렌더링을 throttle한다.
+   * @param {boolean} [force=false] - 대기 중인 렌더링을 무시하고 즉시 갱신할지 여부
+   * @returns {void} 반환값 없음
+   */
   const render = (force = false) => {
     if (!isStarted) return;
     if (force && renderTimer) {
@@ -259,11 +358,19 @@ function createDownloadQueueRenderer(itemStatuses: MaterialDownloadState[]) {
   };
 
   return {
+    /**
+     * 대기열 렌더링을 시작한다.
+     * @returns {void} 반환값 없음
+     */
     start() {
       isStarted = true;
       render(true);
     },
     render,
+    /**
+     * 대기 중인 렌더링을 정리하고 마지막 상태를 출력한다.
+     * @returns {void} 반환값 없음
+     */
     stop() {
       if (renderTimer) {
         clearTimeout(renderTimer);
@@ -275,6 +382,11 @@ function createDownloadQueueRenderer(itemStatuses: MaterialDownloadState[]) {
   };
 }
 
+/**
+ * URL 메타데이터에서 첨부파일 이름을 추정한다.
+ * @param {string} url - 파일명을 추정할 URL
+ * @returns {string} 추정된 파일명
+ */
 function guessFileNameFromUrl(url: string): string {
   try {
     const parsed = new URL(url);
@@ -294,6 +406,7 @@ function guessFileNameFromUrl(url: string): string {
 /**
  * 실전 자동화 매니저 (TS)
  * 대량의 영상 다운로드 및 시청 작업을 순차적/병렬적으로 처리하는 고성능 자동화 도구.
+ * @returns {Promise<void>} CLI 종료 시 resolve
  */
 async function run() {
   const rl = readline.createInterface({ input, output });
@@ -363,7 +476,7 @@ async function run() {
           await withAuthRetry(client, rl, () => viewAvailableAssignmentDetail(client, rl));
           break;
         case "8":
-          // 통합된 강의자료 다운로드 (이전 8번 일괄 + 9번 분석 기능)
+          // 첨부 분석과 다운로드를 한 흐름으로 묶어 같은 자료를 두 번 선택하지 않게 한다.
           await withAuthRetry(client, rl, () => batchDownloadMaterials(client, rl));
           break;
         case "9":
@@ -385,6 +498,7 @@ async function run() {
  * @param {EcampusClient} client - 클라이언트 인스턴스
  * @param {readline.Interface} rl - 입출력 인터페이스
  * @param {Function} action - 재시도할 원본 작업
+ * @returns {Promise<T>} 원본 작업의 실행 결과
  */
 async function withAuthRetry<T>(
   client: EcampusClient,
@@ -410,8 +524,13 @@ async function withAuthRetry<T>(
   }
 }
 
-/** 저장된 계정 정보를 이용해 백그라운드에서 로그인을 갱신한다 */
-async function refreshSession(client: EcampusClient) {
+/**
+ * 저장된 계정 정보를 이용해 백그라운드에서 로그인을 갱신한다.
+ * @param {EcampusClient} client - 세션을 갱신할 클라이언트
+ * @returns {Promise<void>} 로그인 갱신 완료 시 resolve
+ * @throws {Error} 자동 로그인에 필요한 계정 정보가 없을 때 발생
+ */
+async function refreshSession(client: EcampusClient): Promise<void> {
   const creds = client.getCredentials() || {
     userId: process.env.SEOWON_ID || "",
     password: process.env.SEOWON_PASSWORD || ""
@@ -422,7 +541,11 @@ async function refreshSession(client: EcampusClient) {
   await client.login(creds);
 }
 
-/** 앱 시작 시 기존 세션 유무를 확인하고 없으면 로그인을 진행한다 */
+/**
+ * 앱 시작 시 기존 세션 유무를 확인하고 없으면 로그인을 진행한다.
+ * @param {readline.Interface} rl - 사용자 입력 인터페이스
+ * @returns {Promise<EcampusClient>} 인증 가능한 e-campus 클라이언트
+ */
 async function initializeSession(rl: readline.Interface): Promise<EcampusClient> {
   const client = createEcampusClient({ cookieFilePath: DEFAULT_COOKIE_FILE });
 
@@ -438,7 +561,13 @@ async function initializeSession(rl: readline.Interface): Promise<EcampusClient>
   return await loginManual(client, rl);
 }
 
-/** 사용자로부터 정보를 직접 입력받아 로그인을 수행한다 */
+/**
+ * 사용자로부터 계정 정보를 직접 입력받아 로그인을 수행한다.
+ * @param {EcampusClient} client - 로그인할 클라이언트
+ * @param {readline.Interface} rl - 사용자 입력 인터페이스
+ * @returns {Promise<EcampusClient>} 로그인 완료된 클라이언트
+ * @throws {Error} 유효한 계정 정보가 입력되지 않았을 때 발생
+ */
 async function loginManual(client: EcampusClient, rl: readline.Interface): Promise<EcampusClient> {
   printWarning("\n🔑 로그인을 수행합니다.");
   const userId = await ask(rl, "아이디", process.env.SEOWON_ID || "비어있음");
@@ -450,8 +579,13 @@ async function loginManual(client: EcampusClient, rl: readline.Interface): Promi
   return client;
 }
 
-/** 1. 이러닝 일괄 다운로드: 다중 워커와 전체 대기열 가시화 UI 적용 */
-async function batchDownload(client: EcampusClient, rl: readline.Interface) {
+/**
+ * 선택한 이러닝 강의를 다중 워커로 일괄 다운로드한다.
+ * @param {EcampusClient} client - 인증된 e-campus 클라이언트
+ * @param {readline.Interface} rl - 사용자 입력 인터페이스
+ * @returns {Promise<void>} 다운로드 작업 완료 시 resolve
+ */
+async function batchDownload(client: EcampusClient, rl: readline.Interface): Promise<void> {
   const courses = await client.getCourseList();
   const course = await pickFromList(rl, "과목", courses, (c) => c.title);
 
@@ -485,6 +619,10 @@ async function batchDownload(client: EcampusClient, rl: readline.Interface) {
   renderer.start();
 
   const queueIdxs = Array.from({ length: selectedLessons.length }, (_, i) => i);
+  /**
+   * 공유 큐에서 다음 강의를 꺼내 다운로드한다.
+   * @returns {Promise<void>} 할당된 큐 작업 완료 시 resolve
+   */
   const downloadWorker = async () => {
     while (queueIdxs.length > 0) {
       const idx = queueIdxs.shift();
@@ -518,15 +656,16 @@ async function batchDownload(client: EcampusClient, rl: readline.Interface) {
 }
 
 /**
- * 강의자료 일괄 다운로드 (메뉴 8, 이전 8번 일괄 + 9번 상세 분석 통합 버전).
- * - 과목 선택 후 listScale=1000으로 전체 자료 조회
- * - 다중 선택 지원 (pickMultipleFromList)
- * - 선택 자료에 대해 client.getMaterialAttachments 로 첨부 미리 분석/미리보기 (live 트래픽 기반 /viewAtcl + fileDown 파싱)
- * - 분석 결과 요약 출력 후 concurrency 워커로 다운로드 (preloadedAttachments로 중복 fetch 방지)
- * - renderQueue 로 실시간 진행률 표시 (기존 8번 UI 재사용)
- * - 저장 경로: downloads/<과목>/강의자료들/<자료 제목(주차)>/...
+ * 강의자료 첨부파일을 미리 분석한 뒤 일괄 다운로드한다.
+ * 첨부 분석 결과를 캐시해 상세 HTML을 중복 요청하지 않는다.
+ * @param {EcampusClient} client - 인증된 e-campus 클라이언트
+ * @param {readline.Interface} rl - 사용자 입력 인터페이스
+ * @returns {Promise<void>} 다운로드 작업 완료 시 resolve
  */
-async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interface) {
+async function batchDownloadMaterials(
+  client: EcampusClient,
+  rl: readline.Interface
+): Promise<void> {
   const courses = await client.getCourseList();
   const course = await pickFromList(rl, "과목", courses, (c) => c.title);
 
@@ -543,8 +682,7 @@ async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interf
     return;
   }
 
-  // 이전 메뉴 8+9 통합: 선택된 자료 각각에 대해 모듈의 getMaterialAttachments 호출로 첨부 미리보기 수행
-  // (내부에서 fetchClassroomDetailHtml + parseEcampusClassroomAttachmentsHtml 사용)
+  // 다운로드 시작 전 분석해 사용자가 빈 첨부 자료를 큐에 넣는 일을 줄인다.
   const preloadedAttachments = new Map<string, EcampusClassroomAttachment[]>();
   printInfo(`\n선택한 ${selectedMaterials.length}개 자료의 첨부파일을 request 객체로 분석 중...`);
   for (const material of selectedMaterials) {
@@ -567,9 +705,7 @@ async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interf
     }
   }
 
-  // 첨부가 0개인 항목은 다운로드 큐에서 제외 (실패 메시지 도배 방지 + 의미 없는 실패 방지)
-  // preview에서 이미 "— 0개" 로 표시됐으므로 큐와 render 블록에서는 완전히 빼서
-  // [N/M] 숫자와 render 라인 수가 실제 다운로드할 항목 수와 일치하게 함.
+  // 첨부가 없는 항목은 사용자가 이미 preview에서 확인했으므로 큐에서 제외한다.
   const downloadMaterials = selectedMaterials.filter((material) => {
     const atts = preloadedAttachments.get(material.id) || [];
     return atts.length > 0;
@@ -593,13 +729,16 @@ async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interf
   printInfo(
     `\n📚 총 ${downloadMaterials.length}개의 강의자료 첨부파일을 다운로드합니다. (동시 작업: ${concurrency}개)\n`
   );
-  // N줄의 공간을 미리 확보 (이후 render에서 위로 올라가서 덮어씀)
+  // render가 같은 줄을 덮어쓸 수 있도록 항목 수만큼 공간을 확보한다.
   downloadMaterials.forEach(() => console.log(""));
   renderer.start();
 
   const queueIdxs = Array.from({ length: downloadMaterials.length }, (_, i) => i);
 
-  // 동시 워커: preloadedAttachments 를 활용해 분석 없이 바로 다운로드 진행
+  /**
+   * 미리 분석한 첨부 목록을 사용해 공유 큐의 다음 자료를 다운로드한다.
+   * @returns {Promise<void>} 할당된 큐 작업 완료 시 resolve
+   */
   const downloadWorker = async () => {
     while (queueIdxs.length > 0) {
       const idx = queueIdxs.shift();
@@ -611,7 +750,7 @@ async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interf
       state.detail = preloadedAttachments.get(material.id)?.length
         ? "다운로드 중 (분석 완료)"
         : "첨부 분석 중";
-      renderer.render(true); // 다운로드 시작 시 강제 redraw
+      renderer.render(true);
 
       const preloaded = preloadedAttachments.get(material.id) ?? [];
       const res = await downloadMaterialAttachmentBundle(
@@ -629,14 +768,14 @@ async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interf
       state.status = res.success ? "completed" : "failed";
       state.percent = res.success ? 100 : state.percent;
       state.detail = res.message;
-      renderer.render(true); // 완료/실패 시 최종 상태 강제 redraw (throttle 무시)
+      renderer.render(true);
     }
   };
 
   await Promise.all(Array.from({ length: concurrency }, () => downloadWorker()));
   renderer.stop();
 
-  // 진행률 블록 아래로 커서를 내려서 메뉴가 깔끔하게 시작되도록 함
+  // 진행률 블록과 다음 메뉴 출력이 겹치지 않도록 커서를 한 줄 내린다.
   process.stdout.write("\n");
 
   console.log(
@@ -646,9 +785,13 @@ async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interf
 
 /**
  * 단일 강의자료의 첨부파일들을 다운로드한다.
- * preloadedAttachments 가 있으면 재사용 (중복 분석 방지).
- * 없으면 내부에서 client.getMaterialAttachments 호출.
- * 다운로드 경로는 downloads/<과목>/강의자료들/<자료 제목(주차 포함)>/ 아래에 저장.
+ * 미리 분석된 첨부 목록이 있으면 재사용해 상세 HTML 중복 요청을 피한다.
+ * @param {EcampusClient} client - 인증된 e-campus 클라이언트
+ * @param {EcampusCourseListItem} course - 저장 경로에 사용할 과목 정보
+ * @param {EcampusClassroomItem} material - 다운로드할 강의자료 항목
+ * @param {(progress: { percent: number; detail?: string }) => void} [progressCallback] - 번들 진행률 콜백
+ * @param {EcampusClassroomAttachment[]} [preloadedAttachments] - 미리 분석한 첨부파일 목록
+ * @returns {Promise<{ success: boolean; message: string }>} 번들 다운로드 결과
  */
 async function downloadMaterialAttachmentBundle(
   client: EcampusClient,
@@ -658,7 +801,6 @@ async function downloadMaterialAttachmentBundle(
   preloadedAttachments?: EcampusClassroomAttachment[]
 ): Promise<{ success: boolean; message: string }> {
   try {
-    // preloaded 가 있으면(미리 분석 완료) 바로 사용, 없으면 모듈 메서드로 분석 수행
     let attachments: EcampusClassroomAttachment[] = preloadedAttachments ?? [];
     if (attachments.length === 0) {
       attachments = await client.getMaterialAttachments(material);
@@ -667,7 +809,6 @@ async function downloadMaterialAttachmentBundle(
       return { success: false, message: "첨부파일을 찾지 못했습니다." };
     }
 
-    // 다운로드 디렉토리: downloads/<과목명>/강의자료들/<강의자료 제목(주차 포함)>/
     const materialDir = path.resolve(
       "./downloads",
       sanitizeFilename(course.title),
@@ -681,7 +822,6 @@ async function downloadMaterialAttachmentBundle(
       const fileName = sanitizeFilename(attachment.title || guessFileNameFromUrl(attachment.url));
       const filePath = ensureUniqueFilePath(path.resolve(materialDir, fileName));
 
-      // 개별 파일 진행률을 상위 전체 진행률에 반영
       progressCallback?.({
         percent: Math.round((i / attachments.length) * 100),
         detail: `${i + 1}/${attachments.length} ${fileName}`
@@ -693,7 +833,7 @@ async function downloadMaterialAttachmentBundle(
         filePath,
         material.url,
         (p) => {
-          // 서브 진행률(p)을 전체 첨부 개수 기준으로 환산하여 상위 콜백에 전달
+          // 여러 첨부파일을 하나의 자료 진행률로 보여주기 위해 파일별 진행률을 환산한다.
           const overallPercent = Math.max(
             0,
             Math.min(99, Math.round(((i + p.percent / 100) / attachments.length) * 100))
@@ -706,7 +846,7 @@ async function downloadMaterialAttachmentBundle(
       );
 
       if (!result.success) {
-        // 하나라도 실패하면 전체 번들 실패로 처리 (기존 동작 유지)
+        // 부분 성공을 성공으로 보이면 누락 파일을 놓치기 쉬워 번들 단위로 실패 처리한다.
         return { success: false, message: result.message || "첨부파일 다운로드 실패" };
       }
     }
@@ -720,8 +860,14 @@ async function downloadMaterialAttachmentBundle(
   }
 }
 
-/** 원격 파일(첨부)을 스트림으로 다운로드하고 로컬에 저장한다.
- * highWaterMark 로 버퍼 제어, 고유 파일명 보장, 진행률 콜백 지원.
+/**
+ * 원격 첨부파일을 스트림으로 다운로드하고 로컬에 저장한다.
+ * @param {EcampusClient} client - 인증된 e-campus 클라이언트
+ * @param {string} url - 다운로드할 파일 URL
+ * @param {string} filePath - 저장할 로컬 파일 경로
+ * @param {string} refererUrl - 서버 검증을 통과하기 위한 Referer URL
+ * @param {(progress: { percent: number; loaded: number }) => void} [progressCallback] - 파일 진행률 콜백
+ * @returns {Promise<{ success: boolean; filePath?: string; message?: string }>} 파일 다운로드 결과
  */
 async function downloadRemoteFile(
   client: EcampusClient,
@@ -783,8 +929,13 @@ async function downloadRemoteFile(
   }
 }
 
-/** 2. 이러닝 순차 자동 시청: Safe Logging 시스템으로 진행바와 로그 간 충돌 방지 */
-async function batchWatch(client: EcampusClient, rl: readline.Interface) {
+/**
+ * 선택한 이러닝 차시를 순차 자동 시청 큐로 실행한다.
+ * @param {EcampusClient} client - 인증된 e-campus 클라이언트
+ * @param {readline.Interface} rl - 사용자 입력 인터페이스
+ * @returns {Promise<void>} 시청 큐 완료 시 resolve
+ */
+async function batchWatch(client: EcampusClient, rl: readline.Interface): Promise<void> {
   const courses = await client.getCourseList();
   const course = await pickFromList(rl, "과목", courses, (c) => c.title);
   const lessons = await client.getElearningLessonList({ crsCreCd: course.crsCreCd });
@@ -800,8 +951,16 @@ async function batchWatch(client: EcampusClient, rl: readline.Interface) {
   await watchLessonQueue(client, queue, stdNo);
 }
 
-/** 5. 전 과목에서 현재 수강 기간에 속한 미학습/학습중 이러닝을 자동 시청 */
-async function watchAvailableUnwatchedLessons(client: EcampusClient, rl: readline.Interface) {
+/**
+ * 전 과목에서 현재 수강 기간에 속한 미학습/학습중 이러닝을 자동 시청한다.
+ * @param {EcampusClient} client - 인증된 e-campus 클라이언트
+ * @param {readline.Interface} rl - 사용자 입력 인터페이스
+ * @returns {Promise<void>} 대상 강의 시청 완료 시 resolve
+ */
+async function watchAvailableUnwatchedLessons(
+  client: EcampusClient,
+  rl: readline.Interface
+): Promise<void> {
   printInfo("\n🔍 전 과목에서 현재 기간 내 미학습/학습중 이러닝을 찾고 있습니다...");
   const courses = await client.getCourseList();
   const now = new Date();
@@ -860,7 +1019,18 @@ async function watchAvailableUnwatchedLessons(client: EcampusClient, rl: readlin
   await watchLessonQueue(client, queue, stdNo);
 }
 
-async function watchLessonQueue(client: EcampusClient, queue: WatchQueueItem[], stdNo: string) {
+/**
+ * 시청 대상 큐를 순차 처리하며 진행률과 세션 로그를 고정 영역에 표시한다.
+ * @param {EcampusClient} client - 인증된 e-campus 클라이언트
+ * @param {WatchQueueItem[]} queue - 시청할 강의 큐
+ * @param {string} stdNo - 학습 기록 요청에 사용할 학생-강의실 식별값
+ * @returns {Promise<void>} 모든 큐 처리 완료 시 resolve
+ */
+async function watchLessonQueue(
+  client: EcampusClient,
+  queue: WatchQueueItem[],
+  stdNo: string
+): Promise<void> {
   printSection(`\n🚀 총 ${queue.length}개의 강의를 순차적으로 시청합니다.`);
 
   for (let i = 0; i < queue.length; i++) {
@@ -883,11 +1053,19 @@ async function watchLessonQueue(client: EcampusClient, queue: WatchQueueItem[], 
     let hasRenderedLiveBlock = false;
     const useFixedLiveBlock = Boolean(process.stdout.isTTY);
 
+    /**
+     * 학습 상세 확인 전 대기 메시지를 상태 영역용 문자열로 만든다.
+     * @returns {string} 점 애니메이션이 포함된 대기 메시지
+     */
     const formatStudyDetailWaitingStatus = () => {
       const dots = ".".repeat((Math.floor(Date.now() / 500) % 3) + 1);
       return `${STUDY_DETAIL_WAITING_MESSAGE}${dots}`;
     };
 
+    /**
+     * 최근 학습 상세 확인 상태를 fade 효과가 적용된 문자열로 만든다.
+     * @returns {string} 상태 영역에 표시할 학습 상세 확인 메시지
+     */
     const formatStudyDetailStatus = () => {
       if (studyDetailConfirmedAt === undefined) return formatStudyDetailWaitingStatus();
 
@@ -903,6 +1081,10 @@ async function watchLessonQueue(client: EcampusClient, queue: WatchQueueItem[], 
       return `\u001b[38;2;${rgb.join(";")}m${STUDY_DETAIL_CONFIRM_MESSAGE}${ANSI.reset}`;
     };
 
+    /**
+     * 반복 로그와 진행바를 터미널 고정 영역에 렌더링한다.
+     * @returns {void} 반환값 없음
+     */
     const renderLiveBlock = () => {
       if (!liveBlockActive) return;
 
@@ -932,6 +1114,10 @@ async function watchLessonQueue(client: EcampusClient, queue: WatchQueueItem[], 
       hasRenderedLiveBlock = true;
     };
 
+    /**
+     * 다음 일반 로그가 겹치지 않도록 고정 상태 영역을 지운다.
+     * @returns {void} 반환값 없음
+     */
     const clearLiveBlock = () => {
       if (!hasRenderedLiveBlock) return;
 
@@ -947,7 +1133,11 @@ async function watchLessonQueue(client: EcampusClient, queue: WatchQueueItem[], 
       hasRenderedLiveBlock = false;
     };
 
-    /** 반복 갱신 로그는 고정된 상태 영역에 흡수하고, 나머지 로그만 별도 줄에 출력한다. */
+    /**
+     * 반복 갱신 로그는 고정된 상태 영역에 흡수하고, 나머지 로그만 별도 줄에 출력한다.
+     * @param {(...args: any[]) => void} logger - 원본 console 메서드
+     * @returns {(...args: any[]) => void} 상태 영역과 충돌하지 않는 logger
+     */
     const createSafeLogger =
       (logger: (...args: any[]) => void) =>
       (...args: any[]) => {
@@ -1030,8 +1220,12 @@ async function watchLessonQueue(client: EcampusClient, queue: WatchQueueItem[], 
   printSuccess("\n✅ 선택한 모든 강의 시청이 완료되었습니다.");
 }
 
-/** 3. 미제출 과제 전수 조사: 전체 교과목을 탐색하여 미완료 항목 리스팅 */
-async function checkAllAssignments(client: EcampusClient) {
+/**
+ * 전체 교과목을 탐색해 미제출 또는 진행 중인 과제를 출력한다.
+ * @param {EcampusClient} client - 인증된 e-campus 클라이언트
+ * @returns {Promise<void>} 조사 완료 시 resolve
+ */
+async function checkAllAssignments(client: EcampusClient): Promise<void> {
   printInfo("\n🔍 전체 교과목에서 미제출 과제를 찾고 있습니다...");
   const groups = await client.getCourseGroups();
   const userNo = process.env.SEOWON_ID!;
@@ -1051,7 +1245,9 @@ async function checkAllAssignments(client: EcampusClient) {
           totalMissing++;
         });
       }
-    } catch (e) {}
+    } catch {
+      // 한 과목 조회 실패가 전체 전수 조사를 중단하지 않도록 건너뛴다.
+    }
   }
   const finalColor = totalMissing > 0 ? ANSI.red : ANSI.green;
   console.log(
@@ -1062,8 +1258,12 @@ async function checkAllAssignments(client: EcampusClient) {
   );
 }
 
-/** 전체 교과 과목을 순회하며 공개된 성적 요약과 등급을 조회한다. */
-async function viewAllCurricularScores(client: EcampusClient) {
+/**
+ * 전체 교과 과목을 순회하며 공개된 성적 요약과 등급을 조회한다.
+ * @param {EcampusClient} client - 인증된 e-campus 클라이언트
+ * @returns {Promise<void>} 성적 조회 출력 완료 시 resolve
+ */
+async function viewAllCurricularScores(client: EcampusClient): Promise<void> {
   printInfo("\n📊 전체 교과 과목 성적(등급)을 조회하고 있습니다...");
   const groups = await client.getCourseGroups();
   const courses = groups.curricular;
@@ -1121,8 +1321,12 @@ async function viewAllCurricularScores(client: EcampusClient) {
   );
 }
 
-/** 현재 날짜가 제출 기간 안에 있고 아직 제출 완료되지 않은 과제를 전 과목에서 조회한다. */
-async function listAvailableAssignments(client: EcampusClient) {
+/**
+ * 현재 날짜가 제출 기간 안에 있고 아직 제출 완료되지 않은 과제를 전 과목에서 조회한다.
+ * @param {EcampusClient} client - 인증된 e-campus 클라이언트
+ * @returns {Promise<void>} 과제 목록 출력 완료 시 resolve
+ */
+async function listAvailableAssignments(client: EcampusClient): Promise<void> {
   printInfo("\n현재 날짜 기준으로 수행 가능한 미제출 과제를 전 과목에서 찾고 있습니다...");
   const targets = await collectAvailableAssignments(client, true);
 
@@ -1137,8 +1341,16 @@ async function listAvailableAssignments(client: EcampusClient) {
   );
 }
 
-/** 6번과 동일한 조건의 과제 목록에서 하나를 선택해 상세 화면 내용을 조회한다. */
-async function viewAvailableAssignmentDetail(client: EcampusClient, rl: readline.Interface) {
+/**
+ * 현재 수행 가능한 과제 중 하나를 선택해 상세 내용을 조회한다.
+ * @param {EcampusClient} client - 인증된 e-campus 클라이언트
+ * @param {readline.Interface} rl - 사용자 입력 인터페이스
+ * @returns {Promise<void>} 상세 내용 출력 완료 시 resolve
+ */
+async function viewAvailableAssignmentDetail(
+  client: EcampusClient,
+  rl: readline.Interface
+): Promise<void> {
   printInfo("\n현재 수행 가능한 미제출 과제를 불러오고 있습니다...");
   const targets = await collectAvailableAssignments(client, false);
   process.stdout.write("\r\u001b[K");
@@ -1161,6 +1373,12 @@ async function viewAvailableAssignmentDetail(client: EcampusClient, rl: readline
   printAssignmentDetail(html);
 }
 
+/**
+ * 기간 내 미제출 과제를 전 과목에서 수집한다.
+ * @param {EcampusClient} client - 인증된 e-campus 클라이언트
+ * @param {boolean} printMatches - 발견한 과제를 즉시 출력할지 여부
+ * @returns {Promise<AvailableAssignmentItem[]>} 현재 수행 가능한 과제 배열
+ */
 async function collectAvailableAssignments(
   client: EcampusClient,
   printMatches: boolean
@@ -1215,6 +1433,12 @@ async function collectAvailableAssignments(
   return results;
 }
 
+/**
+ * 과제 상세 화면 HTML을 조회한다.
+ * @param {EcampusClient} client - 인증된 e-campus 클라이언트
+ * @param {EcampusClassroomItem} assignment - 상세 조회할 과제 항목
+ * @returns {Promise<string>} 과제 상세 HTML
+ */
 async function fetchAssignmentDetailHtml(
   client: EcampusClient,
   assignment: EcampusClassroomItem
@@ -1237,7 +1461,12 @@ async function fetchAssignmentDetailHtml(
   return response.data;
 }
 
-function printAssignmentDetail(html: string) {
+/**
+ * 과제 상세 HTML에서 본문만 추출해 터미널에 출력한다.
+ * @param {string} html - 과제 상세 HTML
+ * @returns {void} 반환값 없음
+ */
+function printAssignmentDetail(html: string): void {
   const lines = extractAssignmentContentLines(html);
 
   printSection("\n[과제내용]");
@@ -1250,6 +1479,11 @@ function printAssignmentDetail(html: string) {
   lines.forEach(printAssignmentContentLine);
 }
 
+/**
+ * 과제 상세 화면에서 과제내용 영역의 의미 있는 줄만 추출한다.
+ * @param {string} html - 과제 상세 HTML
+ * @returns {string[]} 출력 가능한 본문 줄 배열
+ */
 function extractAssignmentContentLines(html: string): string[] {
   const $ = cheerio.load(html);
   $("script, style, noscript").remove();
@@ -1272,7 +1506,12 @@ function extractAssignmentContentLines(html: string): string[] {
     .filter(Boolean);
 }
 
-function printAssignmentContentLine(line: string) {
+/**
+ * 과제 본문 줄의 간단한 마크업 패턴을 터미널 스타일로 출력한다.
+ * @param {string} line - 출력할 과제 본문 한 줄
+ * @returns {void} 반환값 없음
+ */
+function printAssignmentContentLine(line: string): void {
   const sectionMatch = line.match(/^<(.+)>$/);
   if (sectionMatch) {
     console.log(`\n${color(line, ANSI.bold, ANSI.cyan)}`);
@@ -1294,7 +1533,12 @@ function printAssignmentContentLine(line: string) {
   console.log(line);
 }
 
-/** 번호 기반 다중 선택 유틸리티 */
+/**
+ * 쉼표와 범위 문법으로 입력된 번호 목록을 배열 인덱스로 변환한다.
+ * @param {string} answer - 사용자 입력 문자열
+ * @param {number} itemCount - 선택 가능한 항목 수
+ * @returns {number[]} 중복이 제거된 0 기반 인덱스 배열
+ */
 function parseSelectionIndexes(answer: string, itemCount: number): number[] {
   const indexes = new Set<number>();
   const tokens = answer
@@ -1325,6 +1569,14 @@ function parseSelectionIndexes(answer: string, itemCount: number): number[] {
   return Array.from(indexes);
 }
 
+/**
+ * 터미널 목록에서 여러 항목을 선택하게 한다.
+ * @param {readline.Interface} rl - 사용자 입력 인터페이스
+ * @param {string} title - 목록 제목
+ * @param {T[]} items - 선택 가능한 항목 배열
+ * @param {(item: T) => string} labelMapper - 항목 표시 라벨 생성 함수
+ * @returns {Promise<T[]>} 선택된 항목 배열
+ */
 async function pickMultipleFromList<T>(
   rl: readline.Interface,
   title: string,
@@ -1339,24 +1591,51 @@ async function pickMultipleFromList<T>(
   return parseSelectionIndexes(answer, items.length).map((n) => items[n]!);
 }
 
-function pathToFileURL(p: string) {
+/**
+ * 로컬 경로를 file URL 객체로 변환한다.
+ * @param {string} p - 로컬 파일 경로
+ * @returns {URL} file:// URL 객체
+ */
+function pathToFileURL(p: string): URL {
   return new URL(`file:///${p.replace(/\\/g, "/")}`);
 }
 
+/**
+ * 강의 출결 상태가 미학습 또는 학습중인지 판별한다.
+ * @param {EcampusLessonItem} lesson - 검사할 강의 항목
+ * @returns {boolean} 자동 시청 대상 여부
+ */
 function isLessonUnwatched(lesson: EcampusLessonItem): boolean {
   const status = normalizeKoreanStatus(lesson.attendanceStatus);
   if (!status) return false;
   return status.includes("학습중(지각)") || status.includes("미학습(결석)");
 }
 
+/**
+ * 강의 수강 기간이 현재 시각을 포함하는지 판별한다.
+ * @param {EcampusLessonItem} lesson - 검사할 강의 항목
+ * @param {Date} now - 기준 시각
+ * @returns {boolean} 기간 내 여부
+ */
 function isLessonPeriodActive(lesson: EcampusLessonItem, now: Date): boolean {
   return isPeriodActive(lesson.period, now);
 }
 
+/**
+ * 과제 제출 기간이 현재 시각을 포함하는지 판별한다.
+ * @param {EcampusClassroomItem} assignment - 검사할 과제 항목
+ * @param {Date} now - 기준 시각
+ * @returns {boolean} 기간 내 여부
+ */
 function isAssignmentPeriodActive(assignment: EcampusClassroomItem, now: Date): boolean {
   return isPeriodActive(assignment.period, now);
 }
 
+/**
+ * 과제가 제출 완료 상태가 아닌지 판별한다.
+ * @param {EcampusClassroomItem} assignment - 검사할 과제 항목
+ * @returns {boolean} 미제출 또는 상태 미확인 여부
+ */
 function isAssignmentNotSubmitted(assignment: EcampusClassroomItem): boolean {
   const status = normalizeKoreanStatus(assignment.status);
   if (!status) return true;
@@ -1365,6 +1644,12 @@ function isAssignmentNotSubmitted(assignment: EcampusClassroomItem): boolean {
   );
 }
 
+/**
+ * 기간 문자열이 기준 시각을 포함하는지 판별한다.
+ * @param {string | undefined} period - e-campus 기간 문자열
+ * @param {Date} now - 기준 시각
+ * @returns {boolean} 기간 내 여부
+ */
 function isPeriodActive(period: string | undefined, now: Date): boolean {
   const range = parseDateRange(period);
   if (!range) return false;
@@ -1372,6 +1657,11 @@ function isPeriodActive(period: string | undefined, now: Date): boolean {
   return range.start.getTime() <= current && current <= range.end.getTime();
 }
 
+/**
+ * e-campus 기간 문자열에서 시작/종료 시각을 추출한다.
+ * @param {string | undefined} period - 화면에 표시된 기간 문자열
+ * @returns {{ start: Date; end: Date } | undefined} 파싱된 기간 범위
+ */
 function parseDateRange(period: string | undefined): { start: Date; end: Date } | undefined {
   if (!period) return undefined;
   const cleaned = period.replace(/\([^)]*\)/g, " ");
@@ -1389,6 +1679,12 @@ function parseDateRange(period: string | undefined): { start: Date; end: Date } 
   return { start, end };
 }
 
+/**
+ * 정규식 날짜 매치 결과를 Date 객체로 변환한다.
+ * @param {RegExpMatchArray} match - 날짜 정규식 매치 결과
+ * @param {boolean} [endOfDay=false] - 시간이 없을 때 하루 끝으로 보정할지 여부
+ * @returns {Date | undefined} 변환된 Date 객체
+ */
 function dateFromMatch(match: RegExpMatchArray, endOfDay = false): Date | undefined {
   const year = Number(match[1]);
   const month = Number(match[2]);
@@ -1400,6 +1696,11 @@ function dateFromMatch(match: RegExpMatchArray, endOfDay = false): Date | undefi
   return new Date(year, month - 1, day, hour, minute, endOfDay ? 59 : 0);
 }
 
+/**
+ * 상태 비교를 위해 한글 상태 문자열의 공백과 대소문자를 정규화한다.
+ * @param {string | undefined} status - 원본 상태 문자열
+ * @returns {string} 비교용 상태 문자열
+ */
 function normalizeKoreanStatus(status: string | undefined): string {
   return (status ?? "").replace(/\s+/g, "").toLowerCase();
 }

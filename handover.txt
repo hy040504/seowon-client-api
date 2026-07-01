@@ -1,5 +1,5 @@
 seowon-client-api 인수인계 문서
-최종 수정일: 2026-07-01
+최종 수정일: 2026-07-02
 작업 위치: 프로젝트 루트
 
 [1. 프로젝트 개요]
@@ -81,7 +81,7 @@ seowon-client-api 인수인계 문서
   - EcampusClient 구현
   - 로그인, 세션/쿠키, 공통 HTTP 요청 헬퍼
   - 과목/공지/자료/과제/이러닝/성적 메서드 연결
-  - downloadMaterialAttachments 포함
+  - 강의자료 첨부 조회는 getMaterialAttachments로 제공
 
 - src/ecampus/cookies.ts
   - tough-cookie CookieJar 저장/복원
@@ -200,7 +200,16 @@ auto-manager 메뉴 3/5는 watchLessonQueue에서 순차 처리합니다. TTY �
 - 각 과목에서 client.getScoreSummary({ crsCreCd })를 호출해 등급만 요약 출력합니다.
 - 조회 불가 상태는 [SKIP]과 사유로 표시합니다.
 
-[9. 빌드와 legacy crypto]
+[9. 주석과 문서화 기준]
+
+- 모든 함수는 한국어 JSDoc을 유지합니다.
+- JSDoc에는 @param, @returns를 작성하고, 예외가 발생할 수 있는 함수에는 @throws를 작성합니다.
+- 일반 주석은 코드가 무엇을 하는지가 아니라 왜 필요한지를 설명합니다.
+- 서버 API 제약, LMS HTML 구조 의존성, 터미널 렌더링 보정, 세션 흐름처럼 맥락이 필요한 부분에만 짧게 주석을 둡니다.
+- 중복 설명이 필요해 보이면 먼저 함수명, 변수명, 구조를 개선하는 방향을 우선합니다.
+- 2026-07-02 기준 src, auto-manager.ts, prompt-client.js, scripts의 named function/method JSDoc 누락 스캔 결과는 0건입니다.
+
+[10. 빌드와 legacy crypto]
 
 다음 명령은 scripts/build-legacy-crypto.cjs를 먼저 실행합니다.
 - npm run build
@@ -217,20 +226,20 @@ auto-manager 메뉴 3/5는 watchLessonQueue에서 순차 처리합니다. TTY �
 원본 파일이 없고 기존 생성물이 있으면 기존 생성물을 재사용합니다.
 원본 파일도 기존 생성물도 없으면 실패합니다.
 
-[10. 검증 상태]
+[11. 검증 상태]
 
-2026-07-01 기준 최근 확인:
+2026-07-02 기준 최근 확인:
 - 통과: npm run typecheck
-- 통과: npx tsc --ignoreConfig --noEmit --target es2022 --module nodenext --moduleResolution nodenext --esModuleInterop --skipLibCheck auto-manager.ts
-- 통과: npx vitest run test/ecampus-score.test.ts
-- 통과: npm run build
-- 통과: npx prettier --check auto-manager.ts src/types/auto-manager.ts README.md
+- 통과: npx prettier --check src auto-manager.ts prompt-client.js scripts/analyze-saz.mjs scripts/capture-live.mjs
+- 통과: git diff --check
+- 통과: 함수 JSDoc 누락 스캔(named function/method 기준 0건)
 
 주의:
 - npm test 전체는 로컬 fixture가 없는 환경에서 일부 실패할 수 있습니다.
 - 누락 fixture는 로그인 메인 HTML, 비교과/강의실 캡처, 일부 packet SAZ 등 민감 원본 캡처입니다.
+- npm run lint는 현재 .puppeteer-user-data 생성 파일과 기존 진단 스크립트까지 검사해 실패할 수 있습니다.
 
-[11. 유지보수 주의사항]
+[12. 유지보수 주의사항]
 
 1) 성적 조회
 - 실제 점수/등급은 viewStdScoreSumm fragment에서 추출합니다.
@@ -254,7 +263,7 @@ auto-manager 메뉴 3/5는 watchLessonQueue에서 순차 처리합니다. TTY �
 - 실제 계정, 쿠키, 세션, SAZ, HTML 캡처, 다운로드 파일은 커밋하지 않습니다.
 - files/, captures/, downloads/, test/는 로컬 검증 자료로 취급합니다.
 
-[12. Git ignore와 공개 금지 파일]
+[13. Git ignore와 공개 금지 파일]
 
 커밋 금지:
 - .env
@@ -269,7 +278,7 @@ auto-manager 메뉴 3/5는 watchLessonQueue에서 순차 처리합니다. TTY �
 - captures/
 - captures/live/
 
-[13. 자주 쓰는 명령]
+[14. 자주 쓰는 명령]
 
 npm install
 npm run prompt:client

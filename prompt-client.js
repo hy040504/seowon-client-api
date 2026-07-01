@@ -28,6 +28,7 @@ const DEFAULT_COOKIE_FILE = path.resolve(__dirname, ".seowon-ecampus.cookies.jso
 /**
  * 단일 기능 수행용 인터랙티브 CLI 클라이언트 (JS/ESM)
  * 라이브러리의 개별 API 기능을 직접 테스트하고 확인하기 위한 도구.
+ * @returns {Promise<void>} CLI 종료 시 resolve
  */
 async function main() {
   // ESM 환경의 동적 타입 호환성을 유지하며 인덱스 모듈 로드

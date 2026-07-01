@@ -20,6 +20,11 @@ export function createSeowonClient(options: SeowonClientOptions = {}): SeowonCli
 
   return {
     baseUrl,
+    /**
+     * 상대 경로를 기본 e-campus URL 기준의 절대 URL로 변환한다.
+     * @param {string} path - 변환할 상대 경로 또는 절대 URL
+     * @returns {URL} 기준 URL이 적용된 URL 객체
+     */
     resolveUrl(path: string) {
       return new URL(path, baseUrl);
     }

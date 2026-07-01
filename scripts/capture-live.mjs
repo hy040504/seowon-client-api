@@ -29,14 +29,30 @@ const RELEVANT_PATHS = [
   "강의자료"
 ];
 
+/**
+ * 캡처 결과 저장 디렉터리를 보장한다.
+ * @param {string} dir - 생성할 디렉터리 경로
+ * @returns {void} 반환값 없음
+ */
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
+/**
+ * 파일명에 사용할 수 없는 문자를 제거한다.
+ * @param {string} name - 원본 파일명
+ * @returns {string} 저장 가능한 파일명
+ */
 function sanitize(name) {
   return name.replace(/[\/\\:*?"<>|]/g, "_").substring(0, 100);
 }
 
+/**
+ * 현재 브라우저의 e-campus 쿠키를 tough-cookie 직렬화 형식으로 내보낸다.
+ * @param {import("puppeteer-core").Page} page - 쿠키를 읽을 Puppeteer 페이지
+ * @param {string} [outputPath=COOKIE_EXPORT_FILE] - 쿠키 저장 파일 경로
+ * @returns {Promise<number>} 저장한 쿠키 개수
+ */
 async function exportEcampusCookies(page, outputPath = COOKIE_EXPORT_FILE) {
   const cookies = await page.cookies(ECAMPUS_ORIGIN);
   const jar = new CookieJar();
@@ -57,6 +73,15 @@ async function exportEcampusCookies(page, outputPath = COOKIE_EXPORT_FILE) {
   return cookies.length;
 }
 
+/**
+ * 현재 페이지와 관련 요청/응답 데이터를 캡처 디렉터리에 저장한다.
+ * @param {import("puppeteer-core").Page} page - 현재 브라우저 페이지
+ * @param {string} url - 캡처 대상 URL
+ * @param {object} request - Puppeteer Request 또는 평문 요청 정보
+ * @param {import("puppeteer-core").HTTPResponse | null} response - Puppeteer 응답 객체
+ * @param {string | Buffer | null} body - 응답 본문 preview
+ * @returns {Promise<void>} 저장 완료 시 resolve
+ */
 async function saveCapture(page, url, request, response, body) {
   const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   const dirName = `${ts}_${sanitize(url.split("/").pop() || "page")}`;
@@ -64,7 +89,7 @@ async function saveCapture(page, url, request, response, body) {
   ensureDir(dir);
 
   try {
-    // Save current page HTML
+    // 네트워크 응답만으로 놓치는 렌더링 후 DOM 상태를 함께 남긴다.
     try {
       const html = await page.content();
       fs.writeFileSync(path.join(dir, "page.html"), html, "utf8");
@@ -72,14 +97,30 @@ async function saveCapture(page, url, request, response, body) {
       console.warn("page.html 저장 실패:", e.message);
     }
 
-    // Save request info - handle both puppeteer Request and plain object (very defensive)
+    // Puppeteer 버전과 타이밍에 따라 Request 메서드 접근 방식이 달라 방어적으로 읽는다.
     let reqInfo = { url: "", method: "", headers: {}, postData: null };
     try {
+      /**
+       * 요청 URL을 안전하게 읽는다.
+       * @returns {string} 요청 URL
+       */
       const getUrl = () => (typeof request.url === "function" ? request.url() : request.url || "");
+      /**
+       * 요청 method를 안전하게 읽는다.
+       * @returns {string} 요청 method
+       */
       const getMethod = () =>
         typeof request.method === "function" ? request.method() : request.method || "";
+      /**
+       * 요청 헤더를 안전하게 읽는다.
+       * @returns {object} 요청 헤더 객체
+       */
       const getHeaders = () =>
         typeof request.headers === "function" ? request.headers() : request.headers || {};
+      /**
+       * 요청 본문을 안전하게 읽는다.
+       * @returns {string | null} 요청 본문 또는 null
+       */
       const getPostData = () =>
         typeof request.postData === "function" ? request.postData() : request.postData || null;
 
@@ -100,7 +141,6 @@ async function saveCapture(page, url, request, response, body) {
     }
     fs.writeFileSync(path.join(dir, "request.json"), JSON.stringify(reqInfo, null, 2), "utf8");
 
-    // Save response
     if (response) {
       const resInfo = {
         status: response.status(),
@@ -142,7 +182,7 @@ async function saveCapture(page, url, request, response, body) {
           body = `[binary downloaded file saved as ${filename}]`;
         } catch (e) {
           console.warn("바이너리 다운로드 저장 실패:", e.message);
-          // 마지막 보루: .bin 이라도 남기기
+          // 파일명 추출이 실패해도 재분석에 필요한 바이너리 흔적은 남긴다.
           try {
             const fb = path.join(dir, "downloaded-file.bin");
             const b2 = Buffer.from(await response.arrayBuffer().catch(() => Buffer.alloc(0)));
@@ -163,6 +203,10 @@ async function saveCapture(page, url, request, response, body) {
   }
 }
 
+/**
+ * 실제 Chrome 세션을 열어 e-campus 관련 트래픽을 라이브 캡처한다.
+ * @returns {Promise<void>} 브라우저 세션 종료 시 resolve
+ */
 async function main() {
   console.log("=== 실시간 LMS 캡처 도구 (Puppeteer 실제 브라우저) ===");
   console.log("실제 Chrome 창을 엽니다 (DevTools의 Network 탭 포함).");
@@ -191,8 +235,7 @@ async function main() {
   ensureDir(CAPTURE_DIR);
   ensureDir(PROFILE_DIR);
 
-  // Support fresh profile via env var to avoid "browser already running" errors
-  // Usage: FRESH_PROFILE=1 npm run capture:live
+  // 기존 Chrome 프로필 잠금이 잦아 FRESH_PROFILE로 즉시 우회할 수 있게 한다.
   let userDataDir = PROFILE_DIR;
   if (process.env.FRESH_PROFILE) {
     userDataDir = path.join(PROFILE_DIR, `fresh-${Date.now()}`);
@@ -201,7 +244,7 @@ async function main() {
     console.log("기존 프로필 디렉토리 사용 중:", userDataDir);
     console.log("(Windows에서 오래된 SingletonLock을 자동으로 정리하려고 시도합니다.)");
 
-    // Try to remove stale lock file (very common cause of this exact error on Windows)
+    // Windows에서 비정상 종료 후 남는 잠금 파일 때문에 재실행이 막히는 경우가 잦다.
     const lockFile = path.join(userDataDir, "SingletonLock");
     if (fs.existsSync(lockFile)) {
       try {
@@ -283,12 +326,12 @@ async function main() {
 
   const page = await browser.newPage();
 
-  // Stealth-ish
+  // 일부 사이트가 webdriver 플래그만 보고 자동화 세션을 차단하는 경우가 있어 제거한다.
   await page.evaluateOnNewDocument(() => {
     Object.defineProperty(navigator, "webdriver", { get: () => false });
   });
 
-  const capturedRequests = new Map(); // to associate response with request
+  const capturedRequests = new Map();
 
   page.on("request", (req) => {
     capturedRequests.set(req, {
@@ -303,7 +346,7 @@ async function main() {
     const url = res.url();
     let isRelevant = RELEVANT_PATHS.some((p) => url.includes(p));
 
-    // Also capture actual file downloads (attachments, materials files, etc.)
+    // 첨부파일은 URL 경로가 다양해 Content-Type과 Content-Disposition도 함께 본다.
     const contentDisp = (res.headers()["content-disposition"] || "").toLowerCase();
     const contentType = (res.headers()["content-type"] || "").toLowerCase();
     if (
@@ -321,8 +364,7 @@ async function main() {
       const req = res.request();
       const stored = capturedRequests.get(req) || {};
 
-      // Resolve request info *immediately* (plain values) to avoid deferred calls to puppeteer Request methods
-      // which can fail with "xxx is not a function" depending on timing / object identity / puppeteer-core version.
+      // Puppeteer Request 객체는 응답 처리 시점에 메서드 접근이 실패할 수 있어 값으로 즉시 고정한다.
       const requestData = {
         url: stored.url || (typeof req.url === "function" ? req.url() : req.url || ""),
         method:
@@ -351,7 +393,6 @@ async function main() {
     }
   });
 
-  // Manual save command
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   rl.on("line", async (line) => {
     if (line.trim().toLowerCase() === "save") {
@@ -383,12 +424,10 @@ async function main() {
     }
   });
 
-  // Start on main page
   await page.goto("https://ecampus.seowon.ac.kr/", { waitUntil: "networkidle2" }).catch(() => {});
 
   console.log("\n브라우저가 열렸습니다. 사이트를 정상적으로 사용하세요.\n");
 
-  // Keep process alive until browser closes
   browser.on("disconnected", () => {
     console.log("브라우저가 닫혔습니다. 캡처 도구를 종료합니다.");
     rl.close();

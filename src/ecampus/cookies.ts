@@ -21,6 +21,7 @@ export function loadCookieJarFromFile(filePath: string): CookieJar | undefined {
  * 현재 메모리에 유지 중인 세션 쿠키를 파일로 영구 저장한다.
  * @param {string} filePath - 저장할 파일 경로
  * @param {CookieJar} cookieJar - 직렬화할 쿠키 저장소
+ * @returns {void} 반환값 없음
  */
 export function saveCookieJarToFile(filePath: string, cookieJar: CookieJar): void {
   const serialized = cookieJar.serializeSync();

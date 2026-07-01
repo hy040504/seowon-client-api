@@ -2,7 +2,7 @@
 
 ## 현재 기준
 
-- 최종 문서 갱신: 2026-07-01
+- 최종 문서 갱신: 2026-07-02
 - 라이선스: MIT
 - 런타임: Node.js 20+
 - 패키지 타입: ESM (`"type": "module"`)
@@ -58,6 +58,11 @@ DOWNLOAD_HIGH_WATER_MARK=1024
 
 ## 최근 주요 변경 포인트
 
+- 코드 주석과 함수 문서화 기준을 정리했습니다.
+  - `src`, `auto-manager.ts`, `prompt-client.js`, `scripts`의 named function/method에 한국어 JSDoc을 보강했습니다.
+  - `@param`, `@returns`, 필요한 `@throws`를 유지하는 기준으로 누락을 점검했습니다.
+  - 일반 주석은 서버 API 제약, HTML 구조 의존성, 터미널 렌더링 보정처럼 이유가 필요한 부분 위주로 정리했습니다.
+
 - 성적 조회 기능이 추가되었습니다.
   - `scoreOpenJson`으로 공개 여부와 설문 게이트를 확인합니다.
   - `classRoomMainForm`으로 강의실 컨텍스트를 만든 뒤 `viewStdScore`에서 `stdNo`를 추출합니다.
@@ -82,17 +87,19 @@ DOWNLOAD_HIGH_WATER_MARK=1024
 
 ## 검증 상태
 
-2026-07-01 기준 최근 확인:
+2026-07-02 기준 최근 확인:
 
 ```bash
 npm run typecheck
-npx tsc --ignoreConfig --noEmit --target es2022 --module nodenext --moduleResolution nodenext --esModuleInterop --skipLibCheck auto-manager.ts
-npx vitest run test/ecampus-score.test.ts
-npm run build
-npx prettier --check auto-manager.ts src/types/auto-manager.ts README.md
+npx prettier --check src auto-manager.ts prompt-client.js scripts/analyze-saz.mjs scripts/capture-live.mjs
+git diff --check
 ```
 
+함수 JSDoc 누락 스캔 결과는 대상 소스의 named function/method 기준 0건입니다.
+
 `npm test` 전체는 로컬 fixture가 없는 환경에서 일부 실패할 수 있습니다. fixture에는 로그인 메인 HTML, LMS 캡처, SAZ 원본 등 민감 데이터가 포함될 수 있어 기본적으로 공개 저장소에 올리지 않습니다.
+
+`npm run lint`는 현재 `.puppeteer-user-data` 생성 파일과 기존 진단 스크립트까지 검사해 실패할 수 있습니다. 린트 대상 범위 설정을 별도로 정리해야 합니다.
 
 ## 공개 금지 파일
 

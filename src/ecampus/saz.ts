@@ -155,7 +155,12 @@ export function parseEcampusClassroomResourcesFromSaz(
   return resources;
 }
 
-/** SAZ 데이터에서 공지사항만 선별 추출 */
+/**
+ * SAZ 데이터에서 공지사항만 선별 추출한다.
+ * @param {Buffer | Uint8Array} sazFile - Fiddler SAZ 파일 바이너리
+ * @param {EcampusClassroomResourceOptions} options - 파싱 옵션
+ * @returns {EcampusClassroomItem[]} 공지사항 항목 배열
+ */
 export function parseEcampusNoticeListFromSaz(
   sazFile: Buffer | Uint8Array,
   options: EcampusClassroomResourceOptions = {}
@@ -163,7 +168,12 @@ export function parseEcampusNoticeListFromSaz(
   return parseEcampusClassroomResourcesFromSaz(sazFile, options).notices;
 }
 
-/** SAZ 데이터에서 과제 목록만 선별 추출 */
+/**
+ * SAZ 데이터에서 과제 목록만 선별 추출한다.
+ * @param {Buffer | Uint8Array} sazFile - Fiddler SAZ 파일 바이너리
+ * @param {EcampusClassroomResourceOptions} options - 파싱 옵션
+ * @returns {EcampusClassroomItem[]} 과제 항목 배열
+ */
 export function parseEcampusAssignmentListFromSaz(
   sazFile: Buffer | Uint8Array,
   options: EcampusClassroomResourceOptions = {}
@@ -171,7 +181,12 @@ export function parseEcampusAssignmentListFromSaz(
   return parseEcampusClassroomResourcesFromSaz(sazFile, options).assignments;
 }
 
-/** SAZ 데이터에서 강의자료실 항목만 선별 추출 */
+/**
+ * SAZ 데이터에서 강의자료실 항목만 선별 추출한다.
+ * @param {Buffer | Uint8Array} sazFile - Fiddler SAZ 파일 바이너리
+ * @param {EcampusClassroomResourceOptions} options - 파싱 옵션
+ * @returns {EcampusClassroomItem[]} 강의자료 항목 배열
+ */
 export function parseEcampusMaterialListFromSaz(
   sazFile: Buffer | Uint8Array,
   options: EcampusClassroomResourceOptions = {}
@@ -179,7 +194,12 @@ export function parseEcampusMaterialListFromSaz(
   return parseEcampusClassroomResourcesFromSaz(sazFile, options).materials;
 }
 
-/** SAZ 패킷에서 주차별 강의 구조를 복원 */
+/**
+ * SAZ 패킷에서 주차별 강의 구조를 복원한다.
+ * @param {Buffer | Uint8Array} sazFile - Fiddler SAZ 파일 바이너리
+ * @param {EcampusLessonParseOptions} options - 강의 파싱 옵션
+ * @returns {EcampusLessonSchedule[]} 주차별 강의 일정 배열
+ */
 export function parseEcampusLessonSchedulesFromSaz(
   sazFile: Buffer | Uint8Array,
   options: EcampusLessonParseOptions = {}
@@ -195,7 +215,12 @@ export function parseEcampusLessonSchedulesFromSaz(
   return [];
 }
 
-/** SAZ 패킷에서 평탄화된 강의 목록을 복원 */
+/**
+ * SAZ 패킷에서 평탄화된 강의 목록을 복원한다.
+ * @param {Buffer | Uint8Array} sazFile - Fiddler SAZ 파일 바이너리
+ * @param {EcampusLessonParseOptions} options - 강의 파싱 옵션
+ * @returns {EcampusLessonItem[]} 강의 항목 배열
+ */
 export function parseEcampusLessonListFromSaz(
   sazFile: Buffer | Uint8Array,
   options: EcampusLessonParseOptions = {}
@@ -205,7 +230,12 @@ export function parseEcampusLessonListFromSaz(
   );
 }
 
-/** SAZ 패킷에서 강의 재생 창과 학습 기록 요청 정보를 추출 */
+/**
+ * SAZ 패킷에서 강의 재생 창과 학습 기록 요청 정보를 추출한다.
+ * @param {Buffer | Uint8Array} sazFile - Fiddler SAZ 파일 바이너리
+ * @param {EcampusLessonParseOptions} options - 강의 파싱 옵션
+ * @returns {EcampusLessonStudyWindow[]} 재생 창과 학습 기록 요청 정보 배열
+ */
 export function parseEcampusLessonStudyWindowsFromSaz(
   sazFile: Buffer | Uint8Array,
   options: EcampusLessonParseOptions = {}
@@ -390,14 +420,22 @@ export function stringifyEcampusScoreSummaries(items: EcampusScoreSummary[]): st
   return JSON.stringify(items, null, 2);
 }
 
-/** URL에서 쿼리 문자열을 제거한다 */
+/**
+ * SAZ 원본 URL에서 쿼리 문자열을 제거한다.
+ * @param {string} url - 쿼리를 제거할 URL
+ * @returns {string} 쿼리가 제거된 URL 문자열
+ */
 export function stripSazQuery(url: string): string {
   const parsed = new URL(url);
   parsed.search = "";
   return parsed.toString();
 }
 
-/** URL 쿼리 문자열을 객체로 읽는다 */
+/**
+ * SAZ 원본 URL의 쿼리 문자열을 객체로 읽는다.
+ * @param {string} url - 쿼리를 읽을 URL
+ * @returns {Record<string, string>} 쿼리 키-값 객체
+ */
 export function readSazQuery(url: string): Record<string, string> {
   const result: Record<string, string> = {};
   for (const [key, value] of new URL(url).searchParams) {
@@ -406,15 +444,31 @@ export function readSazQuery(url: string): Record<string, string> {
   return result;
 }
 
-/** 대소문자 구분 없이 헤더 값을 찾는다 */
+/**
+ * SAZ에서 정규화된 헤더 맵을 대소문자 영향 없이 조회한다.
+ * @param {Record<string, string>} headers - 소문자 키로 정규화된 헤더 맵
+ * @param {string} name - 조회할 헤더 이름
+ * @returns {string} 헤더 값 또는 빈 문자열
+ */
 export function getSazHeaderValue(headers: Record<string, string>, name: string): string {
   return headers[name.toLowerCase()] ?? "";
 }
 
+/**
+ * ZIP 엔트리 경로 구분자를 OS와 무관한 형태로 통일한다.
+ * @param {string} name - ZIP 엔트리 이름
+ * @returns {string} 슬래시 구분자로 정규화된 엔트리 이름
+ */
 function normalizeEntryName(name: string): string {
   return name.replace(/\\/g, "/");
 }
 
+/**
+ * Fiddler raw 요청 헤더와 본문을 파싱 가능한 요청 객체로 복원한다.
+ * @param {string} head - 원시 HTTP 요청 헤더 영역
+ * @param {string} body - 원시 HTTP 요청 본문
+ * @returns {SazHttpRequest | undefined} 복원된 요청 객체
+ */
 function parseRawHttpRequest(head: string, body: string): SazHttpRequest | undefined {
   const lines = head.split(/\r?\n/);
   const requestLine = lines[0];
@@ -437,6 +491,12 @@ function parseRawHttpRequest(head: string, body: string): SazHttpRequest | undef
   }
 }
 
+/**
+ * Fiddler raw 응답 헤더와 본문을 파싱 가능한 응답 객체로 복원한다.
+ * @param {string} head - 원시 HTTP 응답 헤더 영역
+ * @param {string} body - 원시 HTTP 응답 본문
+ * @returns {SazHttpResponse | undefined} 복원된 응답 객체
+ */
 function parseRawHttpResponse(head: string, body: string): SazHttpResponse | undefined {
   const lines = head.split(/\r?\n/);
   const statusLine = lines[0] ?? "";
@@ -449,6 +509,11 @@ function parseRawHttpResponse(head: string, body: string): SazHttpResponse | und
   };
 }
 
+/**
+ * 원시 HTTP 헤더 라인을 소문자 키 기반 맵으로 변환한다.
+ * @param {string[]} lines - 헤더 라인 배열
+ * @returns {Record<string, string>} 정규화된 헤더 맵
+ */
 function parseRawHeaders(lines: string[]): Record<string, string> {
   const headers: Record<string, string> = {};
 
@@ -461,6 +526,13 @@ function parseRawHeaders(lines: string[]): Record<string, string> {
   return headers;
 }
 
+/**
+ * 게시판 종류에 맞는 HTML 파서를 선택한다.
+ * @param {string} html - 게시판 목록 HTML
+ * @param {Exclude<EcampusClassroomSection, "assignments">} section - 게시판 섹션
+ * @param {EcampusClassroomResourceOptions} options - 파싱 옵션
+ * @returns {EcampusClassroomItem[]} 파싱된 게시판 항목 배열
+ */
 function parseClassroomBoardList(
   html: string,
   section: Exclude<EcampusClassroomSection, "assignments">,
@@ -471,6 +543,11 @@ function parseClassroomBoardList(
     : parseEcampusMaterialListHtml(html, options);
 }
 
+/**
+ * SAZ 세션의 요청 경로와 게시판 코드를 기반으로 강의실 섹션을 판별한다.
+ * @param {SazHttpSession} session - 분류할 HTTP 세션
+ * @returns {EcampusClassroomSection | undefined} 매칭된 강의실 섹션
+ */
 function classifyClassroomSession(session: SazHttpSession): EcampusClassroomSection | undefined {
   const path = new URL(session.request.url).pathname;
   const body = session.request.form;
@@ -483,6 +560,12 @@ function classifyClassroomSession(session: SazHttpSession): EcampusClassroomSect
   return undefined;
 }
 
+/**
+ * 동일 게시물의 여러 캡처 결과를 정보 손실 없이 병합한다.
+ * @param {EcampusClassroomItem} current - 기존에 수집된 항목
+ * @param {EcampusClassroomItem} next - 새로 수집된 항목
+ * @returns {EcampusClassroomItem} 보강된 항목
+ */
 function mergeClassroomItem(
   current: EcampusClassroomItem,
   next: EcampusClassroomItem
@@ -497,6 +580,11 @@ function mergeClassroomItem(
   };
 }
 
+/**
+ * SAZ 세션에서 재호출 가능한 POST 요청 정보를 만든다.
+ * @param {SazHttpSession} session - POST 요청을 포함한 HTTP 세션
+ * @returns {EcampusScorePostRequest} 성적 요약 재호출용 요청 정보
+ */
 function createSazPostRequest(session: SazHttpSession): EcampusScorePostRequest {
   return {
     method: "POST",
@@ -505,6 +593,13 @@ function createSazPostRequest(session: SazHttpSession): EcampusScorePostRequest 
   };
 }
 
+/**
+ * 성적 페이지 응답을 Content-Type과 본문 형태에 맞춰 정규화한다.
+ * @param {string} body - 응답 본문
+ * @param {string} contentType - 응답 Content-Type 헤더
+ * @param {EcampusScoreParseOptions} options - 파싱 옵션
+ * @returns {EcampusScorePage} 정규화된 성적 페이지 정보
+ */
 function parseScorePageResponse(
   body: string,
   contentType: string,
@@ -540,10 +635,22 @@ function parseScorePageResponse(
   };
 }
 
+/**
+ * Content-Type이 부정확한 캡처를 보완하기 위해 본문 모양까지 확인한다.
+ * @param {string} contentType - 응답 Content-Type 헤더
+ * @param {string} body - 응답 본문
+ * @returns {boolean} JSON 응답으로 처리할지 여부
+ */
 function looksLikeJson(contentType: string, body: string): boolean {
   return contentType.toLowerCase().includes("json") || /^[{[]/.test(body);
 }
 
+/**
+ * Content-Type이 누락된 캡처를 보완하기 위해 대표 HTML 태그를 확인한다.
+ * @param {string} contentType - 응답 Content-Type 헤더
+ * @param {string} body - 응답 본문
+ * @returns {boolean} HTML 응답으로 처리할지 여부
+ */
 function looksLikeHtml(contentType: string, body: string): boolean {
   return (
     contentType.toLowerCase().includes("html") ||

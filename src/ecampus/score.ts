@@ -437,6 +437,11 @@ function classifyScoreItem(title: string): EcampusScoreItemKind {
   return "item";
 }
 
+/**
+ * 화면별 공백과 장식 문자를 제거해 성적 항목명을 안정적으로 비교한다.
+ * @param {string} title - 정규화할 성적 항목명
+ * @returns {string} 비교용으로 축약된 항목명
+ */
 function normalizeScoreItemTitle(title: string): string {
   return title.replace(/[\s:：()[\]{}<>._-]+/g, "");
 }

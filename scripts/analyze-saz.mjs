@@ -16,14 +16,29 @@ const TEXT_CONTENT_TYPES = [
   "application/x-www-form-urlencoded"
 ];
 
+/**
+ * 출력 디렉터리를 재귀적으로 보장한다.
+ * @param {string} dirPath - 생성할 디렉터리 경로
+ * @returns {void} 반환값 없음
+ */
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
 }
 
+/**
+ * ZIP 엔트리의 내용을 UTF-8 텍스트로 읽는다.
+ * @param {import("adm-zip").IZipEntry | null | undefined} entry - 읽을 ZIP 엔트리
+ * @returns {string} 엔트리 텍스트 또는 빈 문자열
+ */
 function readEntryText(entry) {
   return entry ? entry.getData().toString("utf8") : "";
 }
 
+/**
+ * 원시 HTTP 메시지를 헤더와 본문으로 분리한다.
+ * @param {string} text - 원시 HTTP 메시지
+ * @returns {{ head: string; body: string }} 헤더와 본문 분리 결과
+ */
 function splitHeadBody(text) {
   const match = text.match(/\r?\n\r?\n/);
   if (!match || match.index === undefined) {
@@ -36,6 +51,11 @@ function splitHeadBody(text) {
   };
 }
 
+/**
+ * 원시 헤더 라인을 키-값 배열로 파싱한다.
+ * @param {string[]} lines - HTTP 헤더 라인 배열
+ * @returns {{ key: string; value: string }[]} 파싱된 헤더 배열
+ */
 function parseHeaders(lines) {
   const headers = [];
 
@@ -54,11 +74,22 @@ function parseHeaders(lines) {
   return headers;
 }
 
+/**
+ * 헤더 배열에서 이름이 일치하는 값을 대소문자 구분 없이 찾는다.
+ * @param {{ key: string; value: string }[]} headers - 파싱된 헤더 배열
+ * @param {string} name - 조회할 헤더 이름
+ * @returns {string} 헤더 값 또는 빈 문자열
+ */
 function getHeaderValue(headers, name) {
   const lowerName = name.toLowerCase();
   return headers.find((header) => header.key.toLowerCase() === lowerName)?.value ?? "";
 }
 
+/**
+ * 원시 HTTP 요청 텍스트를 분석용 객체로 변환한다.
+ * @param {string} text - 원시 HTTP 요청 텍스트
+ * @returns {{ requestLine: string; method: string; url: string; protocol: string; headers: { key: string; value: string }[]; body: string }} 파싱된 요청 정보
+ */
 function parseRequest(text) {
   const { head, body } = splitHeadBody(text);
   const lines = head.split(/\r?\n/).filter(Boolean);
@@ -75,6 +106,11 @@ function parseRequest(text) {
   };
 }
 
+/**
+ * 원시 HTTP 응답 텍스트를 분석용 객체로 변환한다.
+ * @param {string} text - 원시 HTTP 응답 텍스트
+ * @returns {{ statusLine: string; protocol: string; statusCode: string; statusText: string; headers: { key: string; value: string }[]; body: string }} 파싱된 응답 정보
+ */
 function parseResponse(text) {
   const { head, body } = splitHeadBody(text);
   const lines = head.split(/\r?\n/).filter(Boolean);
@@ -91,7 +127,17 @@ function parseResponse(text) {
   };
 }
 
+/**
+ * Fiddler 메타 XML에서 시간 관련 속성을 추출한다.
+ * @param {string} xmlText - raw 메타 XML 텍스트
+ * @returns {{ clientBegin: string; clientDone: string; gatewayTime: string; dnsTime: string; tcpConnectTime: string }} 파싱된 메타 정보
+ */
 function parseMeta(xmlText) {
+  /**
+   * XML 속성 값을 정규식으로 읽는다.
+   * @param {string} name - 조회할 속성 이름
+   * @returns {string} 속성 값 또는 빈 문자열
+   */
   const attribute = (name) => xmlText.match(new RegExp(`${name}="([^"]*)"`, "i"))?.[1] ?? "";
 
   return {
@@ -103,6 +149,12 @@ function parseMeta(xmlText) {
   };
 }
 
+/**
+ * 응답 본문을 텍스트 preview로 저장해도 되는지 판별한다.
+ * @param {string} contentType - 응답 Content-Type
+ * @param {string} body - 응답 본문
+ * @returns {boolean} 텍스트성 본문 여부
+ */
 function isTextLike(contentType, body) {
   const lowerType = contentType.toLowerCase();
   if (TEXT_CONTENT_TYPES.some((prefix) => lowerType.startsWith(prefix))) {
@@ -126,6 +178,12 @@ function isTextLike(contentType, body) {
   return suspicious / Math.max(sample.length, 1) < 0.15;
 }
 
+/**
+ * 분석 Markdown에 넣을 응답/요청 본문 preview를 만든다.
+ * @param {string} body - 원본 본문
+ * @param {string} contentType - 응답 또는 요청 Content-Type
+ * @returns {string} 제한 길이가 적용된 preview 텍스트
+ */
 function previewBody(body, contentType) {
   if (!body) {
     return "(empty)";
@@ -143,6 +201,11 @@ function previewBody(body, contentType) {
   return `${cleaned.slice(0, BODY_PREVIEW_LIMIT)}\n\n... [truncated ${cleaned.length - BODY_PREVIEW_LIMIT} chars]`;
 }
 
+/**
+ * 헤더 배열을 Markdown 코드 블록에 넣기 쉬운 문자열로 변환한다.
+ * @param {{ key: string; value: string }[]} headers - 파싱된 헤더 배열
+ * @returns {string} 줄 단위 헤더 문자열
+ */
 function formatHeaders(headers) {
   if (headers.length === 0) {
     return "(none)";
@@ -151,6 +214,11 @@ function formatHeaders(headers) {
   return headers.map((header) => `${header.key}: ${header.value}`).join("\n");
 }
 
+/**
+ * CSV 필드에 안전하도록 값을 이스케이프한다.
+ * @param {unknown} value - CSV 셀 값
+ * @returns {string} CSV 안전 문자열
+ */
 function csvEscape(value) {
   const text = String(value ?? "");
   if (/[",\r\n]/.test(text)) {
@@ -160,10 +228,20 @@ function csvEscape(value) {
   return text;
 }
 
+/**
+ * 세션 파일명에 사용할 수 없는 문자를 치환한다.
+ * @param {string} value - 원본 파일명
+ * @returns {string} 파일 시스템에 안전한 이름
+ */
 function sanitizeFileName(value) {
   return value.replace(/[<>:"/\\|?*\u0000-\u001F]/g, "_");
 }
 
+/**
+ * 단일 HTTP 세션 상세 Markdown을 생성한다.
+ * @param {object} session - 분석된 HTTP 세션 객체
+ * @returns {string} 세션 상세 Markdown
+ */
 function buildSessionMarkdown(session) {
   return [
     `# Session ${session.id}`,
@@ -209,6 +287,14 @@ function buildSessionMarkdown(session) {
   ].join("\n");
 }
 
+/**
+ * 전체 SAZ 분석 인덱스 Markdown을 생성한다.
+ * @param {string} sourcePath - 분석 대상 SAZ 파일 경로
+ * @param {object[]} sessions - 분석된 세션 배열
+ * @param {object[]} endpointStats - endpoint별 집계 배열
+ * @param {object[]} hostStats - host별 집계 배열
+ * @returns {string} 분석 인덱스 Markdown
+ */
 function buildIndexMarkdown(sourcePath, sessions, endpointStats, hostStats) {
   const hostRows = hostStats
     .slice(0, 20)
@@ -279,6 +365,13 @@ function buildIndexMarkdown(sourcePath, sessions, endpointStats, hostStats) {
   ].join("\n");
 }
 
+/**
+ * Fiddler SAZ 파일을 Markdown, JSON, CSV 분석 결과로 펼친다.
+ * @param {string} [inputArg=DEFAULT_INPUT] - 입력 SAZ 파일 경로
+ * @param {string} [outputArg=DEFAULT_OUTPUT] - 결과를 저장할 디렉터리
+ * @returns {void} 반환값 없음
+ * @throws {Error} 입력 파일이 없을 때 발생
+ */
 export function analyzeSaz(inputArg = DEFAULT_INPUT, outputArg = DEFAULT_OUTPUT) {
   const inputPath = path.resolve(process.cwd(), inputArg);
   const outputPath = path.resolve(process.cwd(), outputArg);

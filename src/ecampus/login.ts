@@ -149,6 +149,7 @@ export class EcampusClient {
   /**
    * 백그라운드 자동 갱신을 위해 계정 정보를 수동으로 업데이트한다.
    * @param {LoginCredentials} credentials - 보관할 계정 정보
+   * @returns {void} 반환값 없음
    */
   setCredentials(credentials: LoginCredentials): void {
     this.loginCredentials = credentials;
@@ -164,7 +165,7 @@ export class EcampusClient {
 
   /**
    * 영구 저장소에서 쿠키 데이터를 읽어와 세션을 복구한다.
-   * @private
+   * @returns {CookieJar} 복구된 쿠키 저장소 또는 새 쿠키 저장소
    */
   private loadCookieJar(): CookieJar {
     if (!this.cookieFilePath) return new CookieJar();
@@ -174,7 +175,7 @@ export class EcampusClient {
 
   /**
    * 현재 활성화된 세션 쿠키를 파일로 저장한다.
-   * @private
+   * @returns {Promise<void>} 저장 완료 시 resolve
    */
   private async persistCookieJar(): Promise<void> {
     if (!this.cookieFilePath) return;
@@ -183,6 +184,7 @@ export class EcampusClient {
 
   /**
    * 세션 유효성을 확인하고 필요 시 백그라운드 자동 로그인을 수행한다.
+   * @returns {Promise<void>} 인증 가능한 세션 확보 시 resolve
    * @throws {Error} 세션 만료 및 재로그인 정보 부재 시 발생
    */
   async ensureAuthenticated(): Promise<void> {
@@ -197,6 +199,7 @@ export class EcampusClient {
 
   /**
    * 서버 측 세션 컨텍스트 생성을 위해 로그인 페이지를 선행 방문한다.
+   * @returns {Promise<void>} 로그인 페이지 방문과 쿠키 저장 완료 시 resolve
    */
   async prepareLoginSession(): Promise<void> {
     await this.http.get(LOGIN_PAGE_PATH, {
@@ -249,6 +252,7 @@ export class EcampusClient {
 
   /**
    * 로그인 완료 후 진입하는 메인 대시보드 HTML을 조회한다.
+   * @returns {Promise<string>} 메인 대시보드 HTML
    */
   async getMainPageHtml(): Promise<string> {
     await this.ensureAuthenticated();
@@ -261,6 +265,7 @@ export class EcampusClient {
 
   /**
    * 수강 중인 과목들을 교과와 비교과 카테고리로 분류하여 조회한다.
+   * @returns {Promise<EcampusCourseGroups>} 교과/비교과로 분류된 과목 묶음
    */
   async getCourseGroups(): Promise<EcampusCourseGroups> {
     const html = await this.getCourseListHtml();
@@ -269,6 +274,7 @@ export class EcampusClient {
 
   /**
    * 수강 중인 전체 과목 목록을 배열 형태로 조회한다.
+   * @returns {Promise<EcampusCourseListItem[]>} 과목 목록 배열
    */
   async getCourseList(): Promise<EcampusCourseListItem[]> {
     const html = await this.getCourseListHtml();
@@ -323,7 +329,11 @@ export class EcampusClient {
     return resources;
   }
 
-  /** 공지사항 목록 조회 및 파싱 */
+  /**
+   * 공지사항 목록을 조회하고 공통 게시판 항목으로 파싱한다.
+   * @param {GetClassroomBoardListOptions} options - 게시판 조회 옵션
+   * @returns {Promise<EcampusClassroomItem[]>} 공지사항 항목 배열
+   */
   async getNoticeList(options: GetClassroomBoardListOptions): Promise<EcampusClassroomItem[]> {
     const bbsId = `BBS_${options.crsCreCd}_N`;
     const html = await this.postBoardList(options, "NOTICE", bbsId);
@@ -334,7 +344,11 @@ export class EcampusClient {
     });
   }
 
-  /** 강의자료실 목록 조회 및 파싱 */
+  /**
+   * 강의자료실 목록을 조회하고 공통 게시판 항목으로 파싱한다.
+   * @param {GetClassroomBoardListOptions} options - 게시판 조회 옵션
+   * @returns {Promise<EcampusClassroomItem[]>} 강의자료 항목 배열
+   */
   async getMaterialList(options: GetClassroomBoardListOptions): Promise<EcampusClassroomItem[]> {
     const bbsId = `BBS_${options.crsCreCd}_P`;
     const html = await this.postBoardList(options, "PDS", bbsId);
@@ -345,7 +359,11 @@ export class EcampusClient {
     });
   }
 
-  /** 과제함 목록 및 개인별 제출 상태 조회 */
+  /**
+   * 과제함 목록과 개인별 제출 상태를 조회한다.
+   * @param {GetClassroomAssignmentListOptions} options - 과제함 조회 옵션
+   * @returns {Promise<EcampusClassroomItem[]>} 과제 항목 배열
+   */
   async getAssignmentList(
     options: GetClassroomAssignmentListOptions
   ): Promise<EcampusClassroomItem[]> {
@@ -541,7 +559,11 @@ export class EcampusClient {
     return response.data;
   }
 
-  /** 특정 차시의 시청 창을 활성화하고 관련 데이터(studyDetailId 등)를 획득한다 */
+  /**
+   * 특정 차시의 시청 창을 활성화하고 관련 메타데이터를 획득한다.
+   * @param {OpenElearningLessonOptions} options - 시청 창 열기 옵션
+   * @returns {Promise<EcampusLessonStudyWindow>} 시청 창 메타데이터
+   */
   async openLessonWindow(options: OpenElearningLessonOptions): Promise<EcampusLessonStudyWindow> {
     const html = await this.postForm(
       `/lesson/lessonOpen/lessonNewWindow?crsCreCd=${encodeURIComponent(options.crsCreCd)}`,
@@ -560,7 +582,12 @@ export class EcampusClient {
     });
   }
 
-  /** 실제 스트리밍 가능한 MP4 파일의 직주소를 지능형 엔진을 통해 도출한다 */
+  /**
+   * 실제 스트리밍 가능한 MP4 파일의 직주소를 도출한다.
+   * @param {string} crsCreCd - 강의실 생성 코드
+   * @param {string} lessonCntsId - 강의 콘텐츠 ID
+   * @returns {Promise<ElearningMp4UrlResult>} MP4 URL 추출 결과
+   */
   async getElearningMp4Url(crsCreCd: string, lessonCntsId: string): Promise<ElearningMp4UrlResult> {
     try {
       const windowInfo = await this.openLessonWindow({ crsCreCd, lessonCntsId });
@@ -581,7 +608,16 @@ export class EcampusClient {
     }
   }
 
-  /** 원본 영상을 고속 스트림 방식으로 로컬에 다운로드한다 */
+  /**
+   * 원본 영상을 스트림 방식으로 로컬에 다운로드한다.
+   * @param {string} crsCreCd - 강의실 생성 코드
+   * @param {string} lessonCntsId - 강의 콘텐츠 ID
+   * @param {string} courseTitle - 저장 경로에 사용할 과목명
+   * @param {string} lessonTitle - 저장 파일명에 사용할 강의명
+   * @param {string} [baseDir="./downloads"] - 다운로드 기준 디렉터리
+   * @param {(progress: { percent: number; loaded: number }) => void} [progressCallback] - 진행률 콜백
+   * @returns {Promise<ElearningDownloadResult>} 다운로드 결과
+   */
   async downloadElearningMp4(
     crsCreCd: string,
     lessonCntsId: string,
@@ -611,7 +647,11 @@ export class EcampusClient {
     }
   }
 
-  /** 단일 시청 기록(패킷)을 서버로 전송하여 학습 시간을 적재한다 */
+  /**
+   * 단일 시청 기록 패킷을 서버로 전송하여 학습 시간을 적재한다.
+   * @param {EcampusLessonRecordOptions} options - 학습 기록 요청 옵션
+   * @returns {Promise<any>} 서버의 학습 기록 응답 데이터
+   */
   async addStudyRecord(options: EcampusLessonRecordOptions): Promise<any> {
     await this.ensureAuthenticated();
     const request = createStudyRecordRequest(this.baseUrl, options);
@@ -626,7 +666,12 @@ export class EcampusClient {
     return response.data;
   }
 
-  /** 현재 세션의 전체 학습 이력 및 상세 정보를 조회한다 */
+  /**
+   * 현재 세션의 전체 학습 이력 및 상세 정보를 조회한다.
+   * @param {string} lessonCntsId - 강의 콘텐츠 ID
+   * @param {string} crsCreCd - 강의실 생성 코드
+   * @returns {Promise<any>} 서버의 학습 상세 응답 데이터
+   */
   async viewLessonStudyDetail(lessonCntsId: string, crsCreCd: string): Promise<any> {
     await this.ensureAuthenticated();
     const request = createViewLessonStudyDetailRequest(this.baseUrl, lessonCntsId, crsCreCd);
@@ -641,7 +686,13 @@ export class EcampusClient {
     return response.data;
   }
 
-  /** 게시판류 리소스 조회를 위한 내부 전용 POST 도우미 */
+  /**
+   * 게시판류 리소스 조회를 위한 내부 POST 요청을 수행한다.
+   * @param {GetClassroomBoardListOptions} options - 게시판 조회 옵션
+   * @param {"NOTICE" | "PDS"} bbsCd - 게시판 종류 코드
+   * @param {string} bbsId - 게시판 식별자
+   * @returns {Promise<string>} 게시판 목록 HTML
+   */
   private async postBoardList(
     options: GetClassroomBoardListOptions,
     bbsCd: "NOTICE" | "PDS",
@@ -661,7 +712,12 @@ export class EcampusClient {
     });
   }
 
-  /** 공통적인 form-urlencoded 데이터 전송을 처리한다 */
+  /**
+   * e-campus의 form-urlencoded AJAX 호출을 공통 처리한다.
+   * @param {string} path - 호출할 서버 경로
+   * @param {Record<string, string>} body - 전송할 폼 데이터
+   * @returns {Promise<string>} 응답 HTML 또는 텍스트
+   */
   private async postForm(path: string, body: Record<string, string>): Promise<string> {
     await this.ensureAuthenticated();
     const params = new URLSearchParams(body);
@@ -681,6 +737,7 @@ export class EcampusClient {
    * 강의실 메인 진입 요청으로 서버 측 과목 컨텍스트를 생성한다.
    * 성적 요약 fragment는 이 컨텍스트가 없으면 강의평가 미실시 상태로 축약될 수 있다.
    * @param {string} crsCreCd - 진입할 강의실 코드
+   * @returns {Promise<void>} 강의실 컨텍스트 생성 완료 시 resolve
    */
   private async enterClassroomContext(crsCreCd: string): Promise<void> {
     await this.ensureAuthenticated();
@@ -806,7 +863,11 @@ export class EcampusClient {
   }
 }
 
-/** 팩토리 함수: 신규 클라이언트 생성 */
+/**
+ * 신규 e-campus 클라이언트를 생성한다.
+ * @param {EcampusClientOptions} [options={}] - 클라이언트 초기화 옵션
+ * @returns {EcampusClient} 생성된 e-campus 클라이언트
+ */
 export function createEcampusClient(options: EcampusClientOptions = {}): EcampusClient {
   return new EcampusClient(options);
 }
@@ -838,7 +899,11 @@ export function parseLoginResponse(data: EcampusLoginResponse): LoginResult {
   return { type: "reload", data };
 }
 
-/** URL 경로 표준화 */
+/**
+ * 기본 URL 경로를 클라이언트 내부 표준 형태로 정규화한다.
+ * @param {string} baseUrl - 정규화할 기본 URL
+ * @returns {string} 경로 끝 슬래시가 보장된 URL 문자열
+ */
 function normalizeBaseUrl(baseUrl: string): string {
   const url = new URL(baseUrl);
   url.pathname = url.pathname.replace(/\/?$/, "/");
