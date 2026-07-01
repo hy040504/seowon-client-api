@@ -30,6 +30,12 @@ import {
   type EcampusCourseListItem,
   type EcampusLessonItem
 } from "./src/index.js";
+import type {
+  AvailableAssignmentItem,
+  CurricularScoreResult,
+  MaterialDownloadState,
+  WatchQueueItem
+} from "./src/types/auto-manager.js";
 
 const DEFAULT_COOKIE_FILE = path.resolve(process.cwd(), ".seowon-ecampus.cookies.json");
 const WATCH_SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴"];
@@ -38,24 +44,6 @@ const STUDY_DETAIL_WAITING_MESSAGE = "[ElearningSession] 학습 이력 갱신 �
 const STUDY_DETAIL_FADE_MS = 5000;
 
 const LECTURE_MATERIALS_DIR = "강의자료들";
-
-interface WatchQueueItem {
-  course: EcampusCourseListItem;
-  lesson: EcampusLessonItem;
-}
-
-interface AvailableAssignmentItem {
-  course: EcampusCourseListItem;
-  assignment: EcampusClassroomItem;
-}
-
-/** 강의자료 다운로드 큐에서 각 항목의 실시간 상태를 추적하기 위한 내부 인터페이스 (renderQueue 용) */
-interface MaterialDownloadState {
-  title: string;
-  percent: number;
-  status: "pending" | "downloading" | "completed" | "failed";
-  detail?: string;
-}
 
 function extractWeekNumber(text: string | undefined): number | undefined {
   const match = text?.match(/(\d+)\s*주차/);
@@ -101,11 +89,14 @@ function formatMaterialSelectionLabel(material: EcampusClassroomItem): string {
 }
 
 function sanitizeFilename(name: string): string {
-  return name
+  const sanitized = name
     .replace(/[\\/:*?"<>|]/g, "_")
     .replace(/\s+/g, " ")
     .trim()
-    .substring(0, 100);
+    .substring(0, 100)
+    .replace(/[. ]+$/g, "");
+
+  return sanitized || "untitled";
 }
 
 function ensureUniqueFilePath(filePath: string): string {
@@ -118,6 +109,170 @@ function ensureUniqueFilePath(filePath: string): string {
   }
 
   return path.resolve(parsed.dir, `${parsed.name} (${Date.now()})${parsed.ext}`);
+}
+
+const ANSI_ESCAPE_PATTERN = /\u001b\[[0-9;]*m/g;
+
+function stripAnsi(value: string): string {
+  return value.replace(ANSI_ESCAPE_PATTERN, "");
+}
+
+function getTerminalContentWidth(): number {
+  const columns = process.stdout.columns || 100;
+  return Math.max(40, columns - 1);
+}
+
+function getCharDisplayWidth(char: string): number {
+  const code = char.codePointAt(0) ?? 0;
+  if (code === 0 || (code >= 0x0300 && code <= 0x036f) || (code >= 0xfe00 && code <= 0xfe0f)) {
+    return 0;
+  }
+
+  if (
+    code >= 0x1100 &&
+    (code <= 0x115f ||
+      code === 0x2329 ||
+      code === 0x232a ||
+      (code >= 0x2e80 && code <= 0xa4cf) ||
+      (code >= 0xac00 && code <= 0xd7a3) ||
+      (code >= 0xf900 && code <= 0xfaff) ||
+      (code >= 0xfe10 && code <= 0xfe19) ||
+      (code >= 0xfe30 && code <= 0xfe6f) ||
+      (code >= 0xff00 && code <= 0xff60) ||
+      (code >= 0xffe0 && code <= 0xffe6) ||
+      (code >= 0x2600 && code <= 0x27bf) ||
+      (code >= 0x1f300 && code <= 0x1faff))
+  ) {
+    return 2;
+  }
+
+  return 1;
+}
+
+function getDisplayWidth(value: string): number {
+  let width = 0;
+  for (const char of stripAnsi(value)) {
+    width += getCharDisplayWidth(char);
+  }
+  return width;
+}
+
+function truncateDisplay(value: string, maxWidth: number): string {
+  if (maxWidth <= 0) return "";
+  if (getDisplayWidth(value) <= maxWidth) return value;
+  if (maxWidth <= 3) return ".".repeat(maxWidth);
+
+  let width = 0;
+  let output = "";
+  for (const char of value) {
+    const charWidth = getCharDisplayWidth(char);
+    if (width + charWidth > maxWidth - 3) break;
+    output += char;
+    width += charWidth;
+  }
+
+  return `${output}...`;
+}
+
+function getDownloadStatusText(item: MaterialDownloadState): string {
+  switch (item.status) {
+    case "downloading":
+      return getProgressBar(item.percent, 100, 15);
+    case "completed":
+      return color("✅ 완료", ANSI.green);
+    case "failed":
+      return color("❌ 실패", ANSI.red);
+    default:
+      return color("⏳ 대기", ANSI.gray);
+  }
+}
+
+function getDownloadStatusLabelColor(status: MaterialDownloadState["status"]): string | undefined {
+  switch (status) {
+    case "downloading":
+      return ANSI.yellow;
+    case "completed":
+      return ANSI.green;
+    case "failed":
+      return ANSI.red;
+    default:
+      return undefined;
+  }
+}
+
+function formatDownloadStatusLine(
+  item: MaterialDownloadState,
+  index: number,
+  total: number
+): string {
+  const prefix = `[${index + 1}/${total}]`;
+  const statusText = getDownloadStatusText(item);
+  const fixedPart = `${prefix} ${statusText} `;
+  const availableWidth = Math.max(0, getTerminalContentWidth() - getDisplayWidth(fixedPart));
+  const detail = item.detail ? ` (${item.detail})` : "";
+  const label = truncateDisplay(`${item.title}${detail}`, availableWidth);
+  const labelColor = getDownloadStatusLabelColor(item.status);
+
+  return `${fixedPart}${labelColor ? color(label, labelColor) : label}`;
+}
+
+function createDownloadQueueRenderer(itemStatuses: MaterialDownloadState[]) {
+  let isStarted = false;
+  let renderTimer: NodeJS.Timeout | undefined;
+  let lastRenderTime = 0;
+  const RENDER_THROTTLE_MS = 60;
+
+  const draw = () => {
+    if (!isStarted) return;
+    lastRenderTime = Date.now();
+
+    let output = `\r\u001b[${itemStatuses.length}A`;
+    itemStatuses.forEach((item, i) => {
+      output += `\u001b[K${formatDownloadStatusLine(item, i, itemStatuses.length)}\n`;
+    });
+
+    process.stdout.write(output);
+  };
+
+  const render = (force = false) => {
+    if (!isStarted) return;
+    if (force && renderTimer) {
+      clearTimeout(renderTimer);
+      renderTimer = undefined;
+    }
+
+    const now = Date.now();
+    if (!force && now - lastRenderTime < RENDER_THROTTLE_MS) {
+      if (!renderTimer) {
+        renderTimer = setTimeout(
+          () => {
+            renderTimer = undefined;
+            draw();
+          },
+          RENDER_THROTTLE_MS - (now - lastRenderTime)
+        );
+      }
+      return;
+    }
+
+    draw();
+  };
+
+  return {
+    start() {
+      isStarted = true;
+      render(true);
+    },
+    render,
+    stop() {
+      if (renderTimer) {
+        clearTimeout(renderTimer);
+        renderTimer = undefined;
+      }
+      render(true);
+      isStarted = false;
+    }
+  };
 }
 
 function guessFileNameFromUrl(url: string): string {
@@ -177,6 +332,9 @@ async function run() {
       console.log(
         `${color("8", ANSI.yellow)}. ${color("강의자료 다운로드 (일괄 + 첨부 분석/미리보기)", ANSI.bold)}`
       );
+      console.log(
+        `${color("9", ANSI.yellow)}. ${color("교과 과목 전체 성적(등급) 조회", ANSI.bold)}`
+      );
       console.log(`${color("0", ANSI.yellow)}. ${color("종료", ANSI.bold)}`);
 
       const menu = (await rl.question("\n메뉴 선택: ")).trim();
@@ -207,6 +365,9 @@ async function run() {
         case "8":
           // 통합된 강의자료 다운로드 (이전 8번 일괄 + 9번 분석 기능)
           await withAuthRetry(client, rl, () => batchDownloadMaterials(client, rl));
+          break;
+        case "9":
+          await withAuthRetry(client, rl, () => viewAllCurricularScores(client));
           break;
         default:
           printErrorMessage("올바른 메뉴를 선택하세요.");
@@ -302,46 +463,26 @@ async function batchDownload(client: EcampusClient, rl: readline.Interface) {
     formatDownloadLessonLabel
   );
 
+  if (selectedLessons.length === 0) {
+    printWarning("다운로드할 강의가 선택되지 않았습니다.");
+    return;
+  }
+
   const concurrencyInput = await ask(rl, "동시 다운로드 수", "3");
   const concurrency = Math.min(Math.max(parseInt(concurrencyInput) || 1, 1), 5);
 
-  const itemStatuses = selectedLessons.map((l) => ({
+  const itemStatuses: MaterialDownloadState[] = selectedLessons.map((l) => ({
     title: formatLessonTitleWithWeek(l),
     percent: 0,
-    status: "pending" as any
+    status: "pending"
   }));
-  let isStarted = false;
-
-  /** 전체 목록을 덮어쓰기 방식으로 실시간 렌더링 */
-  const renderQueue = () => {
-    if (!isStarted) return;
-    process.stdout.write(`\u001b[${selectedLessons.length}A`);
-    itemStatuses.forEach((item, i) => {
-      process.stdout.write("\r\u001b[K");
-      const prefix = `[${i + 1}/${selectedLessons.length}]`;
-      if (item.status === "downloading") {
-        console.log(
-          `${prefix} ${getProgressBar(item.percent, 100, 15)} ${color(item.title.substring(0, 30), ANSI.yellow)}`
-        );
-      } else if (item.status === "completed") {
-        console.log(
-          `${prefix} ${color("✅ 완료", ANSI.green)}      ${color(item.title.substring(0, 30), ANSI.green)}`
-        );
-      } else if (item.status === "failed") {
-        console.log(
-          `${prefix} ${color("❌ 실패", ANSI.red)}      ${color(item.title.substring(0, 30), ANSI.red)}`
-        );
-      } else {
-        console.log(`${prefix} ${color("⏳ 대기", ANSI.gray)}      ${item.title.substring(0, 30)}`);
-      }
-    });
-  };
+  const renderer = createDownloadQueueRenderer(itemStatuses);
 
   printInfo(
     `\n🚀 총 ${selectedLessons.length}개의 파일을 다운로드합니다. (동시 작업: ${concurrency}개)\n`
   );
   selectedLessons.forEach(() => console.log(""));
-  isStarted = true;
+  renderer.start();
 
   const queueIdxs = Array.from({ length: selectedLessons.length }, (_, i) => i);
   const downloadWorker = async () => {
@@ -351,25 +492,28 @@ async function batchDownload(client: EcampusClient, rl: readline.Interface) {
       const lesson = selectedLessons[idx]!;
       const state = itemStatuses[idx]!;
       state.status = "downloading";
-      renderQueue();
+      renderer.render(true);
       const res = await client.downloadElearningMp4(
         course.crsCreCd,
         lesson.lessonCntsId,
-        course.title,
-        lesson.title,
+        sanitizeFilename(course.title),
+        sanitizeFilename(lesson.title),
         "./downloads",
         (p) => {
           state.percent = p.percent;
-          renderQueue();
+          renderer.render();
         }
       );
       state.status = res.success ? "completed" : "failed";
-      state.percent = 100;
-      renderQueue();
+      state.percent = res.success ? 100 : state.percent;
+      state.detail = res.success ? "저장 완료" : res.message;
+      renderer.render(true);
     }
   };
 
   await Promise.all(Array.from({ length: concurrency }, () => downloadWorker()));
+  renderer.stop();
+  process.stdout.write("\n");
   console.log(color("\n✅ 모든 영상 다운로드가 성공적으로 완료되었습니다!", ANSI.bold, ANSI.green));
 }
 
@@ -444,63 +588,14 @@ async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interf
     percent: 0,
     status: "pending"
   }));
-  let isStarted = false;
-  let renderScheduled = false;
-  let lastRenderTime = 0;
-  const RENDER_THROTTLE_MS = 60; // progress 이벤트가 매우 자주 오므로 throttle로 도배 방지
-
-  const renderQueue = (force = false) => {
-    if (!isStarted) return;
-    if (renderScheduled) return;
-
-    const now = Date.now();
-    if (!force && now - lastRenderTime < RENDER_THROTTLE_MS) {
-      renderScheduled = true;
-      setTimeout(() => {
-        renderScheduled = false;
-        renderQueue(true);
-      }, RENDER_THROTTLE_MS);
-      return;
-    }
-
-    lastRenderTime = now;
-    renderScheduled = true;
-
-    // nextTick 직렬화 + throttle
-    // 전체 블록을 한 번에 atomic write로 그려서 각 항목의 라인이 고정된 위치에서만 업데이트되게 함.
-    process.nextTick(() => {
-      renderScheduled = false;
-      if (!isStarted) return;
-
-      let output = `\r\u001b[${downloadMaterials.length}A`;
-      itemStatuses.forEach((item, i) => {
-        const prefix = `[${i + 1}/${downloadMaterials.length}]`;
-        const detail = item.detail ? ` ${color(`(${item.detail})`, ANSI.gray)}` : "";
-
-        let line: string;
-        if (item.status === "downloading") {
-          line = `${prefix} ${getProgressBar(item.percent, 100, 15)} ${color(item.title, ANSI.yellow)}${detail}`;
-        } else if (item.status === "completed") {
-          line = `${prefix} ${color("✅ 완료", ANSI.green)}      ${color(item.title, ANSI.green)}${detail}`;
-        } else if (item.status === "failed") {
-          line = `${prefix} ${color("❌ 실패", ANSI.red)}      ${color(item.title, ANSI.red)}${detail}`;
-        } else {
-          line = `${prefix} ${color("⏳ 대기", ANSI.gray)}      ${item.title}${detail}`;
-        }
-        output += `\u001b[K${line}\n`;
-      });
-
-      process.stdout.write(output);
-    });
-  };
+  const renderer = createDownloadQueueRenderer(itemStatuses);
 
   printInfo(
     `\n📚 총 ${downloadMaterials.length}개의 강의자료 첨부파일을 다운로드합니다. (동시 작업: ${concurrency}개)\n`
   );
   // N줄의 공간을 미리 확보 (이후 render에서 위로 올라가서 덮어씀)
   downloadMaterials.forEach(() => console.log(""));
-  isStarted = true;
-  renderQueue(true); // 초기 대기 상태를 바로 그림 (throttle 무시)
+  renderer.start();
 
   const queueIdxs = Array.from({ length: downloadMaterials.length }, (_, i) => i);
 
@@ -516,7 +611,7 @@ async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interf
       state.detail = preloadedAttachments.get(material.id)?.length
         ? "다운로드 중 (분석 완료)"
         : "첨부 분석 중";
-      renderQueue(true); // 다운로드 시작 시 강제 redraw
+      renderer.render(true); // 다운로드 시작 시 강제 redraw
 
       const preloaded = preloadedAttachments.get(material.id) ?? [];
       const res = await downloadMaterialAttachmentBundle(
@@ -526,7 +621,7 @@ async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interf
         (progress) => {
           state.percent = progress.percent;
           state.detail = progress.detail;
-          renderQueue();
+          renderer.render();
         },
         preloaded.length > 0 ? preloaded : undefined
       );
@@ -534,14 +629,12 @@ async function batchDownloadMaterials(client: EcampusClient, rl: readline.Interf
       state.status = res.success ? "completed" : "failed";
       state.percent = res.success ? 100 : state.percent;
       state.detail = res.message;
-      renderQueue(true); // 완료/실패 시 최종 상태 강제 redraw (throttle 무시)
+      renderer.render(true); // 완료/실패 시 최종 상태 강제 redraw (throttle 무시)
     }
   };
 
   await Promise.all(Array.from({ length: concurrency }, () => downloadWorker()));
-
-  isStarted = false; // 이후 늦은 콜백이 render를 호출해도 무시 (메뉴 출력과 겹치지 않게)
-  renderQueue(true); // 마지막 최종 상태 한 번 더 확실히 그림
+  renderer.stop();
 
   // 진행률 블록 아래로 커서를 내려서 메뉴가 깔끔하게 시작되도록 함
   process.stdout.write("\n");
@@ -969,6 +1062,65 @@ async function checkAllAssignments(client: EcampusClient) {
   );
 }
 
+/** 전체 교과 과목을 순회하며 공개된 성적 요약과 등급을 조회한다. */
+async function viewAllCurricularScores(client: EcampusClient) {
+  printInfo("\n📊 전체 교과 과목 성적(등급)을 조회하고 있습니다...");
+  const groups = await client.getCourseGroups();
+  const courses = groups.curricular;
+
+  if (courses.length === 0) {
+    printWarning("조회할 교과 과목이 없습니다.");
+    return;
+  }
+
+  const results: CurricularScoreResult[] = [];
+
+  for (const course of courses) {
+    process.stdout.write(`\r조회 중: ${course.title}...                    `);
+    try {
+      const summary = await client.getScoreSummary({ crsCreCd: course.crsCreCd });
+      results.push({ course, status: "available", summary });
+    } catch (err) {
+      results.push({
+        course,
+        status: "unavailable",
+        message: err instanceof Error ? err.message : util.inspect(err)
+      });
+    }
+  }
+
+  process.stdout.write("\r\u001b[K");
+  printSection("\n[교과 과목 성적(등급)]");
+
+  let availableCount = 0;
+  let gradeCount = 0;
+
+  for (const result of results) {
+    if (result.status !== "available" || !result.summary) {
+      printWarning(
+        `[SKIP] ${result.course.title}: ${result.message || "성적을 조회할 수 없습니다."}`
+      );
+      continue;
+    }
+
+    availableCount++;
+    if (result.summary.grade) gradeCount++;
+
+    const grade = result.summary.grade || "미표시";
+    console.log(
+      `${color(`[${result.course.title}]`, ANSI.bold, ANSI.yellow)} 등급: ${color(grade, ANSI.green)}`
+    );
+  }
+
+  const summaryColor = gradeCount > 0 ? ANSI.green : ANSI.yellow;
+  console.log(
+    color(
+      `\n조회 완료! 교과 ${courses.length}개 중 성적 조회 가능 ${availableCount}개, 등급 확인 ${gradeCount}개입니다.`,
+      summaryColor
+    )
+  );
+}
+
 /** 현재 날짜가 제출 기간 안에 있고 아직 제출 완료되지 않은 과제를 전 과목에서 조회한다. */
 async function listAvailableAssignments(client: EcampusClient) {
   printInfo("\n현재 날짜 기준으로 수행 가능한 미제출 과제를 전 과목에서 찾고 있습니다...");
@@ -1143,6 +1295,36 @@ function printAssignmentContentLine(line: string) {
 }
 
 /** 번호 기반 다중 선택 유틸리티 */
+function parseSelectionIndexes(answer: string, itemCount: number): number[] {
+  const indexes = new Set<number>();
+  const tokens = answer
+    .split(",")
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  for (const token of tokens) {
+    const rangeMatch = token.match(/^(\d+)\s*-\s*(\d+)$/);
+    if (rangeMatch) {
+      const start = Number(rangeMatch[1]);
+      const end = Number(rangeMatch[2]);
+      const from = Math.min(start, end);
+      const to = Math.max(start, end);
+      for (let value = from; value <= to; value++) {
+        const index = value - 1;
+        if (index >= 0 && index < itemCount) indexes.add(index);
+      }
+      continue;
+    }
+
+    if (/^\d+$/.test(token)) {
+      const index = Number(token) - 1;
+      if (index >= 0 && index < itemCount) indexes.add(index);
+    }
+  }
+
+  return Array.from(indexes);
+}
+
 async function pickMultipleFromList<T>(
   rl: readline.Interface,
   title: string,
@@ -1153,12 +1335,8 @@ async function pickMultipleFromList<T>(
   items.forEach((item, i) =>
     console.log(`${color(String(i + 1), ANSI.yellow)}. ${labelMapper(item)}`)
   );
-  const answer = await rl.question(`\n번호들을 쉼표로 구분하여 입력 (예: 1,2,5): `);
-  return answer
-    .split(",")
-    .map((s) => parseInt(s.trim()) - 1)
-    .filter((n) => n >= 0 && n < items.length)
-    .map((n) => items[n]!);
+  const answer = await rl.question(`\n번호들을 쉼표 또는 범위로 입력 (예: 1,2,3-5): `);
+  return parseSelectionIndexes(answer, items.length).map((n) => items[n]!);
 }
 
 function pathToFileURL(p: string) {

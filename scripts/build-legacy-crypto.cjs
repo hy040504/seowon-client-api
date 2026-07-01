@@ -4,10 +4,20 @@ const path = require("node:path");
 const root = process.cwd();
 const sourceDir = path.join(root, "files", "ecam", "ecamjs");
 const target = path.join(root, "src", "ecampus", "legacy", "login-crypto.cjs");
+const sourceFiles = [
+  "nice.nuguya.oivs.crypto.js",
+  "nice.nuguya.oivs.util.js",
+  "nice.nuguya.oivs.msg.js"
+];
 
-const cryptoSource = readSource("nice.nuguya.oivs.crypto.js");
-const utilSource = readSource("nice.nuguya.oivs.util.js");
-const msgSource = readSource("nice.nuguya.oivs.msg.js");
+const missingSourceFiles = sourceFiles.filter((fileName) => !sourceExists(fileName));
+if (missingSourceFiles.length > 0) {
+  handleMissingSources(missingSourceFiles);
+}
+
+const cryptoSource = readSource(sourceFiles[0]);
+const utilSource = readSource(sourceFiles[1]);
+const msgSource = readSource(sourceFiles[2]);
 
 const output = [
   "// files/ecam/ecamjs의 NICE 원본 스크립트 3개에서 로그인 암호화에 필요한 코드만 추려 만든 모듈입니다.",
@@ -66,6 +76,36 @@ const output = [
 
 fs.mkdirSync(path.dirname(target), { recursive: true });
 fs.writeFileSync(target, output, "utf8");
+
+/**
+ * NICE 원본 스크립트 존재 여부를 확인한다
+ * @param {string} fileName - 확인할 원본 파일명
+ * @returns {boolean} 원본 파일 존재 여부
+ */
+function sourceExists(fileName) {
+  return fs.existsSync(path.join(sourceDir, fileName));
+}
+
+/**
+ * 배포 저장소에 원본 NICE 스크립트가 없을 때 기존 생성물을 재사용한다
+ * @param {string[]} missingSourceFiles - 누락된 원본 파일명 목록
+ * @returns {void}
+ * @throws {Error} 재사용 가능한 legacy 모듈도 없는 경우 발생
+ */
+function handleMissingSources(missingSourceFiles) {
+  if (fs.existsSync(target)) {
+    console.warn(
+      `[build-legacy-crypto] NICE 원본 스크립트가 없어 기존 legacy 모듈을 재사용합니다: ${missingSourceFiles.join(
+        ", "
+      )}`
+    );
+    process.exit(0);
+  }
+
+  throw new Error(
+    `NICE 원본 스크립트가 없고 재사용할 legacy 모듈도 없습니다: ${missingSourceFiles.join(", ")}`
+  );
+}
 
 /**
  * 원본 스크립트를 읽는다

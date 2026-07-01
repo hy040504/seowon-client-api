@@ -1,24 +1,12 @@
+import type { SeowonClient, SeowonClientOptions } from "./types/client.js";
+
+export type { SeowonClient, SeowonClientOptions } from "./types/client.js";
+
 /**
  * seowon-client-api 라이브러리 엔트리 포인트.
  * 서원대학교 e-campus 연동을 위한 모든 공개 인터페이스를 통합 제공한다.
  * 개발자는 이 파일에서 노출된 함수와 클래스만으로 프로젝트의 모든 기능을 수행할 수 있다.
  */
-
-/** 클라이언트 인스턴스 생성을 위한 초기화 옵션 명세 */
-export interface SeowonClientOptions {
-  /** 커스텀 e-campus 기본 URL (기본값: 서원대 공식 도메인) */
-  baseUrl?: string;
-  /** 네트워크 요청에 사용할 fetch API 폴리필 */
-  fetch?: typeof fetch;
-}
-
-/** 서원대 클라이언트의 공통 인프라 기능을 정의한 인터페이스 */
-export interface SeowonClient {
-  /** 현재 활성화된 기본 도메인 */
-  readonly baseUrl: string;
-  /** 상대 경로를 절대 URL 주소로 정규화한다 */
-  resolveUrl(path: string): URL;
-}
 
 const DEFAULT_BASE_URL = "https://ecampus.seowon.ac.kr";
 
@@ -96,12 +84,9 @@ export {
   createLessonViewRequest,
   createStudyRecordRequest,
   createEcampusLessonRequestBundle,
-  parseEcampusLessonListFromSaz,
   parseEcampusLessonListHtml,
-  parseEcampusLessonSchedulesFromSaz,
   parseEcampusLessonSchedulesHtml,
   parseEcampusLessonStudyWindowHtml,
-  parseEcampusLessonStudyWindowsFromSaz,
   parseStudyRecordSnapshot,
   stringifyEcampusLessons,
   getElearningMp4Url,
@@ -128,12 +113,8 @@ export {
   createEmptyEcampusClassroomResources,
   parseEcampusClassroomAttachmentsHtml,
   parseEcampusAssignmentListHtml,
-  parseEcampusAssignmentListFromSaz,
-  parseEcampusClassroomResourcesFromSaz,
   parseEcampusMaterialListHtml,
-  parseEcampusMaterialListFromSaz,
   parseEcampusNoticeListHtml,
-  parseEcampusNoticeListFromSaz,
   stringifyEcampusClassroomItems,
   stringifyEcampusClassroomResources,
   type EcampusClassroomItem,
@@ -145,4 +126,61 @@ export {
 } from "./ecampus/classroom.js";
 
 // 외부 의존성 중 라이브러리 인터페이스에 직접 노출되는 타입들
+export {
+  createEcampusScoreOpenRequest,
+  createEcampusScorePageRequest,
+  createEcampusScoreSummaryRequest,
+  createEcampusScoreSurveyCheckRequest,
+  parseEcampusScoreOpenResponse,
+  parseEcampusScorePageHtml,
+  parseEcampusScoreSummaryHtml,
+  parseEcampusScoreSurveyResponse,
+  resolveEcampusScoreAccess,
+  stringifyEcampusScoreOpenInfo,
+  type EcampusScoreAccessInfo,
+  type EcampusScoreAccessStatus,
+  type EcampusScoreGetRequest,
+  type EcampusScoreOpenInfo,
+  type EcampusScoreOpenJsonResponse,
+  type EcampusScoreOpenReturnVO,
+  type EcampusScorePage,
+  type EcampusScorePageCapture,
+  type EcampusScorePageResult,
+  type EcampusScorePageResponseFormat,
+  type EcampusScorePostRequest,
+  type EcampusScoreParseOptions,
+  type EcampusScoreItem,
+  type EcampusScoreItemKind,
+  type EcampusScoreSummary,
+  type EcampusScoreSummaryCapture,
+  type EcampusScoreSurveyCapture,
+  type EcampusScoreSurveyInfo,
+  type EcampusScoreSurveyJsonResponse,
+  type EcampusScoreSurveyReturnVO,
+  type GetScoreOptions
+} from "./ecampus/score.js";
+
+export {
+  getSazHeaderValue,
+  parseEcampusAssignmentListFromSaz,
+  parseEcampusClassroomResourcesFromSaz,
+  parseEcampusLessonListFromSaz,
+  parseEcampusLessonSchedulesFromSaz,
+  parseEcampusLessonStudyWindowsFromSaz,
+  parseEcampusMaterialListFromSaz,
+  parseEcampusNoticeListFromSaz,
+  parseEcampusScoreOpenInfoFromSaz,
+  parseEcampusScorePageFromSaz,
+  parseEcampusScoreSummariesFromSaz,
+  parseEcampusScoreSurveyInfoFromSaz,
+  parseFiddlerSazSessions,
+  readSazQuery,
+  stringifyEcampusScorePages,
+  stringifyEcampusScoreSummaries,
+  stripSazQuery,
+  type SazHttpRequest,
+  type SazHttpResponse,
+  type SazHttpSession
+} from "./ecampus/saz.js";
+
 export type { SerializedCookieJar } from "tough-cookie";

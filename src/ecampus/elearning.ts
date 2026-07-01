@@ -1,199 +1,44 @@
-import AdmZip from "adm-zip";
+import type {
+  EcampusLessonGetRequest,
+  EcampusLessonItem,
+  EcampusLessonParseOptions,
+  EcampusLessonPostRequest,
+  EcampusLessonRecordOptions,
+  EcampusLessonRequestBundle,
+  EcampusLessonRequestBundleOptions,
+  EcampusLessonSchedule,
+  EcampusLessonStudyStatus,
+  EcampusLessonStudyWindow,
+  EcampusStudyRecordSnapshot,
+  EcampusStudyRecordSnapshotInput,
+  ElearningDownloadResult,
+  ElearningMp4UrlResult
+} from "./types/elearning.js";
+
+export type {
+  EcampusLessonGetRequest,
+  EcampusLessonItem,
+  EcampusLessonParseOptions,
+  EcampusLessonPostRequest,
+  EcampusLessonRecordOptions,
+  EcampusLessonRequestBundle,
+  EcampusLessonRequestBundleOptions,
+  EcampusLessonSchedule,
+  EcampusLessonStudyStatus,
+  EcampusLessonStudyWindow,
+  EcampusStudyRecordSnapshot,
+  EcampusStudyRecordSnapshotInput,
+  ElearningDownloadResult,
+  ElearningMp4UrlResult
+} from "./types/elearning.js";
+
 import * as cheerio from "cheerio";
-import {
-  absoluteUrl,
-  escapeRegExp,
-  normalizeSpace,
-  parseFormBody,
-  parseFunctionArguments,
-  splitHttpMessage
-} from "./utils.js";
+import { absoluteUrl, escapeRegExp, normalizeSpace, parseFunctionArguments } from "./utils.js";
 
 import util from "node:util";
 import fs from "node:fs";
 import path from "node:path";
 import type { AxiosInstance } from "axios";
-
-/** e-러닝 학습 진행 상태를 나타내는 코드 집합 */
-export type EcampusLessonStudyStatus = "STUDY" | "COMPLETE" | string;
-
-/** e-campus 서버로의 데이터 전송을 위한 표준 POST 구조 */
-export interface EcampusLessonPostRequest {
-  method: "POST";
-  url: string;
-  body: Record<string, string>;
-}
-
-/** 데이터 조회를 위한 표준 GET 구조 */
-export interface EcampusLessonGetRequest {
-  method: "GET";
-  url: string;
-  query: Record<string, string>;
-}
-
-/** 개별 온라인 강의(차시)에 대한 정밀 메타데이터 */
-export interface EcampusLessonItem {
-  /** 주차별 묶음 식별자 */
-  lessonScheduleId: string;
-  /** 주차별 묶음 제목 */
-  scheduleTitle?: string;
-  /** 콘텐츠 고유 식별자 */
-  lessonCntsId: string;
-  /** 강의 제목 */
-  title: string;
-  /** 강의 유형 (동영상, 과제 등) */
-  typeLabel?: string;
-  /** 정규 수강 기간 */
-  period?: string;
-  /** 지각 수강 허용 기간 */
-  extraPeriod?: string;
-  /** 재생 시간 텍스트 (예: 25분 30초) */
-  durationText?: string;
-  /** 재생 시간 총 초 단위 수치 */
-  durationSeconds?: number;
-  /** 출결 상태 문구 */
-  attendanceStatus?: string;
-  /** 강의 시작 일시 */
-  lessonStartDttm?: string;
-  /** 상세 진입을 위한 사전 구성 요청 정보 */
-  viewRequest: EcampusLessonPostRequest;
-  /** 시청 창 오픈을 위한 사전 구성 요청 정보 */
-  studyWindowRequest: EcampusLessonPostRequest;
-}
-
-/** 주차별로 그룹화된 강의 정보 구조 */
-export interface EcampusLessonSchedule {
-  lessonScheduleId: string;
-  title: string;
-  period?: string;
-  summary?: string;
-  lessons: EcampusLessonItem[];
-}
-
-/** 동영상 시청 창에서 추출된 실시간 세션 메타데이터 */
-export interface EcampusLessonStudyWindow {
-  crsCreCd: string;
-  lessonCntsId: string;
-  /** 사용자 식별용 고유 번호 */
-  stdNo?: string;
-  /** 서버 측 세션 추적용 고유 ID (학습 기록 전송 시 필수) */
-  studyDetailId?: string;
-  /** 현재 서버에 기록된 학습 상태 */
-  currentStudyStatusCd?: EcampusLessonStudyStatus;
-  /** 실제 영상/콘텐츠가 호스팅된 주소 */
-  contentUrl?: string;
-  /** 콘텐츠 기술 방식 분류 */
-  contentKind: "mp4" | "hls" | "youtube" | "ted" | "doczoom" | "url" | "unknown";
-  /** 학습 기록 전송을 위해 미리 구성된 GET 요청 정보 */
-  recordRequest?: EcampusLessonGetRequest;
-}
-
-/** 학습 기록 생성을 위한 가변적인 입력 데이터 조각 */
-export interface EcampusStudyRecordSnapshotInput {
-  baseUrl?: string;
-  crsCreCd?: string;
-  lessonCntsId?: string;
-  contentUrl?: string;
-  contentKind?: EcampusLessonStudyWindow["contentKind"];
-  lessonScheduleId?: string;
-  stdNo?: string;
-  studyDetailId?: string;
-  studyStatusCd?: EcampusLessonStudyStatus;
-  studyTotalTm?: number | string;
-  studyAfterTm?: number | string;
-  studySessionLoc?: number | string;
-  studyMaxLoc?: number | string;
-  playerTm?: number | string;
-  progressTm?: number | string;
-}
-
-/** 특정 시점의 학습 상태를 보존하고 재현하기 위한 스냅샷 */
-export interface EcampusStudyRecordSnapshot {
-  baseUrl: string;
-  lessonScheduleId?: string;
-  lessonCntsId: string;
-  crsCreCd: string;
-  stdNo?: string;
-  studyDetailId?: string;
-  currentStudyStatusCd?: EcampusLessonStudyStatus;
-  contentUrl?: string;
-  contentKind: EcampusLessonStudyWindow["contentKind"];
-  recordRequest?: EcampusLessonGetRequest;
-}
-
-/** 학습 기록 서버 동기화를 위한 정규화된 옵션 */
-export interface EcampusLessonRecordOptions {
-  crsCreCd: string;
-  lessonCntsId: string;
-  stdNo: string;
-  studyDetailId?: string;
-  /** 누적 학습 시간(초) */
-  studyTotalTm?: number | string;
-  /** 세션 내 추가 학습 시간 */
-  studyAfterTm?: number | string;
-  studyStatusCd?: EcampusLessonStudyStatus;
-  /** 마지막 재생 위치 */
-  studySessionLoc?: number | string;
-  /** 최대 재생 위치 */
-  studyMaxLoc?: number | string;
-  /** 플레이어 현재 시각 */
-  playerTm?: number | string;
-  /** 실제 진행 시간 */
-  progressTm?: number | string;
-}
-
-/** 강의 목록 파싱 시 컨텍스트 유지를 위한 옵션 */
-export interface EcampusLessonParseOptions {
-  baseUrl?: string;
-  crsCreCd?: string;
-  progressTypeCd?: string;
-}
-
-/** 자동화 요청 세트 구성을 위한 입력 옵션 */
-export interface EcampusLessonRequestBundleOptions extends EcampusStudyRecordSnapshotInput {
-  baseUrl?: string;
-  progressTypeCd?: string;
-}
-
-/** 특정 강의에 대한 모든 네트워크 상호작용 정보의 집합 */
-export interface EcampusLessonRequestBundle {
-  viewRequest: EcampusLessonPostRequest;
-  studyWindowRequest: EcampusLessonPostRequest;
-  recordRequest?: EcampusLessonGetRequest;
-  snapshot: EcampusStudyRecordSnapshot;
-}
-
-/** 스트리밍 주소 분석 결과 객체 */
-export interface ElearningMp4UrlResult {
-  success: boolean;
-  mp4Url?: string;
-  message?: string;
-  debugInfo?: {
-    crsCreCd: string;
-    lessonCntsId: string;
-    contentUrl?: string;
-    contentKind?: string;
-    htmlSnippets?: string[];
-    [key: string]: any;
-  };
-}
-
-/** 파일 다운로드 수행 결과 정보 */
-export interface ElearningDownloadResult {
-  success: boolean;
-  filePath?: string;
-  message?: string;
-}
-
-/** 로컬 패킷 분석을 위한 세션 레코드 인터페이스 */
-interface RawHttpSession {
-  request: {
-    method: string;
-    url: string;
-    body: Record<string, string>;
-  };
-  responseBody: string;
-}
 
 const DEFAULT_BASE_URL = "https://ecampus.seowon.ac.kr";
 const DEFAULT_PROGRESS_TYPE_CD = "WEEK";
@@ -567,30 +412,6 @@ export function parseEcampusLessonListHtml(
   return lessons.length > 0 ? lessons : parseLooseLessonCards(html, options);
 }
 
-/** SAZ 패킷에서 주차별 강의 구조를 복원 */
-export function parseEcampusLessonSchedulesFromSaz(
-  saz: Buffer | Uint8Array,
-  options: EcampusLessonParseOptions = {}
-): EcampusLessonSchedule[] {
-  for (const session of parseSazHttpSessions(saz)) {
-    const html = session.responseBody;
-    if (!html.includes("dropdown_") || !html.includes("lessonCntsId")) continue;
-
-    const schedules = parseEcampusLessonSchedulesHtml(html, options);
-    if (schedules.length > 0) return schedules;
-  }
-
-  return [];
-}
-
-/** SAZ 패킷에서 평탄화된 강의 목록을 복원 */
-export function parseEcampusLessonListFromSaz(
-  saz: Buffer | Uint8Array,
-  options: EcampusLessonParseOptions = {}
-): EcampusLessonItem[] {
-  return parseEcampusLessonSchedulesFromSaz(saz, options).flatMap((s) => s.lessons);
-}
-
 /** 시청 창 HTML에서 핵심 메타데이터 추출 */
 export function parseEcampusLessonStudyWindowHtml(
   html: string,
@@ -611,46 +432,6 @@ export function parseEcampusLessonStudyWindowHtml(
       $("#studyDetailId").attr("value") ||
       extractFirstValue(html, /studyDetailId["']?\s*:\s*["']([^"']+)/)
   };
-}
-
-/** SAZ 패킷에서 강의 재생 창과 학습 기록 요청 정보를 추출 */
-export function parseEcampusLessonStudyWindowsFromSaz(
-  saz: Buffer | Uint8Array,
-  options: EcampusLessonParseOptions = {}
-): EcampusLessonStudyWindow[] {
-  const sessions = parseSazHttpSessions(saz);
-  const recordRequests = sessions
-    .filter((session) => session.request.url.includes(ADD_STUDY_RECORD_PATH))
-    .map((session) => ({
-      method: "GET" as const,
-      url: stripQuery(session.request.url),
-      query: readQuery(session.request.url)
-    }));
-
-  return sessions
-    .filter((session) => {
-      const html = session.responseBody;
-      return (
-        html.includes("lessonCntsId") &&
-        (html.includes("cntsUrl") || html.includes("studyDetailId"))
-      );
-    })
-    .map((session) => {
-      const window = parseEcampusLessonStudyWindowHtml(session.responseBody, options);
-      const recordRequest = recordRequests.find(
-        (request) => request.query.lessonCntsId === window.lessonCntsId
-      );
-
-      if (recordRequest) {
-        window.recordRequest = recordRequest;
-        window.stdNo = recordRequest.query.stdNo;
-        window.studyDetailId = window.studyDetailId ?? recordRequest.query.studyDetailId;
-        window.currentStudyStatusCd = recordRequest.query.studyStatusCd;
-      }
-
-      return window;
-    })
-    .filter((window) => window.lessonCntsId);
 }
 
 /** 학습 창 정보에서 재사용 가능한 학습 기록 스냅샷 생성 */
@@ -817,67 +598,6 @@ function classifyContentUrl(
 /** 텍스트 정규식 도우미 */
 function extractFirstValue(source: string, pattern: RegExp): string | undefined {
   return source.match(pattern)?.[1];
-}
-
-function parseSazHttpSessions(saz: Buffer | Uint8Array): RawHttpSession[] {
-  const zip = new AdmZip(Buffer.from(saz));
-  const parts = new Map<string, { request?: string; response?: string }>();
-
-  for (const entry of zip.getEntries()) {
-    const match = entry.entryName.match(/raw[/\\](\d+)_(c|s)\.txt$/i);
-    if (!match?.[1] || !match[2]) continue;
-
-    const part = parts.get(match[1]) ?? {};
-    if (match[2].toLowerCase() === "c") part.request = entry.getData().toString("utf8");
-    else part.response = entry.getData().toString("utf8");
-    parts.set(match[1], part);
-  }
-
-  return [...parts.values()].flatMap((part) => {
-    if (!part.request || !part.response) return [];
-
-    const [requestHead, requestBody] = splitHttpMessage(part.request);
-    const [, responseBody] = splitHttpMessage(part.response);
-    const request = parseRawHttpRequest(requestHead, requestBody);
-    if (!request) return [];
-
-    return [{ request, responseBody }];
-  });
-}
-
-function parseRawHttpRequest(head: string, body: string): RawHttpSession["request"] | undefined {
-  const lines = head.split(/\r?\n/);
-  const requestLine = lines[0];
-  if (!requestLine) return undefined;
-
-  const [method = "GET", target = ""] = requestLine.split(/\s+/);
-  const headers = new Map<string, string>();
-
-  for (const line of lines.slice(1)) {
-    const separator = line.indexOf(":");
-    if (separator < 0) continue;
-    headers.set(line.slice(0, separator).trim().toLowerCase(), line.slice(separator + 1).trim());
-  }
-
-  const host = headers.get("host") ?? new URL(DEFAULT_BASE_URL).host;
-  const url = target.startsWith("http") ? target : `https://${host}${target}`;
-  const parsedBody = method.toUpperCase() === "POST" ? parseFormBody(body) : {};
-
-  return { method, url, body: parsedBody };
-}
-
-function stripQuery(url: string): string {
-  const parsed = new URL(url);
-  parsed.search = "";
-  return parsed.toString();
-}
-
-function readQuery(url: string): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [key, value] of new URL(url).searchParams) {
-    result[key] = value;
-  }
-  return result;
 }
 
 /** 라벨 기반 텍스트 추출 */

@@ -2,18 +2,30 @@ import puppeteer from "puppeteer-core";
 import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
+import { CookieJar } from "tough-cookie";
 
 const CHROME_PATH = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 const PROFILE_DIR = path.resolve(process.cwd(), ".puppeteer-user-data");
 const CAPTURE_DIR = path.resolve(process.cwd(), "captures/live");
+const ECAMPUS_ORIGIN = "https://ecampus.seowon.ac.kr";
+const COOKIE_EXPORT_FILE = path.resolve(process.cwd(), ".seowon-ecampus.cookies.json");
 
 const RELEVANT_PATHS = [
+  "scoreLect",
+  "scoreHome",
+  "viewStdScore",
+  "viewStdScoreSumm",
+  "viewStdScoreItem",
+  "checkStdReshJoin",
+  "cheeckStdReshJoin",
+  "viewHaksaResearchInfo",
   "viewAtclForm",
   "classRoomAtclList",
   "atclList",
   "viewAtcl",
   "bbsLect",
   "materials",
+  "성적",
   "강의자료"
 ];
 
@@ -23,6 +35,26 @@ function ensureDir(dir) {
 
 function sanitize(name) {
   return name.replace(/[\/\\:*?"<>|]/g, "_").substring(0, 100);
+}
+
+async function exportEcampusCookies(page, outputPath = COOKIE_EXPORT_FILE) {
+  const cookies = await page.cookies(ECAMPUS_ORIGIN);
+  const jar = new CookieJar();
+
+  for (const cookie of cookies) {
+    const parts = [`${cookie.name}=${cookie.value}`, `Path=${cookie.path || "/"}`];
+    if (cookie.domain) parts.push(`Domain=${cookie.domain}`);
+    if (cookie.secure) parts.push("Secure");
+    if (cookie.httpOnly) parts.push("HttpOnly");
+    if (cookie.expires && cookie.expires > 0) {
+      parts.push(`Expires=${new Date(cookie.expires * 1000).toUTCString()}`);
+    }
+
+    jar.setCookieSync(parts.join("; "), ECAMPUS_ORIGIN);
+  }
+
+  fs.writeFileSync(outputPath, JSON.stringify(jar.serializeSync(), null, 2), "utf8");
+  return cookies.length;
 }
 
 async function saveCapture(page, url, request, response, body) {
@@ -137,10 +169,17 @@ async function main() {
   console.log(
     "- 로그인 상태 유지를 위해 기존 프로필을 사용합니다 (깨끗한 세션은 FRESH_PROFILE=1 환경변수 사용)."
   );
-  console.log("- 평소처럼 사용하세요: 로그인 → 과목 → 강의자료 → 상세 보기 → 다운로드.");
-  console.log("- 스크립트가 관련 HTML과 요청을 자동으로 캡처합니다 (viewAtclForm, 다운로드 등).");
+  console.log("- 평소처럼 사용하세요: 로그인 → 과목 → 성적확인 또는 강의자료 → 상세 보기.");
+  console.log(
+    "- 스크립트가 관련 HTML과 요청을 자동으로 캡처합니다 (viewStdScore, viewAtclForm, 다운로드 등)."
+  );
   console.log(
     '- 언제든 여기서 "save" + Enter를 입력하면 현재 페이지와 최근 트래픽을 강제로 저장합니다.'
+  );
+  console.log(
+    `- "cookies" + Enter를 입력하면 현재 브라우저 세션 쿠키를 ${path.basename(
+      COOKIE_EXPORT_FILE
+    )}에 저장합니다.`
   );
   console.log("- Chrome 창을 닫거나 여기서 Ctrl+C를 누르면 종료됩니다.");
   console.log("");
@@ -332,8 +371,15 @@ async function main() {
       await browser.close();
       rl.close();
       process.exit(0);
+    } else if (line.trim().toLowerCase() === "cookies") {
+      try {
+        const count = await exportEcampusCookies(page);
+        console.log(`[쿠키 저장] e-campus 쿠키 ${count}개를 ${COOKIE_EXPORT_FILE}에 저장했습니다.`);
+      } catch (e) {
+        console.error("쿠키 저장 실패:", e.message);
+      }
     } else {
-      console.log('명령어: "save" (현재 페이지 저장), "exit"');
+      console.log('명령어: "save" (현재 페이지 저장), "cookies" (세션 쿠키 저장), "exit"');
     }
   });
 

@@ -1,52 +1,21 @@
+import type {
+  EcampusCourse,
+  EcampusCourseCategory,
+  EcampusCourseGroups,
+  EcampusCourseListItem
+} from "./types/courses.js";
+
+export type {
+  EcampusCourse,
+  EcampusCourseCategory,
+  EcampusCourseGroups,
+  EcampusCourseListItem,
+  EcampusCourseNamesJson,
+  EcampusCourseTypeCode
+} from "./types/courses.js";
+
 import * as cheerio from "cheerio";
 import { normalizeSpace } from "./utils.js";
-
-/** 과목의 학사 관리상 분류 (교과 또는 비교과) */
-export type EcampusCourseCategory = "curricular" | "extracurricular";
-/** 서버에서 정의한 과목 종류 식별 코드 */
-export type EcampusCourseTypeCode = "UNI" | "CO" | string;
-
-/** 기초 과목 정보 스키마 */
-export interface EcampusCourseListItem {
-  /** 과목의 전체 명칭 */
-  title: string;
-  /** 시스템 내부의 강의실 고유 식별자 */
-  crsCreCd: string;
-  /** 과목의 물리적 타입 코드 */
-  crsTypeCd: EcampusCourseTypeCode;
-}
-
-/** 세밀한 학사 정보를 포함한 확장 과목 모델 */
-export interface EcampusCourse extends EcampusCourseListItem {
-  /** 전역 유일 식별자 */
-  id: string;
-  /** 교과/비교과 구분 */
-  category: EcampusCourseCategory;
-  /** 화면상에 표시된 분반 또는 학기 라벨 */
-  label: string;
-  /** 해당 과목의 분반 코드 */
-  section?: string;
-  /** 파싱 전의 원시 타입 코드 */
-  rawTypeCode: EcampusCourseTypeCode;
-}
-
-/** 과목 데이터의 그룹화 및 가공 결과물 */
-export interface EcampusCourseGroups {
-  /** 일반 교과 과목 리스트 */
-  curricular: EcampusCourse[];
-  /** 비교과/세미나 과목 리스트 */
-  extracurricular: EcampusCourse[];
-  /** 교과 과목 명칭 배열 */
-  curricularCourseNames: string[];
-  /** 비교과 과목 명칭 배열 */
-  extracurricularCourseNames: string[];
-}
-
-/** 레거시 연동을 위한 단순 명칭 리스트 구조 */
-export interface EcampusCourseNamesJson {
-  curricularCourseNames: string[];
-  extracurricularCourseNames: string[];
-}
 
 /** 강의실 메인 진입을 담당하는 내부 스크립트 호출 패턴 */
 const CLASS_ROOM_ONCLICK_PATTERN =

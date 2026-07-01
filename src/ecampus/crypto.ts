@@ -1,23 +1,9 @@
+import type { LoginEncryptOptions } from "./types/crypto.js";
+import type { LegacyScrypto } from "./types/internal.js";
+
+export type { LoginEncryptOptions } from "./types/crypto.js";
+
 import { createRequire } from "node:module";
-
-/** e-campus 로그인 시 요구되는 부가 보안 옵션 */
-export interface LoginEncryptOptions {
-  /** 로그인의 기술적 사유 또는 목적 코드 */
-  reason?: string;
-  /** 내국인/외국인 구분 플래그 */
-  foreigner?: string;
-}
-
-/** 서버에서 내려받은 레거시 JavaScript 암호화 라이브러리의 인터페이스 */
-interface LegacyScrypto {
-  /** 사용자 정보를 조합하여 서버 전송용 최종 암호화 패킷을 생성한다 */
-  makeSendInfo(
-    userId: string,
-    encodedPassword: string,
-    reason?: string,
-    foreigner?: string
-  ): string;
-}
 
 // ESM 환경에서 기존 CommonJS 기반의 복잡한 암호화 로직을 그대로 사용하기 위해 Require 생성
 const require = createRequire(import.meta.url);

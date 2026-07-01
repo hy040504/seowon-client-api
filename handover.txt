@@ -1,35 +1,45 @@
 seowon-client-api 인수인계 문서
-최종 수정일: 2026-06-09
-작업 폴더: 프로젝트 루트
+최종 수정일: 2026-07-01
+작업 위치: 프로젝트 루트
 
 [1. 프로젝트 개요]
 
-서원대학교 e-campus(LMS)에 로그인하고 과목, 공지, 강의자료, 과제, 이러닝 차시, 영상 주소 분석, 영상 다운로드, 학습 기록 갱신을 처리하는 TypeScript 클라이언트와 CLI 도구 세트입니다.
+서원대학교 e-campus(LMS)의 화면 흐름과 HTTP 요청을 TypeScript 코드로 다루기 위한 비공식 클라이언트 및 CLI 도구 모음입니다.
 
-공식 LMS SDK가 아니라 화면 흐름과 HTTP 요청을 분석해 만든 비공식 클라이언트입니다. 계정 정보, 쿠키, LMS HTML, 패킷 캡처를 외부에 노출하지 않아야 합니다.
+주요 기능:
+- 로그인 encryptData 생성 및 쿠키 세션 유지
+- 교과/비교과 과목 목록 조회
+- 공지사항, 강의자료, 과제 목록 조회
+- 강의자료 상세 fragment 분석 및 첨부 다운로드
+- 이러닝 주차/차시 파싱, MP4 URL 분석, 영상 다운로드
+- 이러닝 학습 기록 갱신과 자동 시청
+- 현재 기간 내 미완료 이러닝 탐색
+- 현재 제출 가능한 미제출 과제 목록/본문 조회
+- 성적 공개 여부, 설문 게이트, 항목별 점수, 총점, 등급 조회
+- Fiddler SAZ 패킷 기반 로컬 파서 검증
+
+공식 LMS SDK가 아닙니다. 계정 정보, 쿠키, LMS HTML/SAZ 캡처, 다운로드 파일은 민감 데이터로 취급합니다.
 
 [2. 실행 환경]
 
 - Node.js 20+
 - npm
-- ESM 패키지: package.json의 "type": "module"
+- package.json: ESM 패키지("type": "module")
 - TypeScript strict mode
-- Windows PowerShell 기준으로 개발 및 확인
+- Windows PowerShell 기준으로 개발 및 검증
 
 주요 환경 변수:
+- SEOWON_ID: 로그인 아이디 또는 학번
+- SEOWON_PASSWORD: 로그인 비밀번호
+- DOWNLOAD_HIGH_WATER_MARK: 다운로드 버퍼 크기(KB), 기본값 1024
 
-- SEOWON_ID: 아이디 또는 학번
-- SEOWON_PASSWORD: 비밀번호
-- DOWNLOAD_HIGH_WATER_MARK: 다운로드 쓰기 버퍼 크기(KB), 기본값 1024
-
-[3. 실행 도구]
+[3. CLI 도구]
 
 1) npm run prompt:client
 
 개별 API 응답과 파싱 결과를 직접 확인하는 진단용 CLI입니다.
 
 지원 명령:
-
 - login
 - courses
 - notices
@@ -43,14 +53,11 @@ seowon-client-api 인수인계 문서
 - elearning-watch
 - help
 
-elearning-watch는 학습 세션 시작 후 유지 모드로 들어갑니다. 중단 시 Ctrl+C를 사용합니다.
-
 2) npm run auto:manager
 
-반복 작업 처리용 CLI입니다.
+반복 작업을 처리하는 실사용 CLI입니다.
 
 현재 메뉴:
-
 1. 로그인 / 로그인 정보 갱신
 2. 이러닝 일괄 다운로드 (전체 대기열 시각화)
 3. 이러닝 순차 자동 시청 (고급 로그 제어)
@@ -59,260 +66,197 @@ elearning-watch는 학습 세션 시작 후 유지 모드로 들어갑니다. �
 6. 현재 수행 가능한 전 과목 미제출 과제 목록
 7. 현재 수행 가능한 과제 선택 및 상세내용 보기
 8. 강의자료 다운로드 (일괄 + 첨부 분석/미리보기)
+9. 교과 과목 전체 성적(등급) 조회
 0. 종료
 
-[4. auto-manager 최신 동작]
+여러 항목 선택은 "1,2,3-5"처럼 쉼표와 범위를 지원합니다.
 
-1) 로그인과 자동 재로그인
-
-- 시작 시 .seowon-ecampus.cookies.json을 불러옵니다.
-- 유효한 쿠키가 있으면 기존 세션을 재사용합니다.
-- 작업 중 SESSION_EXPIRED 또는 "로그인" 포함 오류를 만나면 저장 계정 또는 .env로 재로그인합니다.
-- 재로그인 성공 시 원래 작업을 한 번 다시 실행합니다.
-
-2) 이러닝 다운로드
-
-- 선택한 과목의 여러 차시를 큐에 넣습니다.
-- 동시 다운로드 수는 사용자 입력을 받고 1~5 범위로 제한합니다.
-- 저장 경로는 downloads/<과목명>/<차시명>.mp4입니다.
-- DOWNLOAD_HIGH_WATER_MARK를 KB 단위로 읽어 스트림 쓰기 버퍼로 사용합니다.
-- 메뉴 2 다운로드 선택 목록과 다운로드 진행 큐에는 [n 주차] 접두어를 표시합니다.
-- 실제 다운로드 파일명은 기존 차시명 그대로 유지합니다.
-
-3) 순차 자동 시청
-
-- 메뉴 3은 한 과목에서 선택한 차시를 순차 처리합니다.
-- 메뉴 5는 전 과목에서 현재 수강 기간 안에 있고 상태가 학습중(지각) 또는 미학습(결석)인 차시를 찾습니다.
-- 메뉴 5의 자동 시청 확인 기본값은 Y입니다.
-- 각 차시는 durationSeconds 동안 유지하고, 값이 없으면 3600초를 사용합니다.
-- 메뉴 3 선택 목록, 메뉴 5 대상 목록, 시청 대기 문구에는 [n 주차] 접두어를 표시합니다.
-- 이러닝 주차는 src/ecampus/elearning.ts의 EcampusLessonItem.scheduleTitle에 저장된 주차 묶음 제목에서 읽습니다.
-
-TTY 터미널에서는 3줄 고정 상태 영역을 사용합니다.
-
-[ElearningSession] 학습 중... (서버 학습 률: 31.6%, 누적 180초) ⠴
-[ElearningSession] 학습 이력 갱신 대기 중...
-|████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░|  31.6% 15분 48초 / 50분 0초
-
-- 첫 번째 줄: addStudyRecord 응답의 prgrRatio 기반 서버 학습률, 누적 시간, ⠋ ⠙ ⠹ ⠸ ⠼ ⠴ 스피너
-- 서버 학습률 표시값은 소수점 문자열이 반환되면 소수점 형식을 유지
-- 두 번째 줄: ".", "..", "..." 순환 대기 애니메이션
-- viewLessonStudyDetail 확인 직후: 확인 문구가 초록색으로 나타나고 약 5초 동안 흰색으로 변한 뒤 대기 상태로 복귀
-- 세 번째 줄: 기존 로컬 경과 시간 기준 진행바. 첫 번째 줄의 서버 학습률과 다를 수 있음
-- TTY가 아닌 출력 환경: ANSI 커서 이동 없이 단일 진행 줄만 갱신
-- NO_COLOR 환경 변수: 색상 비활성화
-
-4) 과제 조회
-
-- 메뉴 4: 교과 과목을 순회하여 status가 미제출 또는 진행중인 과제 출력
-- 메뉴 6: 전 과목에서 현재 날짜가 제출 기간 안에 있고 제출 완료되지 않은 과제 출력
-- 메뉴 7: 메뉴 6과 같은 과제를 선택한 뒤 상세 HTML의 과제내용 본문만 출력
-- 메뉴 4, 6, 7의 과제 목록과 상세 조회 시작 문구는 과제 제목 안의 n주차/[n주차] 패턴을 [n 주차] 형식으로 표준화합니다.
-- 주차를 찾지 못한 과제 제목은 그대로 표시합니다.
-
-5) 강의자료 다운로드 및 상세 분석
-
-- 메뉴 8은 과목별 강의자료 목록을 listScale=1000으로 불러온 뒤 사용자가 여러 항목을 선택할 수 있습니다.
-- 이전 메뉴 8(일괄 다운로드)과 메뉴 9(request 기반 상세 분석)는 현재 메뉴 8 하나로 통합되었습니다.
-- 선택된 강의자료는 먼저 client.getMaterialAttachments()로 첨부파일을 미리 분석하고, 첨부가 있는 항목만 다운로드 큐에 넣습니다.
-- 저장 경로는 downloads/<과목명>/강의자료들/<강의자료명>/ 입니다.
-- 강의자료 상세 HTML에서 첨부 후보 링크를 추출하는 파서는 parseEcampusClassroomAttachmentsHtml() 입니다.
-- 첨부 링크 후보는 첨부/파일/다운로드 문맥을 가진 앵커와 버튼 중심으로 찾습니다.
-
-- 메뉴 8의 첨부 분석은 request 객체를 직접 활용해 상세 분석을 수행합니다.
-  - 과목 선택 → 강의자료 다중 선택
-  - request로 /bbs/bbsLect/viewAtcl POST → 상세 fragment 획득
-  - parseEcampusClassroomAttachmentsHtml로 첨부 목록 추출 및 미리보기 출력
-  - 확인 후 다운로드 (preloadedAttachments로 중복 fetch 최소화)
-- 최근 분석(2026-06): unpacked SAZ 패킷 헤더(files/e러닝-expanded/sessions/*.md)에서 navigation 스타일 POST 헤더를 참고하여 요청 개선.
-  - sec-ch-ua*, Sec-Fetch-Mode: navigate, full Accept, Cache-Control 추가
-  - X-Requested-With 제거 (viewAtclForm은 form submit navigation)
-  - Referer를 classRoomMainForm 스타일로 조정
-- 발견: viewAtclForm 직접 POST 응답은 shell(#bbsAtclView + hidden atclId + JS)만 반환.
-  - 실제 제목/본문/첨부는 후속 JS load("/bbs/bbsLect/viewAtcl", "/bbs/bbsLect/atclList" 등)로 동적 로드.
-  - 따라서 단일 POST만으로는 parser가 attachments를 찾지 못하는 경우가 많음 (샘플에서도 0).
-- 로컬 샘플: tmp-sample-material-detail-another.html (다른 과목의 실시간 강의자료 상세 HTML, hasAttachment=true).
-  - 이전 샘플(tmp-sample-material-detail.html)은 제거.
-- prompt-client의 "4. 강의실자료 (materials)"로 목록 JSON(request 포함)을 확인한 뒤, auto-manager 메뉴 8로 상세 분석/다운로드 연계 가능.
-
-메뉴 7 본문 처리:
-
-- .inline.field 중 label.label-title 텍스트가 "과제내용"인 영역 선택
-- 내부 .note-editable만 선택
-- script, style, noscript 제거
-- br과 p/div/li/h1~h6/blockquote/pre/tr를 줄바꿈으로 정리
-- 연속 공백 정리 및 빈 줄 제거
-- 원문은 요약하거나 다시 작성하지 않음
-- 숫자 목록은 노란색, <제출물> 형태 소제목은 청록색, *, -, • 목록 기호는 초록색
-- LMS 템플릿 변경으로 .note-editable을 찾지 못하면 경고 출력
-
-[5. ElearningSession 동작 순서]
-
-src/ecampus/elearning.ts의 ElearningSession은 단일 차시의 학습 기록 라이프사이클을 처리합니다.
-
-1. lessonNewWindow 호출
-2. viewLessonCmnt 호출
-3. 최초 addStudyRecord 호출: 60초
-4. 응답의 prgrRatio를 서버 학습률 표시값에 반영
-5. 응답에서 studyDetailId 확보
-6. 첫 주기 갱신: 25~35초 후
-7. 이후 주기 갱신: 45~75초 간격
-8. 각 갱신 시 누적 시간을 60초 증가
-9. addStudyRecord 응답의 prgrRatio로 서버 학습률 갱신
-10. 각 갱신 후 viewLessonStudyDetail 호출
-11. 종료 시 exitStudy 호출
-
-서버 응답에 prgrRatio가 있으면 progressPercent에 숫자로 반영하고, 화면 표시용 progressPercentText에는 원본 소수점 형식을 보존합니다.
-
-[6. 핵심 모듈]
+[4. 핵심 모듈]
 
 - src/index.ts
-  - 패키지 공개 API 엔트리
-  - createSeowonClient와 createEcampusClient 계열 API 재수출
+  - 패키지 공개 API 엔트리 포인트
+  - createSeowonClient, createEcampusClient, 파서, 타입, SAZ 유틸 export
 
 - src/ecampus/login.ts
-  - EcampusClient
-  - 로그인, 쿠키 세션 유지, 과목 조회
-  - 공지/자료/과제 조회
-  - 이러닝 목록, 시청 창, MP4 분석, 다운로드 래퍼
-  - addStudyRecord, viewLessonStudyDetail
+  - EcampusClient 구현
+  - 로그인, 세션/쿠키, 공통 HTTP 요청 헬퍼
+  - 과목/공지/자료/과제/이러닝/성적 메서드 연결
+  - downloadMaterialAttachments 포함
+
+- src/ecampus/cookies.ts
+  - tough-cookie CookieJar 저장/복원
+  - 저장된 쿠키 사용 가능성 검사
 
 - src/ecampus/crypto.ts
   - 로그인 encryptData 생성
-  - 생성된 CommonJS 레거시 암호화 모듈 호출
-
-- src/ecampus/legacy/login-crypto.cjs
-  - NICE 원본 스크립트에서 추출해 생성한 로그인 암호화 코드
-  - 현재 Git 추적 대상
-
-- src/ecampus/cookies.ts
-  - tough-cookie CookieJar 저장, 복원, 유효성 확인
+  - src/ecampus/legacy/login-crypto.cjs 호출
 
 - src/ecampus/courses.ts
-  - 과목 목록 파싱
+  - 과목 목록 JSON/HTML 파싱
   - 교과/비교과 그룹 구성
 
 - src/ecampus/classroom.ts
-  - 공지, 강의자료, 과제 HTML 파싱
-  - 통합 리소스 구조
-  - SAZ 기반 리소스 복원
+  - 공지사항, 강의자료, 과제 HTML 파싱
+  - 강의자료 상세 fragment 첨부 파싱
+  - javascript:fileDown('TOKEN') 및 /file/download/TOKEN URL 처리
 
 - src/ecampus/elearning.ts
-  - 주차/차시 HTML 파싱
+  - 이러닝 주차/차시 HTML 파싱
   - EcampusLessonItem.scheduleTitle로 주차 묶음 제목 보존
-  - loose card fallback 파싱
-  - 기간, 기간 외 학습기간, 출결 상태 추출
-  - SAZ 기반 이러닝 복원
-  - 콘텐츠 분류, MP4 주소 분석, 다운로드
-  - ElearningSession
+  - 콘텐츠 유형 분류, MP4 URL 분석, 다운로드
+  - ElearningSession 학습 기록 라이프사이클 처리
 
-- src/ecampus/classroom.ts
-  - 공지/자료/과제 HTML 파싱
-  - 자료실 상세의 첨부파일 링크 파싱
+- src/ecampus/score.ts
+  - scoreOpenJson 공개 상태 파싱
+  - 성적 조회 전 설문 게이트 판정
+  - 성적 페이지 HTML에서 stdNo, summary 요청 정보 추출
+  - viewStdScoreSumm fragment에서 항목별 점수, 총점, 등급 추출
 
-- src/cli-ui.ts
-  - ANSI 색상
-  - JSON 색상 출력
-  - 입력, 단일 선택, 진행바
+- src/ecampus/saz.ts
+  - Fiddler SAZ raw HTTP 세션 복원
+  - classroom, elearning, score 계열 SAZ 기반 파서 진입점
+  - SAZ 파일은 files/에 보관하는 로컬 캡처로 취급하고 Git에는 올리지 않음
 
-- prompt-client.js
-  - 개별 API 확인용 JS/ESM CLI
-  - TypeScript 문법을 넣지 말 것
+- src/ecampus/types/
+  - 기능별 공개 타입 분리
 
-- auto-manager.ts
-  - 반복 작업 CLI
-  - 다운로드 큐, 순차 자동 시청, 과제 탐색, 고정 상태 UI
-  - formatTitleWithWeek 계열 헬퍼로 이러닝/과제 목록의 [n 주차] 접두어 표준화
-  - 강의자료 첨부파일 분석/미리보기/일괄 다운로드 통합 메뉴(8)
+- src/types/auto-manager.ts
+  - auto-manager 전용 상태/결과 타입
 
-[7. MP4 주소 분석 순서]
+[5. 성적 조회 구현 상태]
 
-src/ecampus/elearning.ts의 getElearningMp4Url()은 다음 순서로 MP4 주소를 찾습니다.
+성적 조회 흐름:
+1. GET /crs/scoreLect/scoreOpenJson?crsCreCd=...
+2. 공개 시간, 공개 여부, 설문 게이트 판정
+3. POST /crs/creCrsLect/Form/classRoomMainForm with crsCreCd, mcd=""
+4. GET /crs/scoreLect/Form/viewStdScore?crsCreCd=...
+5. HTML hidden input에서 stdNo, crsCreCd 추출
+6. POST /crs/scoreHome/viewStdScoreSumm with stdNo, crsCreCd
+7. .tbl_container .tbl_item에서 항목명/값/총점/등급 추출
 
-1. <source type="video/mp4"> 또는 #lessonVodSrc
-2. eplus.seowon.ac.kr/WebContentStorage/...mp4?tsdata=... 정규식
-3. VideoPlayerWidgetViewModel Base64 설정값의 videoUrl
+중요 포인트:
+- viewStdScoreSumm 호출 전에 classRoomMainForm으로 강의실 컨텍스트를 먼저 생성해야 합니다.
+- viewStdScore 자체가 아니라 후속 viewStdScoreSumm fragment에 실제 점수와 등급이 있습니다.
+- 일부 과목은 성적 비공개, 설문 미완료, 평가 미실시 상태로 차단됩니다.
+- 브라우저 화면에서는 등급이 보이는데 API 세션에서 비어 있으면 npm run capture:live로 실제 viewStdScoreSumm/viewStdScoreItem 응답을 다시 캡처해야 합니다.
+- capture-live의 cookies 명령으로 현재 브라우저 쿠키를 .seowon-ecampus.cookies.json에 저장해 auto-manager에서 재사용할 수 있습니다.
 
-콘텐츠 유형 분류:
+주요 공개 API:
+- client.getScoreOpenInfo({ crsCreCd })
+- client.getScoreAccessInfo({ crsCreCd })
+- client.getScore({ crsCreCd })
+- client.getScorePageHtml({ crsCreCd })
+- client.getScoreSummary({ crsCreCd, stdNo? })
+- parseEcampusScoreOpenResponse()
+- parseEcampusScoreSurveyResponse()
+- parseEcampusScorePageHtml()
+- parseEcampusScoreSummaryHtml()
+- parseEcampusScoreSummariesFromSaz()
 
-- mp4
-- hls
-- youtube
-- ted
-- doczoom
-- url
-- unknown
+[6. 강의자료 구현 상태]
 
-현재 다운로드는 MP4 주소가 확보된 경우를 대상으로 합니다.
+- getMaterialList는 목록 항목마다 상세 조회용 request 객체를 포함합니다.
+- 실제 첨부는 /bbs/bbsLect/viewAtcl fragment에서 추출합니다.
+- viewAtclForm은 shell 성격의 응답만 줄 수 있으므로 실제 본문/첨부 파싱에는 viewAtcl POST가 중요합니다.
+- fileDown('TOKEN') 형태와 /file/download/TOKEN 형태를 모두 지원합니다.
+- auto-manager 메뉴 8은 선택한 강의자료의 첨부를 미리 분석한 뒤 첨부가 있는 항목만 다운로드 큐에 넣습니다.
+- 저장 경로는 downloads/<과목명>/강의자료들/<강의자료명>/ 입니다.
 
-[8. 빌드와 레거시 암호화 원본]
+[7. 이러닝 자동 시청 상태]
+
+ElearningSession 처리 순서:
+1. lessonNewWindow 호출
+2. viewLessonCmnt 호출
+3. 최초 addStudyRecord 호출
+4. 응답 prgrRatio를 서버 학습률 표시값에 반영
+5. studyDetailId 확보
+6. 첫 갱신은 25~35초 후
+7. 이후 45~75초 간격으로 갱신
+8. 각 갱신마다 누적 시간을 60초 단위로 증가
+9. 갱신마다 viewLessonStudyDetail 확인
+10. 종료 시 exitStudy 호출
+
+auto-manager 메뉴 3/5는 watchLessonQueue에서 순차 처리합니다. TTY 환경에서는 3줄 고정 상태 영역을 사용하고, NO_COLOR가 있으면 색상 효과를 비활성화합니다.
+
+[8. auto-manager 최신 동작]
+
+세션:
+- 시작 시 .seowon-ecampus.cookies.json을 불러옵니다.
+- 유효한 쿠키가 있으면 기존 세션을 재사용합니다.
+- 작업 중 SESSION_EXPIRED 또는 로그인 관련 오류가 나면 저장 계정/.env로 재로그인 후 원래 작업을 한 번 재시도합니다.
+
+이러닝:
+- 메뉴 2는 선택 차시를 병렬 다운로드합니다. 동시 다운로드 수는 1~5로 제한합니다.
+- 메뉴 3은 선택 차시를 순차 자동 시청합니다.
+- 메뉴 5는 전 과목에서 현재 기간 내 "학습중(지각)" 또는 "미학습(결석)" 차시를 찾아 자동 시청합니다.
+
+과제:
+- 메뉴 4는 교과 과목 전체에서 미제출/진행중 과제를 조사합니다.
+- 메뉴 6은 현재 제출 기간 안에 있고 아직 제출 완료되지 않은 과제를 전 과목에서 찾습니다.
+- 메뉴 7은 메뉴 6과 같은 조건의 과제를 선택해 상세 HTML에서 "과제내용" 영역의 .note-editable만 출력합니다.
+
+성적:
+- 메뉴 9는 getCourseGroups().curricular에 포함된 교과 과목만 순회합니다.
+- 각 과목에서 client.getScoreSummary({ crsCreCd })를 호출해 등급만 요약 출력합니다.
+- 조회 불가 상태는 [SKIP]과 사유로 표시합니다.
+
+[9. 빌드와 legacy crypto]
 
 다음 명령은 scripts/build-legacy-crypto.cjs를 먼저 실행합니다.
-
 - npm run build
 - npm test
 - npm run prepack
 - npm run test:login
 
-build-legacy-crypto.cjs가 요구하는 로컬 원본:
+로컬 원본 파일:
+- files/ecam/ecamjs/nice.nuguya.oivs.crypto.js
+- files/ecam/ecamjs/nice.nuguya.oivs.util.js
+- files/ecam/ecamjs/nice.nuguya.oivs.msg.js
 
-files/ecam/ecamjs/nice.nuguya.oivs.crypto.js
-files/ecam/ecamjs/nice.nuguya.oivs.util.js
-files/ecam/ecamjs/nice.nuguya.oivs.msg.js
+원본 파일이 있으면 src/ecampus/legacy/login-crypto.cjs를 재생성합니다.
+원본 파일이 없고 기존 생성물이 있으면 기존 생성물을 재사용합니다.
+원본 파일도 기존 생성물도 없으면 실패합니다.
 
-files/는 Git ignore 대상입니다. 현재 작업 폴더에는 files/ecam/ecamjs가 없습니다.
+[10. 검증 상태]
 
-영향:
-
-- npm run build와 npm test는 레거시 모듈 재생성 단계에서 실패합니다.
-- 이미 생성된 src/ecampus/legacy/login-crypto.cjs는 추적 중이므로 npm run auto:manager와 npm run prompt:client는 실행 가능합니다.
-
-[9. 현재 검증 상태]
-
-2026-06-02 기준 확인:
-
-- 통과: npx prettier --check auto-manager.ts
+2026-07-01 기준 최근 확인:
+- 통과: npm run typecheck
 - 통과: npx tsc --ignoreConfig --noEmit --target es2022 --module nodenext --moduleResolution nodenext --esModuleInterop --skipLibCheck auto-manager.ts
-- 실패: npm run typecheck
-  - test/ecampus-courses.test.ts가 현재 EcampusClient에 없는 getCourseListJson(), getCourseNamesJson()을 참조
-  - test/ecampus-elearning.test.ts가 현재 EcampusClient에 없는 getElearningLessonListJson()을 참조
-  - test/test-all-deps.ts와 test/test-deps.ts가 test/ 기준으로 잘못된 ./src 경로를 참조
-- 실패: npm test
-  - files/ecam/ecamjs/nice.nuguya.oivs.crypto.js가 없어 pretest 단계에서 중단
-- 별도 로컬 테스트 주의:
-  - test/와 files/는 ignore 대상
-  - SAZ fixture가 없는 환경에서는 일부 파서 테스트가 실패
+- 통과: npx vitest run test/ecampus-score.test.ts
+- 통과: npm run build
+- 통과: npx prettier --check auto-manager.ts src/types/auto-manager.ts README.md
 
-[10. 현재 확인된 유지보수 주의점]
+주의:
+- npm test 전체는 로컬 fixture가 없는 환경에서 일부 실패할 수 있습니다.
+- 누락 fixture는 로그인 메인 HTML, 비교과/강의실 캡처, 일부 packet SAZ 등 민감 원본 캡처입니다.
 
-1) 메뉴 5의 stdNo 기본값
+[11. 유지보수 주의사항]
 
-- 메뉴 5는 전 과목 큐를 만들지만 stdNo 기본값은 queue[0]의 crsCreCd를 기준으로 한 번만 생성합니다.
-- 이후 다른 과목에도 같은 stdNo 문자열을 전달합니다.
-- stdNo 규격이 과목별 crsCreCd를 요구하는지 실제 요청으로 확인해야 합니다.
-- 이 문서 갱신 작업에서는 코드 수정하지 않았습니다.
+1) 성적 조회
+- 실제 점수/등급은 viewStdScoreSumm fragment에서 추출합니다.
+- classRoomMainForm 진입 없이 viewStdScoreSumm만 호출하면 평가 미실시 또는 빈 fragment가 나올 수 있습니다.
+- 성적 공개/설문/평가 상태는 과목별로 다릅니다.
 
 2) 목록 페이지 크기
+- 일부 LMS 목록 API의 기본 listScale은 10입니다.
+- 항목이 많은 과목은 listScale 확대 또는 페이지 처리 보완이 필요할 수 있습니다.
 
-- getAssignmentList() 기본 listScale은 10입니다.
-- getElearningLessonListHtml()도 lessonList 요청에 listScale 10을 사용합니다.
-- 항목이 10개를 넘는 과목에서 서버가 전체 목록을 반환하는지, 페이지 처리 보완이 필요한지 확인해야 합니다.
+3) 쿠키 유효성
+- isCookieJarUsable은 만료되지 않은 쿠키 존재 여부를 봅니다.
+- 실제 서버 세션 생존 여부는 후속 요청에서 판별됩니다.
 
-3) 쿠키 유효성 판단
+4) LMS HTML 구조 변경
+- 과제 상세는 label.label-title="과제내용"과 .note-editable 구조에 의존합니다.
+- 강의자료 첨부는 viewAtcl fragment와 fileDown 구조에 의존합니다.
+- HTML 템플릿 변경 시 selector 보완이 필요합니다.
 
-- isCookieJarUsable()은 만료되지 않은 쿠키 존재 여부를 확인합니다.
-- 서버 세션이 실제로 살아 있는지는 후속 요청에서 판별됩니다.
-- auto-manager는 로그인 관련 오류가 발생하면 자동 재로그인을 시도합니다.
+5) 민감 데이터
+- 실제 계정, 쿠키, 세션, SAZ, HTML 캡처, 다운로드 파일은 커밋하지 않습니다.
+- files/, captures/, downloads/, test/는 로컬 검증 자료로 취급합니다.
 
-4) 과제 상세 템플릿 의존성
+[12. Git ignore와 공개 금지 파일]
 
-- 메뉴 7은 label.label-title="과제내용"과 .note-editable 구조를 사용합니다.
-- LMS HTML 구조가 변경되면 선택자 보완이 필요합니다.
-
-[11. Git ignore와 민감 파일]
-
-커밋하지 말아야 할 로컬 자료:
-
+커밋 금지:
 - .env
 - .seowon-ecampus.cookies.json
 - .seowon-ecampus.session.json
@@ -322,127 +266,16 @@ files/는 Git ignore 대상입니다. 현재 작업 폴더에는 files/ecam/ecam
 - *.saz
 - *.mp4
 - tmp-*.html
-- tmp-sample-material-detail*.html (로컬 강의자료 상세 HTML 샘플, 분석/파서 개선용)
-- captures/live/ (puppeteer live capture 결과, request/response/HTML/다운로드 바이너리 포함. 분석 후 필요시 정리)
+- captures/
+- captures/live/
 
-tmp-sample-material-detail*.html 자체는 .gitignore 대상이며 로컬 분석용 샘플입니다. handover.txt는 공개 가능한 인수인계 문서로 유지하되 실제 계정, 쿠키, 세션, LMS 원본 캡처는 기록하지 않습니다.
-
-[12. 문서 갱신 작업 범위]
-
-2026-06-02 문서 갱신에서는 README.md와 handover.txt만 수정했습니다.
-사용자 요청에 따라 코드 파일은 수정하지 않았습니다.
-
-2026-06-05 추가 갱신 (사용자 요청):
-- handover.txt와 README.handover.md 업데이트.
-- auto-manager 메뉴 8(강의자료 통합 다운로드) 설명 보강 및 request 객체 기반 분석 추가.
-- SAZ 패킷 헤더 분석을 통한 viewAtclForm 요청 헤더 개선 내용 기록.
-- 동적 로딩(/bbs/bbsLect/viewAtcl 등) 발견 및 샘플 HTML(tmp-sample-material-detail-another.html) 관리 노트 추가.
-- 이전 샘플 HTML 정리 기록.
-
-2026-06-09 추가 갱신:
-- 현재 코드 기준으로 auto-manager 강의자료 기능이 메뉴 8 하나로 통합된 상태를 반영.
-- README.md, README.handover.md, handover.txt의 9번 메뉴 잔여 설명을 정리.
-- getMaterialAttachments(), /bbs/bbsLect/viewAtcl request 구조, capture:live 명령, 강의자료 저장 경로(downloads/<과목명>/강의자료들/<자료명>/)를 문서에 반영.
-- handover.txt를 공개 가능한 인수인계 문서로 관리하기 위해 로컬 절대 경로와 ignore 안내를 정리.
-
-[13. Live Capture 분석 결과 (2026-06-05, scripts/capture-live.mjs + 사용자 직접 작업)]
-
-사용자가 "지금 생성된 html 파일들 없애고" 요청 후, puppeteer visible 브라우저로 직접 로그인→과목→강의자료 탭→특정 자료 클릭→첨부 다운로드까지 수행.
-scripts/capture-live.mjs 가 RELEVANT_PATHS (viewAtclForm, viewAtcl, atclList, classRoomAtclList, bbsLect, materials 등) 및 attachment 응답을 자동으로 captures/live/<ts>_<slug>/ 에 저장:
-- request.json (url, method, headers, postData)
-- response.json (status, headers)
-- response-body.html (또는 .json)
-- page.html (capture 시점의 전체 DOM)
-- 실제 다운로드 파일 (content-disposition attachment 또는 바이너리 감지 시)
-
-주요 발견 (authentc 트래픽):
-
-1. 목록 구조 차이
-   - client.getMaterialList() 가 사용하는 POST /bbs/bbsLect/atclList 응답 fragment:
-     <li class="itemli" onclick="javascript:viewAtcl('ATCL_xxx', null, '10291');"> ... <a href="javascript:void(0)"><span>[n주차] 제목</span><i class="paperclip icon"></i></a>
-     (onclick 이 li 에 있고, 첫 인자는 atclId, bbsId 는 페이지 hidden #bbsId 에 있음)
-   - classRoomAtclList 또는 atclListForm 페이지:
-     <a href="javascript:viewAtcl('BBS_xxx','ATCL_xxx');">
-   - 기존 parseBbsListHtml 의 $("a[href^='javascript:viewAtcl']") 는 /atclList fragment 에서 0개 매치 → 목록이 비거나 id/request 가 틀림.
-   - parseFunctionArguments 도 onclick 인자 순서 가정 (bbs first)이 /atclList 에서 깨짐.
-
-2. 상세 내용 로딩 (동적 shell + ajax)
-   - 브라우저에서 자료 클릭 시 (ajax flow): viewAtcl() JS 가 $("#bbsAtclView").load( "/bbs/bbsLect/viewAtcl", {formType:"VIEW", bbsId:$("#bbsId").val(), atclId, bbsCd:"PDS", crsCreCd} )
-   - /bbs/bbsLect/Form/viewAtclForm (GET query 또는 POST) → 전체 레이아웃 shell (head에 모든 css/js, #bbsAtclView placeholder, hidden form fields) 만 반환. 제목/본문/첨부 없음.
-   - /bbs/bbsLect/viewAtcl POST 응답 (text/html fragment, X-Requested-With 있음):
-     <div class="post_view">
-       <h4 id="atclTitleText">제목</h4>
-       <ul class="viewInfo">작성자/작성일/조회수</ul>
-       <ul class="viewInfo file">
-         <li><a href="javascript:fileDown('Y0Yrae3kKH-KAyjvh_sBEQ==');"><i class="paperclip icon"></i>LC06장 논리식의 간소화_v10.pdf</a></li>
-       </ul>
-       <div class="content-field" id="atclCtsText">본문</div>
-       ...
-     </div>
-   - 따라서 이전 fetchClassroomDetailHtml (request.body 로 Form/viewAtclForm 에 POST) + parseAttachments 는 항상 attachments:0 이었음.
-
-3. 첨부 다운로드
-   - fileDown(token) JS (common.js 등에 정의, 페이지에 hidden form + iframe _m_download_iframe 있음): form action = /file/download/TOKEN , submit to iframe.
-   - 응답: GET /file/download/<base64-token>?   (capture 시 referer 는 viewAtclForm?bbsId=...&atclId=... url)
-     Headers: content-disposition: attachment; filename="..."; filename*=UTF-8''<urlencoded.pdf>
-     content-type: application/octet-stream
-     content-length: 실제 크기
-   - capture script 가 binary 감지 시 파일 저장 시도 (일부 경우 filename 파싱/인코딩 문제로 capture dir 에는 저장 안 될 수 있음. 브라우저 기본 다운로드 폴더에는 남음).
-
-4. 헤더 관찰
-   - /viewAtcl POST: X-Requested-With: XMLHttpRequest, Content-Type: application/x-www-form-urlencoded, Accept: text/html, */*;q=0.01 , sec-ch-ua* , referer=Form viewAtclForm url
-   - download GET: upgrade-insecure-requests, no X-Requested-With (navigation-like), full sec-ch-ua
-
-5. 코드 영향 및 수정
-   - parseBbsListHtml: li[onclick] 지원 + 인자 순서( ATCL first vs BBS first) 처리 + options.bbsId 주입으로 bbsId 복원. request 를 실제 content fetch 용으로 /bbs/bbsLect/viewAtcl + {formType:"VIEW", bbsCd, ...} 로 생성 (item.url 은 Form 유지).
-   - login.ts getMaterialList/getNoticeList: bbsId 를 parse options 에 전달.
-   - SAZ parse 경로에도 bbsId 전달.
-   - extractUrlCandidate: fileDown('TOKEN') → /file/download/TOKEN 절대 URL 생성.
-   - looksLike* : fileDown / /file/download/ 지원.
-   - fetchClassroomDetailHtml / getMaterialAttachments: 이제 올바른 endpoint 로 content fragment 를 받아 parse 가능.
-   - auto-manager 메뉴 8 통합 기능이 실제 첨부 추출/미리보기/다운로드 동작.
-   - 기존 SAZ fixture 기반 테스트 expectation 갱신 (request.url 과 body 에 formType/bbsCd 추가).
-   - docs/api-responses/materials.json 예시도 갱신.
-
-이제 request 객체만으로 (getMaterialList 후 pick → getMaterialAttachments) 실제 파일 URL 과 다운로드가 가능해짐. (정적 fetch + 인라인 HTML 시도는 폐기, live authentic 트래픽 기반으로 전환)
-
-추가: captures/live/ 하위 결과물은 분석용이며, .gitignore 에 captures/ 추가 고려 (또는 live/ 만). 이전 tmp-* 샘플은 사용자 요청으로 대부분 제거됨.
-- prompt-client materials 명령과 list item의 request 객체 활용 분석 내용 반영.
-- menu 목록 최신화 (8, 9 추가).
-- 날짜 및 [5] 강의자료 섹션, [12] 범위 섹션 갱신.
-- 코드 변경 없이 문서와 로컬 샘플/분석 결과만 반영.
-
-**2026-06-05 작업 완료 보고 (사용자 "자 이제 분석해" 요청에 대한 전체 사이클)**
-
-- Live traffic 분석 완료: captures/live/ 의 실제 사용자 수행 세션 데이터 (viewAtclForm shell vs /viewAtcl real content + fileDown + /file/download/TOKEN) 기반으로 정확한 흐름 파악.
-- 파서/클라이언트 수정 완료:
-  - parseBbsListHtml: 현재 /atclList 구조 + classRoom 스타일 모두 지원, 올바른 /viewAtcl request 생성.
-  - 첨부 파서: javascript:fileDown('TOKEN') → /file/download/TOKEN URL 추출 정상 동작 확인 (live HTML로 검증).
-  - fetchClassroomDetailHtml + getMaterialAttachments: shell이 아닌 실제 콘텐츠를 fetch하도록 동작.
-- auto-manager 메뉴 8/9: preloadedAttachments와 함께 실제 다운로드가 가능해짐.
-- capture-live.mjs 강화:
-  - "request.url is not a function" 오류 (사용자 세션 중 발생) 원인 제거 (즉시 값 resolve + 다중 try/catch).
-  - 바이너리 다운로드 저장 로직 대폭 강화 (fallback .bin, token 기반 이름, 더 나은 cd 파싱).
-- 문서/정리:
-  - handover.txt, README.handover.md, README.md에 상세 분석 결과 + 수정 내역 기록.
-  - .gitignore에 captures/ 추가.
-  - 오래된 tmp-*.txt, tmp-*.mjs 등 불필요 생성물 정리.
-- 검증: live capture HTML 직접 파싱 테스트로 10개 materials + 정확한 attachment URL 추출 확인.
-
-남은 / 후속 과제 (사용자 판단 필요):
-- captures/live/ 결과물을 정식 test fixture로 승격할지?
-- capture 시 "모든 네트워크 트래픽 캡처" 모드 (RELEVANT_PATHS 완전 무시) 필요 여부.
-- 실제 다운로드 바이너리가 capture 폴더에 더 확실히 저장되는지 다음 실행에서 확인.
-- e-learning 등 다른 영역에 동일한 live capture 분석 적용할지.
-
-전체 요청(분석 + 실질적인 코드 개선 + 문서화 + 툴 개선 + 정리)은 완료된 것으로 간주.
-
-[13. 자주 쓰는 명령어]
+[13. 자주 쓰는 명령]
 
 npm install
 npm run prompt:client
 npm run auto:manager
 npm run analyze:saz
+npm run capture:live
 npm run format:check
 npm run typecheck
 npm test

@@ -1,3 +1,70 @@
+import type {
+  EcampusClassroomAttachment,
+  EcampusClassroomItem,
+  EcampusClassroomResources
+} from "./types/classroom.js";
+import type { EcampusCourseGroups, EcampusCourseListItem } from "./types/courses.js";
+import type { LoginEncryptOptions } from "./types/crypto.js";
+import type {
+  EcampusLessonItem,
+  EcampusLessonRecordOptions,
+  EcampusLessonStudyWindow,
+  ElearningDownloadResult,
+  ElearningMp4UrlResult
+} from "./types/elearning.js";
+import type {
+  EcampusScoreAccessInfo,
+  EcampusScoreOpenInfo,
+  EcampusScoreOpenJsonResponse,
+  EcampusScorePageResult,
+  EcampusScoreSummary,
+  EcampusScoreSurveyInfo,
+  EcampusScoreSurveyJsonResponse,
+  GetScoreOptions
+} from "./types/score.js";
+import type {
+  EcampusClientOptions,
+  EcampusLoginResponse,
+  GetClassroomAssignmentListOptions,
+  GetClassroomBoardListOptions,
+  GetClassroomResourcesOptions,
+  GetElearningLessonListOptions,
+  LoginCredentials,
+  LoginResult,
+  LoginWithEncryptDataOptions,
+  OpenElearningLessonOptions
+} from "./types/login.js";
+
+export type {
+  EcampusClientOptions,
+  EcampusLoginResponse,
+  GetClassroomAssignmentListOptions,
+  GetClassroomBoardListOptions,
+  GetClassroomResourcesOptions,
+  GetElearningLessonListOptions,
+  LoginCredentials,
+  LoginResult,
+  LoginWithEncryptDataOptions,
+  OpenElearningLessonOptions
+} from "./types/login.js";
+
+export type {
+  EcampusScoreAccessInfo,
+  EcampusScoreAccessStatus,
+  EcampusScoreGetRequest,
+  EcampusScoreOpenInfo,
+  EcampusScoreOpenJsonResponse,
+  EcampusScoreOpenReturnVO,
+  EcampusScorePageResult,
+  EcampusScoreParseOptions,
+  EcampusScoreSummary,
+  EcampusScoreSummaryCapture,
+  EcampusScoreSurveyInfo,
+  EcampusScoreSurveyJsonResponse,
+  EcampusScoreSurveyReturnVO,
+  GetScoreOptions
+} from "./types/score.js";
+
 import axios, { type AxiosInstance, type AxiosResponse } from "axios";
 import { wrapper } from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
@@ -10,113 +77,30 @@ import {
   parseEcampusMaterialListHtml,
   parseEcampusNoticeListHtml,
   stringifyEcampusClassroomItems,
-  stringifyEcampusClassroomResources,
-  type EcampusClassroomAttachment,
-  type EcampusClassroomItem,
-  type EcampusClassroomResources
+  stringifyEcampusClassroomResources
 } from "./classroom.js";
 import {
   parseEcampusCourseGroups,
   parseEcampusCourseList,
   parseEcampusCourseListJson,
-  parseEcampusCourseNamesJson,
-  type EcampusCourseListItem
+  parseEcampusCourseNamesJson
 } from "./courses.js";
-import { createLoginEncryptData, type LoginEncryptOptions } from "./crypto.js";
+import { createLoginEncryptData } from "./crypto.js";
 import {
   createStudyRecordRequest,
   createViewLessonStudyDetailRequest,
   downloadElearningMp4 as downloadElearningMp4File,
   parseEcampusLessonListHtml,
   parseEcampusLessonStudyWindowHtml,
-  stringifyEcampusLessons,
-  type EcampusLessonItem,
-  type EcampusLessonRecordOptions,
-  type EcampusLessonStudyWindow,
-  type ElearningMp4UrlResult,
-  type ElearningDownloadResult
+  stringifyEcampusLessons
 } from "./elearning.js";
-import type { EcampusCourseGroups } from "./courses.js";
-
-/** e-campus 클라이언트 초기화 옵션 명세 */
-export interface EcampusClientOptions {
-  /** 기본 도메인 (생략 시 서원대 공식 도메인 사용) */
-  baseUrl?: string;
-  /** 외부 통신 설정을 커스텀하기 위한 Axios 인스턴스 */
-  axios?: AxiosInstance;
-  /** 세션 유지용 쿠키 파일 저장 경로 */
-  cookieFilePath?: string;
-  /** 자동 세션 복구를 위한 계정 정보 */
-  loginCredentials?: LoginCredentials;
-}
-
-/** 사용자 인증에 필요한 계정 및 보안 옵션 정보 */
-export interface LoginCredentials extends LoginEncryptOptions {
-  userId: string;
-  password: string;
-}
-
-/** 암호화 처리된 패킷을 직접 전달하여 로그인을 시도할 때의 옵션 */
-export interface LoginWithEncryptDataOptions {
-  encryptData: string;
-}
-
-/** 특정 강의실의 리소스를 조회하기 위한 식별자 옵션 */
-export interface GetClassroomResourcesOptions {
-  crsCreCd: string;
-  userNo: string;
-  userName?: string;
-  /** 한 번에 가져올 목록의 크기 (기본값: 10) */
-  listScale?: number;
-}
-
-/** 게시판 성격의 목록 조회를 위한 공통 옵션 */
-export interface GetClassroomBoardListOptions {
-  crsCreCd: string;
-  listScale?: number;
-}
-
-/** 과제 목록 조회를 위한 사용자 컨텍스트 옵션 */
-export interface GetClassroomAssignmentListOptions extends GetClassroomBoardListOptions {
-  userNo: string;
-  userName?: string;
-}
-
-/** 온라인 강의 차시 목록 필터링 옵션 */
-export interface GetElearningLessonListOptions {
-  crsCreCd: string;
-  /** 메뉴 코드 (시스템 내부용) */
-  mcd?: string;
-  /** 진도 방식 코드 (WEEK 등) */
-  progressTypeCd?: string;
-}
-
-/** 온라인 강의 재생 및 학습 상태 조회를 위한 상세 옵션 */
-export interface OpenElearningLessonOptions {
-  crsCreCd: string;
-  lessonCntsId: string;
-  progressTypeCd?: string;
-  seekFile?: string;
-  downloadYn?: string;
-}
-
-/** 로그인 수행 절차의 최종 결과를 나타내는 합집합 타입 */
-export type LoginResult =
-  | { type: "redirect"; data: EcampusLoginResponse; url: string }
-  | { type: "reload"; data: EcampusLoginResponse }
-  | { type: "error"; data?: EcampusLoginResponse; message: string };
-
-/** e-campus 서버가 반환하는 로그인 응답의 원시 구조 */
-export interface EcampusLoginResponse {
-  redirectUrl?: string;
-  otpLogin?: "Y" | "N" | string;
-  otpUserYn?: "Y" | "N" | string;
-  otpUserType?: string;
-  userId?: string;
-  userNo?: string;
-  message?: string;
-  [key: string]: unknown;
-}
+import {
+  parseEcampusScoreOpenResponse,
+  parseEcampusScorePageHtml,
+  parseEcampusScoreSummaryHtml,
+  parseEcampusScoreSurveyResponse,
+  resolveEcampusScoreAccess
+} from "./score.js";
 
 const DEFAULT_BASE_URL = "https://ecampus.seowon.ac.kr";
 const LOGIN_PAGE_PATH = "/home/mainPop/popup/login";
@@ -292,8 +276,26 @@ export class EcampusClient {
   }
 
   /**
-   * 과목 드롭다운 메뉴를 구성하는 AJAX HTML 소스를 가져온다.
-   * @param {string} [crsCreCd=""] - 선택된 과목 코드
+   * 과목 목록을 외부 저장이나 CLI 출력에 바로 쓰기 쉬운 JSON으로 조회한다
+   * @returns {Promise<string>} 과목 목록 JSON 문자열
+   */
+  async getCourseListJson(): Promise<string> {
+    const html = await this.getCourseListHtml();
+    return parseEcampusCourseListJson(html);
+  }
+
+  /**
+   * 기존 호출부 호환을 위해 과목 목록 JSON 별칭을 유지한다
+   * @returns {Promise<string>} 과목 목록 JSON 문자열
+   */
+  async getCourseNamesJson(): Promise<string> {
+    return this.getCourseListJson();
+  }
+
+  /**
+   * 과목 드롭다운 메뉴를 구성하는 AJAX HTML 소스를 가져온다
+   * @param {string} crsCreCd - 선택된 과목 코드
+   * @returns {Promise<string>} 과목 목록 HTML 조각
    */
   async getCourseListHtml(crsCreCd = ""): Promise<string> {
     await this.ensureAuthenticated();
@@ -361,7 +363,106 @@ export class EcampusClient {
     });
   }
 
-  /** 온라인 강의(e-learning) 전체 차시 목록 조회 */
+  /**
+   * 성적 조회 공개 여부와 차단 사유를 조회한다
+   * @param {GetScoreOptions} options - 조회할 강의실 코드와 설문 확인 옵션
+   * @returns {Promise<EcampusScoreOpenInfo>} 성적 공개 상태와 차단 사유
+   */
+  async getScoreOpenInfo(options: GetScoreOptions): Promise<EcampusScoreOpenInfo> {
+    await this.ensureAuthenticated();
+    const response = await this.http.get<EcampusScoreOpenJsonResponse>(
+      "/crs/scoreLect/scoreOpenJson",
+      {
+        params: { crsCreCd: options.crsCreCd },
+        headers: {
+          Accept: "application/json, text/javascript, */*; q=0.01",
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      }
+    );
+    await this.persistCookieJar();
+    return parseEcampusScoreOpenResponse(response.data, { crsCreCd: options.crsCreCd });
+  }
+
+  /**
+   * 성적 조회 가능 여부를 프론트엔드와 같은 순서로 판정한다
+   * @param {GetScoreOptions} options - 조회할 강의실 코드와 설문 확인 옵션
+   * @returns {Promise<EcampusScoreAccessInfo>} 최종 성적 조회 접근 상태
+   */
+  async getScoreAccessInfo(options: GetScoreOptions): Promise<EcampusScoreAccessInfo> {
+    const openInfo = await this.getScoreOpenInfo(options);
+    if (openInfo.status !== "survey_check_required" || options.checkSurvey === false) {
+      return openInfo;
+    }
+
+    const survey = await this.getScoreSurveyInfo(options.crsCreCd, openInfo.scoreViewReschCd);
+    return resolveEcampusScoreAccess(openInfo, survey);
+  }
+
+  /**
+   * 성적 조회 페이지를 열고, 조회 불가 상태면 상태 정보만 반환한다
+   * @param {GetScoreOptions} options - 조회할 강의실 코드와 설문 확인 옵션
+   * @returns {Promise<EcampusScorePageResult>} 접근 상태와 성적 페이지 HTML
+   */
+  async getScorePage(options: GetScoreOptions): Promise<EcampusScorePageResult> {
+    const access = await this.getScoreAccessInfo(options);
+    if (!access.canViewScore) return access;
+
+    await this.enterClassroomContext(options.crsCreCd);
+    const html = await this.fetchScorePageHtml(options.crsCreCd);
+    return { ...access, html, page: parseEcampusScorePageHtml(html, options) };
+  }
+
+  /**
+   * 성적 조회의 고수준 진입점이다
+   * @param {GetScoreOptions} options - 조회할 강의실 코드와 설문 확인 옵션
+   * @returns {Promise<EcampusScorePageResult>} 접근 상태와 성적 페이지 HTML
+   */
+  async getScore(options: GetScoreOptions): Promise<EcampusScorePageResult> {
+    return this.getScorePage(options);
+  }
+
+  /**
+   * 실제 성적 요약 영역을 조회하고 항목별 점수와 등급을 파싱한다
+   * @param {GetScoreOptions} options - 조회할 강의실 코드, 설문 확인 옵션, 선택적 stdNo
+   * @returns {Promise<EcampusScoreSummary>} 성적 요약 항목, 총점, 등급
+   * @throws {Error} 성적 조회가 차단되거나 stdNo를 찾지 못한 경우 발생
+   */
+  async getScoreSummary(options: GetScoreOptions): Promise<EcampusScoreSummary> {
+    const pageResult = await this.getScorePage(options);
+    if (!pageResult.canViewScore || !pageResult.html) {
+      throw new Error(pageResult.message);
+    }
+
+    const page = pageResult.page ?? parseEcampusScorePageHtml(pageResult.html, options);
+    const stdNo = options.stdNo ?? page.stdNo;
+    if (!stdNo) {
+      throw new Error("성적 요약 조회에 필요한 stdNo를 성적 페이지에서 찾지 못했습니다.");
+    }
+
+    const html = await this.fetchScoreSummaryHtml(options.crsCreCd, stdNo);
+    return parseEcampusScoreSummaryHtml(html, { crsCreCd: options.crsCreCd, stdNo });
+  }
+
+  /**
+   * 성적 조회 페이지 HTML만 필요할 때 사용한다
+   * @param {GetScoreOptions} options - 조회할 강의실 코드와 설문 확인 옵션
+   * @returns {Promise<string>} 성적 페이지 HTML
+   * @throws {Error} 성적 조회가 차단된 경우 발생
+   */
+  async getScorePageHtml(options: GetScoreOptions): Promise<string> {
+    const result = await this.getScorePage(options);
+    if (!result.canViewScore || result.html == null) {
+      throw new Error(result.message);
+    }
+    return result.html;
+  }
+
+  /**
+   * 온라인 강의 전체 차시 목록을 조회한다
+   * @param {GetElearningLessonListOptions} options - 조회할 강의실과 진도 방식 옵션
+   * @returns {Promise<EcampusLessonItem[]>} 이러닝 차시 목록
+   */
   async getElearningLessonList(
     options: GetElearningLessonListOptions
   ): Promise<EcampusLessonItem[]> {
@@ -374,8 +475,19 @@ export class EcampusClient {
   }
 
   /**
-   * 온라인 강의 목록 화면의 핵심 HTML 데이터와 메타데이터를 통합 획득한다.
-   * 복수의 폼 전송과 정보 확인 과정을 거쳐 실제 목록 데이터에 접근한다.
+   * 이러닝 차시 목록을 외부 저장이나 CLI 출력에 바로 쓰기 쉬운 JSON으로 조회한다
+   * @param {GetElearningLessonListOptions} options - 조회할 강의실과 진도 방식 옵션
+   * @returns {Promise<string>} 이러닝 차시 목록 JSON 문자열
+   */
+  async getElearningLessonListJson(options: GetElearningLessonListOptions): Promise<string> {
+    const lessons = await this.getElearningLessonList(options);
+    return stringifyEcampusLessons(lessons);
+  }
+
+  /**
+   * 온라인 강의 목록 화면의 핵심 HTML 데이터와 메타데이터를 통합 획득한다
+   * @param {GetElearningLessonListOptions} options - 조회할 강의실과 진도 방식 옵션
+   * @returns {Promise<string>} 이러닝 목록 HTML 조각
    */
   async getElearningLessonListHtml(options: GetElearningLessonListOptions): Promise<string> {
     await this.ensureAuthenticated();
@@ -566,13 +678,99 @@ export class EcampusClient {
   }
 
   /**
-   * 강의자료 상세 HTML(fetchClassroomDetailHtml)을 가져온다.
-   * Live traffic 분석(2026-06-05 capture-live) 결과에 따라
-   * item.request는 /bbs/bbsLect/viewAtcl + {formType: 'VIEW', bbsCd, ...} 형태를 사용한다.
-   * (과거 viewAtclForm 요청은 shell HTML만 반환하므로 실제 콘텐츠/첨부는 이 엔드포인트로 조회)
-   * @private
-   * @param {EcampusClassroomItem} item - getMaterialList 등으로 얻은 항목 (request 필드 포함)
-   * @returns {Promise<string>} 상세 화면 HTML (post_view fragment 등)
+   * 강의실 메인 진입 요청으로 서버 측 과목 컨텍스트를 생성한다.
+   * 성적 요약 fragment는 이 컨텍스트가 없으면 강의평가 미실시 상태로 축약될 수 있다.
+   * @param {string} crsCreCd - 진입할 강의실 코드
+   */
+  private async enterClassroomContext(crsCreCd: string): Promise<void> {
+    await this.ensureAuthenticated();
+    await this.http.post<string>(
+      "/crs/creCrsLect/Form/classRoomMainForm",
+      new URLSearchParams({ crsCreCd, mcd: "" }),
+      {
+        headers: {
+          Accept: "text/html, */*; q=0.01",
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          Origin: this.baseUrl.replace(/\/$/, ""),
+          Referer: new URL(MAIN_PAGE_PATH, this.baseUrl).toString(),
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      }
+    );
+    await this.persistCookieJar();
+  }
+
+  /**
+   * 성적 조회 전 설문 참여 상태를 확인한다
+   * @param {string} crsCreCd - 조회할 강의실 코드
+   * @param {string} scoreViewReschCd - 성적 조회에 연결된 설문 코드
+   * @returns {Promise<EcampusScoreSurveyInfo>} 설문 참여 상태 정보
+   */
+  private async getScoreSurveyInfo(
+    crsCreCd: string,
+    scoreViewReschCd: string
+  ): Promise<EcampusScoreSurveyInfo> {
+    await this.ensureAuthenticated();
+    const response = await this.http.get<EcampusScoreSurveyJsonResponse>(
+      "/crs/scoreLect/cheeckStdReshJoin",
+      {
+        params: { scoreViewReschCd, crsCreCd },
+        headers: {
+          Accept: "application/json, text/javascript, */*; q=0.01",
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      }
+    );
+    await this.persistCookieJar();
+    return parseEcampusScoreSurveyResponse(response.data, scoreViewReschCd);
+  }
+
+  /**
+   * 공개 조건을 통과한 뒤 실제 성적 페이지 HTML을 가져온다
+   * @param {string} crsCreCd - 조회할 강의실 코드
+   * @returns {Promise<string>} 성적 페이지 HTML
+   */
+  private async fetchScorePageHtml(crsCreCd: string): Promise<string> {
+    await this.ensureAuthenticated();
+    const response = await this.http.get<string>("/crs/scoreLect/Form/viewStdScore", {
+      params: { crsCreCd },
+      headers: {
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    });
+    await this.persistCookieJar();
+    return response.data;
+  }
+
+  /**
+   * 성적 페이지의 요약 fragment를 가져온다
+   * @param {string} crsCreCd - 조회할 강의실 코드
+   * @param {string} stdNo - 성적 페이지 hidden input에서 얻는 학생-강의실 식별값
+   * @returns {Promise<string>} 성적 요약 HTML fragment
+   */
+  private async fetchScoreSummaryHtml(crsCreCd: string, stdNo: string): Promise<string> {
+    await this.ensureAuthenticated();
+    const response = await this.http.post<string>(
+      "/crs/scoreHome/viewStdScoreSumm",
+      new URLSearchParams({ stdNo, crsCreCd }),
+      {
+        headers: {
+          Accept: "text/html, */*; q=0.01",
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          Origin: this.baseUrl.replace(/\/$/, ""),
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      }
+    );
+    await this.persistCookieJar();
+    return response.data;
+  }
+
+  /**
+   * 강의자료 상세 HTML(fetchClassroomDetailHtml)을 가져온다
+   * @param {EcampusClassroomItem} item - getMaterialList 등으로 얻은 항목
+   * @returns {Promise<string>} 상세 화면 HTML
    */
   private async fetchClassroomDetailHtml(item: EcampusClassroomItem): Promise<string> {
     await this.ensureAuthenticated();
@@ -613,10 +811,18 @@ export function createEcampusClient(options: EcampusClientOptions = {}): Ecampus
   return new EcampusClient(options);
 }
 
-/** 서버 응답 분석: 결과 상태에 따른 캡슐화 처리 */
+/**
+ * 로그인 API 응답을 후속 흐름에서 쓰기 쉬운 상태로 캡슐화한다
+ * @param {EcampusLoginResponse} data - 로그인 API 원본 응답
+ * @returns {LoginResult} 리다이렉트, 새로고침, 오류 중 하나로 정규화된 결과
+ */
 export function parseLoginResponse(data: EcampusLoginResponse): LoginResult {
   if (!data.redirectUrl)
-    return { type: "error", data, message: data.message ?? "아이디/비밀번호 정합성 오류" };
+    return {
+      type: "error",
+      data,
+      message: data.message ?? "아이디 또는 비밀번호가 맞지 않습니다."
+    };
   if (
     data.otpLogin === "Y" &&
     data.otpUserYn === "Y" &&
