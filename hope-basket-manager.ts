@@ -305,6 +305,38 @@ async function enrichSubjectsWithTimetableInfo(basket: HopeBasketClient, subject
 }
 
 /**
+ * 전공, 교양, 일반 등 모든 조회 구분을 병렬로 조회한 뒤 합산(중복 제거)하여 반환한다.
+ * (단, 특정 학과 코드가 지정된 경우에는 한 번만 조회)
+ * @param {HopeBasketClient} basket - 클라이언트
+ * @param {string} keyword - 검색어
+ * @param {string | undefined} asignDeprtCd - 학과 코드
+ * @returns {Promise<SugangSubject[]>} 검색 결과
+ */
+async function searchAllSubjects(basket: HopeBasketClient, keyword: string, asignDeprtCd: string | undefined): Promise<SugangSubject[]> {
+  if (asignDeprtCd) {
+    return await basket.searchSubjects({ keyword, asignDeprtCd });
+  }
+
+  const divs = ['0', '1', '2', '3', '4', '5', '6'];
+  process.stdout.write(`  (전체 조회 구분 검색 중...) `);
+  try {
+    const promises = divs.map((d) => basket.searchSubjects({ keyword, serchDiv: d }));
+    const results = await Promise.all(promises);
+    const map = new Map<string, SugangSubject>();
+    for (const list of results) {
+      for (const subject of list) {
+        map.set(`${subject.subjtCd}-${subject.corseDvclsNo}`, subject);
+      }
+    }
+    console.log("완료");
+    return Array.from(map.values());
+  } catch (err) {
+    console.log("실패");
+    return [];
+  }
+}
+
+/**
  * 과목 검색 결과만 출력한다
  * @param {HopeBasketClient} basket - 희망바구니 클라이언트
  * @param {readline.Interface} rl - 입력 인터페이스
@@ -318,10 +350,7 @@ async function searchSubjectsOnly(basket: HopeBasketClient, rl: readline.Interfa
     basket.getStudentInfo()?.deptCd || ""
   );
   const asignDeprtCd = deptInput.toLowerCase() === "all" ? undefined : (deptInput || undefined);
-  const subjects = await basket.searchSubjects({
-    keyword,
-    asignDeprtCd
-  });
+  const subjects = await searchAllSubjects(basket, keyword, asignDeprtCd);
   if (subjects.length > 0) {
     await enrichSubjectsWithTimetableInfo(basket, subjects);
   }
@@ -343,10 +372,7 @@ async function addBasketBySearch(basket: HopeBasketClient, rl: readline.Interfac
     basket.getStudentInfo()?.deptCd || ""
   );
   const asignDeprtCd = deptInput.toLowerCase() === "all" ? undefined : (deptInput || undefined);
-  const subjects = await basket.searchSubjects({
-    keyword,
-    asignDeprtCd
-  });
+  const subjects = await searchAllSubjects(basket, keyword, asignDeprtCd);
   if (!subjects.length) {
     printWarning("검색 결과가 없습니다.");
     return;
