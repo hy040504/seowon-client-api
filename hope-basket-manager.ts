@@ -61,14 +61,14 @@ async function run(): Promise<void> {
       console.log(
         `${color("3", ANSI.yellow)}. ${color("희망바구니 검색 후 선택 담기", ANSI.bold)}`
       );
-      console.log(
-        `${color("4", ANSI.yellow)}. ${color("본인 학과·학년 전공 일괄 담기", ANSI.bold)}`
-      );
+      console.log(`${color("4", ANSI.yellow)}. ${color("희망바구니 취소", ANSI.bold)}`);
       console.log(`${color("5", ANSI.yellow)}. ${color("내가 담은 희망바구니 목록", ANSI.bold)}`);
       console.log(
-        `${color("6", ANSI.yellow)}. ${color("내 희망바구니 시간표 이미지 (HTML/PNG)", ANSI.bold)}`
+        `${color("6", ANSI.yellow)}. ${color("본인 학과·학년 전공 일괄 담기 (전공 자동담기)", ANSI.bold)}`
       );
-      console.log(`${color("7", ANSI.yellow)}. ${color("희망바구니 취소", ANSI.bold)}`);
+      console.log(
+        `${color("7", ANSI.yellow)}. ${color("내 희망바구니 시간표 이미지 (HTML/PNG)", ANSI.bold)}`
+      );
       console.log(`${color("8", ANSI.yellow)}. ${color("희망바구니 관련 일정 조회", ANSI.bold)}`);
       console.log(`${color("9", ANSI.yellow)}. ${color("개설 학과 / 교양 영역 조회", ANSI.bold)}`);
       console.log(
@@ -91,16 +91,16 @@ async function run(): Promise<void> {
             await withHopeBasketAuth(basket, rl, () => addBasketBySearch(basket, rl));
             break;
           case "4":
-            await withHopeBasketAuth(basket, rl, () => addMajorCoursesForMyProfile(basket, rl));
+            await withHopeBasketAuth(basket, rl, () => cancelBasketItems(basket, rl));
             break;
           case "5":
             await withHopeBasketAuth(basket, rl, () => listMyHopeBasket(basket));
             break;
           case "6":
-            await withHopeBasketAuth(basket, rl, () => viewMyHopeBasketTimetable(basket));
+            await withHopeBasketAuth(basket, rl, () => addMajorCoursesForMyProfile(basket, rl));
             break;
           case "7":
-            await withHopeBasketAuth(basket, rl, () => cancelBasketItems(basket, rl));
+            await withHopeBasketAuth(basket, rl, () => viewMyHopeBasketTimetable(basket));
             break;
           case "8":
             await withHopeBasketAuth(basket, rl, () => listSchedules(basket));
