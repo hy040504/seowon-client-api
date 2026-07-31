@@ -83,6 +83,8 @@ DOWNLOAD_HIGH_WATER_MARK=1024
 | `prompt-client`       | `npm run prompt:client`       | 기능별 API 응답/파싱 결과 확인                  |
 | `auto-manager`        | `npm run auto:manager`        | e-campus 다운로드·자동 시청·과제·성적 반복 작업 |
 | `hope-basket-manager` | `npm run hope-basket:manager` | 수강희망바구니(예비 담기) 전용 CLI              |
+| `db-generator`        | `npm run generate:db`         | 전체 개설 과목 수집 및 JSON 저장                |
+| `db-viewer`           | `npm run view:db`             | 생성된 과목 DB 검색 및 페이지네이션 뷰어        |
 
 `npm run sugang:manager`는 `hope-basket:manager`의 별칭입니다.
 

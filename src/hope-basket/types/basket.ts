@@ -156,6 +156,7 @@ export interface SugangSubjectSearchOptions extends Partial<SugangTermContext> {
   asignDeprtCd?: string; // 개설 학과 코드
   keyword?: string; // 과목명/코드 검색어
   subjtCd?: string; // 과목 코드 또는 검색어
+  subjtNm?: string; // 과목 이름
   corseDvclsNo?: string; // 분반
   /**
    * @deprecated 검색은 항상 findEstblSubjtGnrlList 만 사용한다.

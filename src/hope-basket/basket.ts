@@ -503,6 +503,9 @@ export function createSugangGeneralSubjectListRequest(
   options: SugangSubjectSearchOptions,
   baseUrl = DEFAULT_SUGANG_BASE_URL
 ): SugangSsvPostRequest {
+  const keyword = options.keyword ?? "";
+  const isCode = keyword && /^[a-zA-Z0-9]+$/.test(keyword);
+
   return createSearchStyleRequest(
     SUGANG_PATHS.findEstblSubjtGnrlList,
     options,
@@ -513,7 +516,8 @@ export function createSugangGeneralSubjectListRequest(
       estblCrseDivCd: options.estblCrseDivCd ?? "",
       cltrDomnCd: options.cltrDomnCd ?? "",
       asignDeprtCd: options.asignDeprtCd ?? "",
-      subjtCd: options.subjtCd ?? options.keyword ?? "",
+      subjtCd: options.subjtCd ?? (isCode ? keyword : ""),
+      subjtNm: options.subjtNm ?? (!isCode ? keyword : ""),
       corseDvclsNo: options.corseDvclsNo ?? ""
     },
     {
@@ -1077,10 +1081,10 @@ export function composeSugangLoginResult(parts: {
  * @param {SugangSubject[]} subjects - 과목 목록
  * @returns {string} 콘솔 표시 문자열
  */
-export function stringifySugangSubjects(subjects: SugangSubject[]): string {
+export function stringifySugangSubjects(subjects: SugangSubject[], startIndex: number = 1): string {
   return subjects
     .map((subject, index) => {
-      const title = `${index + 1}. [${subject.subjtCd}-${subject.corseDvclsNo}] ${subject.subjtNm}`;
+      const title = `${startIndex + index}. [${subject.subjtCd}-${subject.corseDvclsNo}] ${subject.subjtNm}`;
       const meta = [
         subject.estblDeprtNm && `개설=${subject.estblDeprtNm}`,
         subject.cmpsjCdt && `학점=${subject.cmpsjCdt}`,

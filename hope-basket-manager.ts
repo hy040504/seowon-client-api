@@ -355,7 +355,24 @@ async function searchSubjectsOnly(basket: HopeBasketClient, rl: readline.Interfa
     await enrichSubjectsWithTimetableInfo(basket, subjects);
   }
   printSuccess(`${subjects.length}건`);
-  console.log(stringifySugangSubjects(subjects) || "(없음)");
+  
+  if (subjects.length > 0) {
+    const displayLimit = 50;
+    let offset = 0;
+    while (offset < subjects.length) {
+      const chunk = subjects.slice(offset, offset + displayLimit);
+      console.log(stringifySugangSubjects(chunk, offset + 1));
+      offset += displayLimit;
+      if (offset < subjects.length) {
+        const remaining = subjects.length - offset;
+        printWarning(`\n... 외 ${remaining}건의 결과가 더 있습니다.`);
+        const more = (await ask(rl, "더 보시겠습니까? (Y/n)")).trim().toLowerCase();
+        if (more === 'n' || more === 'no') break;
+      }
+    }
+  } else {
+    console.log("(없음)");
+  }
 }
 
 /**
@@ -379,7 +396,6 @@ async function addBasketBySearch(basket: HopeBasketClient, rl: readline.Interfac
   }
 
   await enrichSubjectsWithTimetableInfo(basket, subjects);
-  console.log(stringifySugangSubjects(subjects));
   const selected = await pickMultipleFromList(rl, "담을 분반", subjects, formatSubjectLabel);
   if (!selected.length) {
     printWarning("선택된 과목이 없습니다.");
@@ -850,10 +866,25 @@ async function pickMultipleFromList<T>(
   labelMapper: (item: T) => string
 ): Promise<T[]> {
   printSection(`\n${title} 목록:`);
-  items.forEach((item, i) =>
-    console.log(`${color(String(i + 1), ANSI.yellow)}. ${labelMapper(item)}`)
-  );
-  const answer = await rl.question(`\n번호들을 쉼표 또는 범위로 입력 (예: 1,2,3-5): `);
+  
+  const displayLimit = 50;
+  let offset = 0;
+  while (offset < items.length) {
+    const chunk = items.slice(offset, offset + displayLimit);
+    chunk.forEach((item, i) =>
+      console.log(`${color(String(offset + i + 1), ANSI.yellow)}. ${labelMapper(item)}`)
+    );
+    
+    offset += displayLimit;
+    if (offset < items.length) {
+      const remaining = items.length - offset;
+      printWarning(`\n... 외 ${remaining}건의 항목이 더 있습니다.`);
+      const more = (await ask(rl, "더 보시겠습니까? (Y/n)")).trim().toLowerCase();
+      if (more === 'n' || more === 'no') break;
+    }
+  }
+
+  const answer = await rl.question(`\n번호들을 쉼표 또는 범위로 입력 (예: 1,2,3-5) (취소 시 빈 칸): `);
   return parseSelectionIndexes(answer, items.length).map((n) => items[n]!);
 }
 
