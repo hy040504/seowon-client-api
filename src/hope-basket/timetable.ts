@@ -420,12 +420,15 @@ export function renderHopeBasketTimetableSvg(
         `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${color.fill}" stroke="${stroke}" stroke-width="${strokeW}"/>`
       );
 
+      const isShort = block.endPeriod === block.startPeriod;
+      
       // 칸 너비 기준 대략 글자 수 (조금 여유 있게)
       const maxChars = Math.max(10, Math.floor((w - 10) / 10));
-      const names = block.subjects.map((item) => item.subjtNm).join(" / ");
+      const names = block.subjects.map((item) => isShort ? `${item.subjtNm} (${item.cmpsjCdt || "?"}학점)` : item.subjtNm).join(" / ");
       const profs = uniqueNonEmpty(block.subjects.map((item) => item.chrgInstrEmpnm)).join(", ");
       // 강의실은 자르지 않고 줄바꿈으로 전부 표시
       const placeText = uniqueNonEmpty(block.subjects.map((item) => item.place)).join(" / ");
+      const creditsText = isShort ? "" : block.subjects.map((item) => `(${item.cmpsjCdt || "?"}학점)`).join(" / ");
 
       const lines: Array<{ text: string; size: number; weight: number; opacity: number }> = [];
       for (const piece of wrapText(names, maxChars)) {
@@ -442,6 +445,9 @@ export function renderHopeBasketTimetableSvg(
         for (const piece of wrapText(placeText, maxChars)) {
           lines.push({ text: piece, size: 10, weight: 500, opacity: 0.92 });
         }
+      }
+      if (creditsText) {
+        lines.push({ text: creditsText, size: 11, weight: 600, opacity: 0.85 });
       }
 
       // 블록 높이에 맞춰 위에서부터 채움 (코드/과목번호는 표시하지 않음)
@@ -472,7 +478,7 @@ export function renderHopeBasketTimetableSvg(
     );
   } else {
     parts.push(
-      `<text x="${padX}" y="${footerY}" font-family="${FONT_FAMILY}" font-size="11" fill="#9ca3af">timtbNm 기반 간이 시간표 · ClipReport 원본과 다를 수 있음</text>`
+      `<text x="${padX}" y="${footerY}" font-family="${FONT_FAMILY}" font-size="11" fill="#9ca3af">문자 데이터 기반 간이 시간표 · 학교 공식 시간표와 다를 수 있음</text>`
     );
   }
 
@@ -496,6 +502,7 @@ export async function exportHopeBasketTimetableImage(
     outputDir?: string;
     fileBaseName?: string;
     title?: string;
+    subtitle?: string;
     tryPng?: boolean;
   } = {}
 ): Promise<{ htmlPath: string; pngPath?: string }> {
@@ -506,7 +513,7 @@ export async function exportHopeBasketTimetableImage(
   const htmlPath = path.join(outputDir, `${base}.html`);
   const pngPathCandidate = path.join(outputDir, `${base}.png`);
 
-  const svg = renderHopeBasketTimetableSvg(timetable, { title: options.title });
+  const svg = renderHopeBasketTimetableSvg(timetable, { title: options.title, subtitle: options.subtitle });
   const html = `<!DOCTYPE html>
 <html lang="ko">
 <head>

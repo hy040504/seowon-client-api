@@ -21,6 +21,7 @@ import {
   formatHopeBasketTimetableGrid,
   isCookieJarUsable,
   stringifySugangSubjects,
+  mapCourseYearToNumericGrade,
   type HopeBasketClient,
   type SugangSubject,
   type SugangTimetableSubject
@@ -37,8 +38,8 @@ const DEFAULT_SUGANG_COOKIE_FILE = path.resolve(process.cwd(), ".seowon-hope-bas
 async function run(): Promise<void> {
   const rl = readline.createInterface({ input, output });
   printSection("\n--- 🧺 서원대 수강희망바구니 매니저 (예비담기 전용) ---");
-  printInfo("포함: 개설 검색, 담기/취소, 내 바구니 목록, timtbNm 간이 시간표, 학과별 개설 시간표");
-  printInfo("미포함: 정식 수강신청 본신청, ClipReport 원본 합산 시간표 이미지");
+  printInfo("포함: 개설 검색, 담기/취소, 내 바구니 목록, 문자 데이터 기반 간이 시간표, 학과별 개설 시간표");
+  printInfo("미포함: 정식 수강신청 본신청, 학교 공식 시간표 이미지");
   printInfo("호스트: https://sugangh.seowon.ac.kr");
   printInfo(`쿠키 파일: ${DEFAULT_SUGANG_COOKIE_FILE}\n`);
 
@@ -391,7 +392,8 @@ async function addMajorCoursesForMyProfile(
     `\n[담기 대상 과목 리스트 (총 ${preview.candidates.length}과목 / ${totalCredits}학점)]`
   );
   for (const [index, item] of preview.candidates.entries()) {
-    const year = item.cmpsjHyDivCd ? `${item.cmpsjHyDivCd}학년` : "전체학년";
+    const numericYear = item.cmpsjHyDivCd ? mapCourseYearToNumericGrade(item.cmpsjHyDivCd) : "0";
+    const year = (numericYear && numericYear !== "0" && numericYear !== "99") ? `${numericYear}학년` : "전체학년";
     const time = item.timtbNm ? item.timtbNm.replace(/\s+/g, " ") : "시간미정";
     const credit = item.cmpsjCdt ? `${item.cmpsjCdt}학점` : "";
     const prof = item.chrgInstrEmpnm || "교수미정";
@@ -500,7 +502,7 @@ async function listMyHopeBasket(basket: HopeBasketClient): Promise<void> {
  */
 async function viewMyHopeBasketTimetable(basket: HopeBasketClient): Promise<void> {
   printInfo("내 희망바구니 시간표 이미지 생성 중...");
-  printInfo("HTML/PNG 저장 (SVG 파일은 생성하지 않음). ClipReport 원본과 다를 수 있습니다.");
+  printInfo("HTML/PNG 저장 (SVG 파일은 생성하지 않음). 학교 공식 시간표와 다를 수 있습니다.");
   const timetable = await basket.getMyHopeBasketTimetable();
   if (!timetable.courseCount) {
     printWarning("담은 과목이 없어 시간표를 그릴 수 없습니다.");
@@ -509,11 +511,21 @@ async function viewMyHopeBasketTimetable(basket: HopeBasketClient): Promise<void
 
   const outputDir = path.resolve(process.cwd(), "output");
   const student = basket.getStudentInfo();
-  const title = student?.stdntNm ? `${student.stdntNm} 희망바구니 시간표` : "수강희망바구니 시간표";
+  
+  const title = student?.stdntNm ? `${student.stdntNm} 수강희망바구니 시간표` : "수강희망바구니 시간표";
+  const statsSubtitle = `신청 ${timetable.courseCount}과목 · ${timetable.totalCredits}학점` + (timetable.conflicts.length ? ` · 충돌 ${timetable.conflicts.length}건` : "");
+  
+  let subtitle = statsSubtitle;
+  if (student) {
+    const smtMap: Record<string, string> = { "10": "1", "11": "여름", "20": "2", "21": "겨울" };
+    const smtName = smtMap[student.smtCd] || student.smtCd;
+    subtitle = `${student.stuno} · ${student.deprtNm || ""} ${student.hy}학년 · ${student.syy}학년도 ${smtName}학기 | ${statsSubtitle}`;
+  }
 
   const files = await exportHopeBasketTimetableImage(timetable, {
     outputDir,
     title,
+    subtitle,
     tryPng: true
   });
 
@@ -547,29 +559,25 @@ async function viewMyHopeBasketTimetable(basket: HopeBasketClient): Promise<void
  * @returns {Promise<void>} 프로세스 기동 시 resolve
  */
 async function openLocalFile(filePath: string): Promise<void> {
-  const { spawn } = await import("node:child_process");
+  const { exec } = await import("node:child_process");
   const target = path.resolve(filePath);
 
-  await new Promise<void>((resolve, reject) => {
-    let child;
+  return new Promise<void>((resolve) => {
+    let command;
     if (process.platform === "win32") {
-      // cmd start 는 경로/공백 이슈가 있어 PowerShell Start-Process 를 쓴다
-      const escaped = target.replace(/'/g, "''");
-      child = spawn(
-        "powershell.exe",
-        ["-NoProfile", "-Command", `Start-Process -LiteralPath '${escaped}'`],
-        { detached: true, stdio: "ignore", windowsHide: true }
-      );
+      command = `explorer.exe "${target}"`;
     } else if (process.platform === "darwin") {
-      child = spawn("open", [target], { detached: true, stdio: "ignore" });
+      command = `open "${target}"`;
     } else {
-      child = spawn("xdg-open", [target], { detached: true, stdio: "ignore" });
+      command = `xdg-open "${target}"`;
     }
 
-    child.on("error", reject);
-    child.unref();
-    // 기동만 되면 성공으로 본다 (뷰어 종료를 기다리지 않음)
-    setTimeout(() => resolve(), 200);
+    exec(command, () => {
+      // 성공/실패 여부와 무관하게 무시 (오류로 앱이 종료되지 않게 함)
+    });
+
+    // 뷰어 실행 즉시 다음으로 넘어가도록 300ms 후 자동 resolve
+    setTimeout(() => resolve(), 300);
   });
 }
 
