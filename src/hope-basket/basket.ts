@@ -1085,7 +1085,8 @@ export function stringifySugangSubjects(subjects: SugangSubject[]): string {
         subject.estblDeprtNm && `개설=${subject.estblDeprtNm}`,
         subject.cmpsjCdt && `학점=${subject.cmpsjCdt}`,
         subject.chrgInstrEmpnm && `담당=${subject.chrgInstrEmpnm}`,
-        subject.timtbNm && `시간=${subject.timtbNm.replace(/\s+/g, " ")}`
+        subject.timtbNm && `시간=${subject.timtbNm.replace(/\s+/g, " ")}`,
+        subject.slesLessnItem && `속성=${subject.slesLessnItem}`
       ]
         .filter(Boolean)
         .join(" | ");

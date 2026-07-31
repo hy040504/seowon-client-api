@@ -271,6 +271,40 @@ function formatSubjectLabel(subject: SugangSubject | SugangTimetableSubject): st
 }
 
 /**
+ * 검색된 과목들에 대해 시간표 상세 정보를 백그라운드로 조회하여 속성(e러닝 등)을 채워 넣는다
+ * @param {HopeBasketClient} basket - 클라이언트
+ * @param {SugangSubject[]} subjects - 검색된 과목 목록
+ */
+async function enrichSubjectsWithTimetableInfo(basket: HopeBasketClient, subjects: SugangSubject[]): Promise<void> {
+  const depts = [...new Set(subjects.map(s => s.asignDeprtCd))].filter(Boolean);
+  if (!depts.length) return;
+  
+  process.stdout.write(`  (추가 정보 조회 중: ${depts.length}개 학과) ... `);
+  try {
+    await Promise.all(
+      depts.map(async (dept) => {
+        try {
+          const timetable = await basket.getTimetableSubjects({ asignDeprtCd: dept });
+          for (const s of subjects) {
+            if (s.asignDeprtCd === dept) {
+              const match = timetable.find((t) => t.subjtCd === s.subjtCd && t.corseDvclsNo === s.corseDvclsNo);
+              if (match && match.slesLessnItem) {
+                s.slesLessnItem = match.slesLessnItem;
+              }
+            }
+          }
+        } catch (err) {
+          // 조회 실패 시 무시
+        }
+      })
+    );
+    console.log("완료");
+  } catch (err) {
+    console.log("실패");
+  }
+}
+
+/**
  * 과목 검색 결과만 출력한다
  * @param {HopeBasketClient} basket - 희망바구니 클라이언트
  * @param {readline.Interface} rl - 입력 인터페이스
@@ -287,6 +321,9 @@ async function searchSubjectsOnly(basket: HopeBasketClient, rl: readline.Interfa
     keyword,
     asignDeprtCd: asignDeprtCd || undefined
   });
+  if (subjects.length > 0) {
+    await enrichSubjectsWithTimetableInfo(basket, subjects);
+  }
   printSuccess(`${subjects.length}건`);
   console.log(stringifySugangSubjects(subjects) || "(없음)");
 }
@@ -313,6 +350,7 @@ async function addBasketBySearch(basket: HopeBasketClient, rl: readline.Interfac
     return;
   }
 
+  await enrichSubjectsWithTimetableInfo(basket, subjects);
   console.log(stringifySugangSubjects(subjects));
   const selected = await pickMultipleFromList(rl, "담을 분반", subjects, formatSubjectLabel);
   if (!selected.length) {

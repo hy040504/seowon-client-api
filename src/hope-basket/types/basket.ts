@@ -209,6 +209,7 @@ export interface SugangSubject {
   appcsLmttPcnt: string; // 수강 제한 인원
   thryHrs: string; // 이론 시수
   prctsHrs: string; // 실습 시수
+  slesLessnItem?: string; // (추가) 평가/수업 속성 요약 (e러닝 등 확인용)
   /**
    * 출처 목록
    * - general: 개설 교과목 검색 (GnrlList)
