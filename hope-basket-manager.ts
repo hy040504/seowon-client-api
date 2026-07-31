@@ -312,14 +312,15 @@ async function enrichSubjectsWithTimetableInfo(basket: HopeBasketClient, subject
  */
 async function searchSubjectsOnly(basket: HopeBasketClient, rl: readline.Interface): Promise<void> {
   const keyword = await ask(rl, "검색어(과목명/코드)", "");
-  const asignDeprtCd = await ask(
+  const deptInput = await ask(
     rl,
-    "개설학과 코드(비우면 본인 학과)",
+    "개설학과 코드 ('all' 입력 시 전체 학과 및 교양 검색, 비우면 본인 학과)",
     basket.getStudentInfo()?.deptCd || ""
   );
+  const asignDeprtCd = deptInput.toLowerCase() === "all" ? undefined : (deptInput || undefined);
   const subjects = await basket.searchSubjects({
     keyword,
-    asignDeprtCd: asignDeprtCd || undefined
+    asignDeprtCd
   });
   if (subjects.length > 0) {
     await enrichSubjectsWithTimetableInfo(basket, subjects);
@@ -336,14 +337,15 @@ async function searchSubjectsOnly(basket: HopeBasketClient, rl: readline.Interfa
  */
 async function addBasketBySearch(basket: HopeBasketClient, rl: readline.Interface): Promise<void> {
   const keyword = await ask(rl, "검색어(과목명/코드)", "");
-  const asignDeprtCd = await ask(
+  const deptInput = await ask(
     rl,
-    "개설학과 코드(비우면 본인 학과)",
+    "개설학과 코드 ('all' 입력 시 전체 학과 및 교양 검색, 비우면 본인 학과)",
     basket.getStudentInfo()?.deptCd || ""
   );
+  const asignDeprtCd = deptInput.toLowerCase() === "all" ? undefined : (deptInput || undefined);
   const subjects = await basket.searchSubjects({
     keyword,
-    asignDeprtCd: asignDeprtCd || undefined
+    asignDeprtCd
   });
   if (!subjects.length) {
     printWarning("검색 결과가 없습니다.");
