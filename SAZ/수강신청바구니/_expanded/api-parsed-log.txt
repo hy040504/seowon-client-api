@@ -1,0 +1,496 @@
+﻿?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz matched 48
+?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz matched 56
+?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz matched 12
+?꾧났 媛뺤쓽?쒓컙??議고쉶.saz matched 11
+keys [
+  '/com/sapl/SaplapCtr/findSaplHopeAppcsChk.do',
+  '/com/sapl/SaplapCtr/saveHopeAppcsDtls.do',
+  '/com/sapl/SaplapCtr/findEstblSubjtShpbsList.do',
+  '/com/sapl/SaplapCtr/findEstblSubjtGnrlList.do',
+  '/com/SsoCtr/findScomUnvfrSchdlInfo.do',
+  '/com/SsoCtr/findEstblCorseList.do',
+  '/com/SsoCtr/findEstblCorseDtlList.do',
+  '/com/sapl/SaplapCtr/saveHopeAppcsDtlsCancl.do',
+  '/com/SsoCtr/findAppcsSchdlList.do',
+  '/com/SsoCtr/findAppcsLogin.do',
+  '/com/SsoCtr/findStunoInfo.do',
+  '/com/SsoCtr/findAppcsLoginChk.do',
+  '/com/sapl/SaplapCtr/findEstblDeprtList.do',
+  '/com/sapl/SaplapCtr/findCltrDomnList.do'
+]
+
+## /com/sapl/SaplapCtr/findSaplHopeAppcsChk.do
+ session 004 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'unvfrStdrDeptCd',
+  'cmpsjHyDivCd',
+  'cmpsjDivCd',
+  'serchDiv',
+  'estblCrseDivCd',
+  'cltrDomnCd',
+  'stuno',
+  'asignDeprtCd',
+  'subjtCd',
+  'corseDvclsNo'
+]
+ reqRows [{"_rowType":"N","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","cmpsjHyDivCd":"","cmpsjDivCd":"","serchDiv":"0","estblCrseDivCd":"","cltrDomnCd":"","stuno":"202311420","asignDeprtCd":"B10547","subjtCd":"而댄벂?곌뎄議?,"corseDvclsNo":""}]
+ resParams { ErrorCode: '0' }
+ session 017 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'unvfrStdrDeptCd',
+  'cmpsjHyDivCd',
+  'cmpsjDivCd',
+  'serchDiv',
+  'estblCrseDivCd',
+  'cltrDomnCd',
+  'stuno',
+  'asignDeprtCd',
+  'subjtCd',
+  'corseDvclsNo'
+]
+ reqRows [{"_rowType":"N","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","cmpsjHyDivCd":"","cmpsjDivCd":"","serchDiv":"0","estblCrseDivCd":"","cltrDomnCd":"","stuno":"202311420","asignDeprtCd":"B10547","subjtCd":"?댁쁺泥댁젣","corseDvclsNo":""}]
+ resParams { ErrorCode: '0' }
+
+## /com/sapl/SaplapCtr/saveHopeAppcsDtls.do
+ session 005 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'stuno',
+  'unvfrStdrDeptCd',
+  'subjtCd',
+  'corseDvclsNo',
+  'ceckTrgetGbn',
+  'hiPass',
+  'ttcMapngNo',
+  'gschSubjtYn',
+  'stdntChngLmttYn',
+  'bchdmCntcSubjtYn'
+]
+ reqRows [{"_rowType":"I","syy":"2026","smtCd":"20","stuno":"202311420","unvfrStdrDeptCd":"20000","subjtCd":"736010","corseDvclsNo":"01","ceckTrgetGbn":"H","hiPass":"0","ttcMapngNo":"","gschSubjtYn":"0","stdntChngLmttYn":"","bchdmCntcSubjtYn":""}]
+ resParams { ErrorCode: '0' }
+ session 018 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'stuno',
+  'unvfrStdrDeptCd',
+  'subjtCd',
+  'corseDvclsNo',
+  'ceckTrgetGbn',
+  'hiPass',
+  'ttcMapngNo',
+  'gschSubjtYn',
+  'stdntChngLmttYn',
+  'bchdmCntcSubjtYn'
+]
+ reqRows [{"_rowType":"I","syy":"2026","smtCd":"20","stuno":"202311420","unvfrStdrDeptCd":"20000","subjtCd":"736012","corseDvclsNo":"01","ceckTrgetGbn":"H","hiPass":"0","ttcMapngNo":"","gschSubjtYn":"0","stdntChngLmttYn":"","bchdmCntcSubjtYn":""}]
+ resParams { ErrorCode: '0' }
+
+## /com/sapl/SaplapCtr/findEstblSubjtShpbsList.do
+ session 006 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'unvfrStdrDeptCd',
+  'cmpsjHyDivCd',
+  'cmpsjDivCd',
+  'serchDiv',
+  'estblCrseDivCd',
+  'cltrDomnCd',
+  'stuno',
+  'asignDeprtCd',
+  'subjtCd',
+  'corseDvclsNo'
+]
+ reqRows [{"_rowType":"N","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","cmpsjHyDivCd":"","cmpsjDivCd":"","serchDiv":"0","estblCrseDivCd":"","cltrDomnCd":"","stuno":"202311420","asignDeprtCd":"B10547","subjtCd":"而댄벂?곌뎄議?,"corseDvclsNo":""}]
+ resParams { ErrorCode: '0' }
+  ds dsSles131 rows 1
+  cols [
+  'subjtCd',         'univCd',
+  'subjtNm',         'univNm',
+  'remrk',           'chk',
+  'orgSubjtNm',      'estblCrseDivCd',
+  'unvfrStdrDeptCd', 'estblDeprtNm',
+  'estblDeprtCd',    'corseDvclsNo',
+  'timtbNm',         'syy',
+  'ttcMapngNo',      'ttRatlcYn',
+  'cmpsjCdt',        'smtCd',
+  'dghtDivCd',       'cmpsjHyDivCd',
+  'cmpsjDivCd'
+]
+  sample [{"_rowType":"N","subjtCd":"736010","univCd":"B10520","subjtNm":"而댄벂?곌뎄議?,"univNm":"IT臾명솕?덉닠???,"remrk":"","chk":"0","orgSubjtNm":"而댄벂?곌뎄議?,"estblCrseDivCd":"00","unvfrStdrDeptCd":"20000","estblDeprtNm":"而댄벂?곌났?숆낵","estblDeprtCd":"B10547","corseDvclsNo":"01","timtbNm":"??7 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎\n紐?2,3 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎","syy":"2026","ttcMapngNo":"","ttRatlcYn":"","cmpsjCdt":"3","smtCd":"20","dghtDivCd":"01","cmpsjHyDivCd":"07","cmpsjDivCd":"01"}]
+ session 008 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'unvfrStdrDeptCd',
+  'cmpsjHyDivCd',
+  'cmpsjDivCd',
+  'serchDiv',
+  'estblCrseDivCd',
+  'cltrDomnCd',
+  'stuno',
+  'asignDeprtCd',
+  'subjtCd',
+  'corseDvclsNo'
+]
+ reqRows [{"_rowType":"U","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","cmpsjHyDivCd":"","cmpsjDivCd":"","serchDiv":"0","estblCrseDivCd":"","cltrDomnCd":"","stuno":"202311420","asignDeprtCd":"B10547","subjtCd":"unix?쒖뒪??,"corseDvclsNo":""},{"_rowType":"O","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","cmpsjHyDivCd":"","cmpsjDivCd":"","serchDiv":"0","estblCrseDivCd":"","cltrDomnCd":"","stuno":"202311420","asignDeprtCd":"B10547","subjtCd":"而댄벂?곌뎄議?,"corseDvclsNo":""}]
+ resParams { ErrorCode: '0' }
+  ds dsSles131 rows 1
+  cols [
+  'subjtCd',         'univCd',
+  'subjtNm',         'univNm',
+  'remrk',           'chk',
+  'orgSubjtNm',      'estblCrseDivCd',
+  'unvfrStdrDeptCd', 'estblDeprtNm',
+  'estblDeprtCd',    'corseDvclsNo',
+  'timtbNm',         'syy',
+  'ttcMapngNo',      'ttRatlcYn',
+  'cmpsjCdt',        'smtCd',
+  'dghtDivCd',       'cmpsjHyDivCd',
+  'cmpsjDivCd'
+]
+  sample [{"_rowType":"N","subjtCd":"736010","univCd":"B10520","subjtNm":"而댄벂?곌뎄議?,"univNm":"IT臾명솕?덉닠???,"remrk":"","chk":"0","orgSubjtNm":"而댄벂?곌뎄議?,"estblCrseDivCd":"00","unvfrStdrDeptCd":"20000","estblDeprtNm":"而댄벂?곌났?숆낵","estblDeprtCd":"B10547","corseDvclsNo":"01","timtbNm":"??7 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎\n紐?2,3 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎","syy":"2026","ttcMapngNo":"","ttRatlcYn":"","cmpsjCdt":"3","smtCd":"20","dghtDivCd":"01","cmpsjHyDivCd":"07","cmpsjDivCd":"01"}]
+
+## /com/sapl/SaplapCtr/findEstblSubjtGnrlList.do
+ session 007 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'unvfrStdrDeptCd',
+  'cmpsjHyDivCd',
+  'cmpsjDivCd',
+  'serchDiv',
+  'estblCrseDivCd',
+  'cltrDomnCd',
+  'stuno',
+  'asignDeprtCd',
+  'subjtCd',
+  'corseDvclsNo'
+]
+ reqRows [{"_rowType":"U","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","cmpsjHyDivCd":"","cmpsjDivCd":"","serchDiv":"0","estblCrseDivCd":"","cltrDomnCd":"","stuno":"202311420","asignDeprtCd":"B10547","subjtCd":"unix?쒖뒪??,"corseDvclsNo":""},{"_rowType":"O","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","cmpsjHyDivCd":"","cmpsjDivCd":"","serchDiv":"0","estblCrseDivCd":"","cltrDomnCd":"","stuno":"202311420","asignDeprtCd":"B10547","subjtCd":"而댄벂?곌뎄議?,"corseDvclsNo":""}]
+ resParams { ErrorCode: '0' }
+  ds dsSles131 rows 0
+  cols []
+  sample []
+ session 009 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'unvfrStdrDeptCd',
+  'cmpsjHyDivCd',
+  'cmpsjDivCd',
+  'serchDiv',
+  'estblCrseDivCd',
+  'cltrDomnCd',
+  'stuno',
+  'asignDeprtCd',
+  'subjtCd',
+  'corseDvclsNo'
+]
+ reqRows [{"_rowType":"U","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","cmpsjHyDivCd":"","cmpsjDivCd":"","serchDiv":"0","estblCrseDivCd":"","cltrDomnCd":"","stuno":"202311420","asignDeprtCd":"B10547","subjtCd":"unix","corseDvclsNo":""},{"_rowType":"O","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","cmpsjHyDivCd":"","cmpsjDivCd":"","serchDiv":"0","estblCrseDivCd":"","cltrDomnCd":"","stuno":"202311420","asignDeprtCd":"B10547","subjtCd":"unix?쒖뒪??,"corseDvclsNo":""}]
+ resParams { ErrorCode: '0' }
+  ds dsSles131 rows 0
+  cols []
+  sample []
+
+## /com/SsoCtr/findScomUnvfrSchdlInfo.do
+ session 015 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz ct text/xml
+ reqCols undefined
+ reqRows undefined
+ resParams { ErrorCode: '0' }
+  ds dsUnvfc rows 1
+  cols [ 'reslt' ]
+  sample [{"_rowType":"N","reslt":"202620"}]
+ session 145 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz ct text/xml
+ reqCols undefined
+ reqRows undefined
+ resParams { ErrorCode: '0' }
+  ds dsUnvfc rows 1
+  cols [ 'reslt' ]
+  sample [{"_rowType":"N","reslt":"202620"}]
+
+## /com/SsoCtr/findEstblCorseList.do
+ session 016 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz ct text/xml
+ reqCols [
+  'syy',            'smtCd',
+  'smtClCd',        'unvfrStdrDeptCd',
+  'subjtCd',        'subjtNm',
+  'cmpsjDivCd',     'cmpsjHyDivCd',
+  'asignDeprtCd',   'asignDeprtNm',
+  'estblCrseDivCd', 'instrEmpnm',
+  'instrEmpno',     'prgGbn',
+  'serchDiv'
+]
+ reqRows [{"_rowType":"U","syy":"2026","smtCd":"20","smtClCd":"","unvfrStdrDeptCd":"20000","subjtCd":"","subjtNm":"","cmpsjDivCd":"","cmpsjHyDivCd":"","asignDeprtCd":"","asignDeprtNm":"","estblCrseDivCd":"","instrEmpnm":"","instrEmpno":"","prgGbn":"SLESCS0250","serchDiv":"0"},{"_rowType":"O","syy":"","smtCd":"","smtClCd":"","unvfrStdrDeptCd":"","subjtCd":"","subjtNm":"","cmpsjDivCd":"","cmpsjHyDivCd":"","asignDeprtCd":"","asignDeprtNm":"","estblCrseDivCd":"","instrEmpnm":"","instrEmpno":"","prgGbn":"SLESCS0250","serchDiv":""}]
+ resParams { ErrorCode: '0' }
+  ds dsSles131 rows 68
+  cols [
+  'univCd',
+  'asignDeprtCd',
+  'cmpsjDivNm',
+  'univDeptNm',
+  'deptSortSeqno1',
+  'deptNm',
+  'deptSortSeqno2'
+]
+  sample [{"_rowType":"N","univCd":"9999","asignDeprtCd":"B10704","cmpsjDivNm":"?꾧났","univDeptNm":"?④낵?援щ텇?놁쓬","deptSortSeqno1":"1041507","deptNm":"?곌퀎?듯빀?꾧났 AI諛섎룄泥댁냼?꾪듃?⑥뼱","deptSortSeqno2":"1035700"},{"_rowType":"N","univCd":"G6A00","asignDeprtCd":"G6A01","cmpsjDivNm":"?꾧났","univDeptNm":"?щ쾾???,"deptSortSeqno1":"1037500","deptNm":"?щ쾾???援?뼱援먯쑁怨?,"deptSortSeqno2":"1036000"}]
+ session 017 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz ct text/xml
+ reqCols [
+  'syy',            'smtCd',
+  'smtClCd',        'unvfrStdrDeptCd',
+  'subjtCd',        'subjtNm',
+  'cmpsjDivCd',     'cmpsjHyDivCd',
+  'asignDeprtCd',   'asignDeprtNm',
+  'estblCrseDivCd', 'instrEmpnm',
+  'instrEmpno',     'prgGbn',
+  'serchDiv'
+]
+ reqRows [{"_rowType":"N","syy":"2026","smtCd":"20","smtClCd":"","unvfrStdrDeptCd":"20000","subjtCd":"","subjtNm":"","cmpsjDivCd":"","cmpsjHyDivCd":"","asignDeprtCd":"","asignDeprtNm":"","estblCrseDivCd":"","instrEmpnm":"","instrEmpno":"","prgGbn":"SLESCS0250","serchDiv":"0"}]
+ resParams { ErrorCode: '0' }
+  ds dsSles131 rows 68
+  cols [
+  'univCd',
+  'asignDeprtCd',
+  'cmpsjDivNm',
+  'univDeptNm',
+  'deptSortSeqno1',
+  'deptNm',
+  'deptSortSeqno2'
+]
+  sample [{"_rowType":"N","univCd":"9999","asignDeprtCd":"B10704","cmpsjDivNm":"?꾧났","univDeptNm":"?④낵?援щ텇?놁쓬","deptSortSeqno1":"1041507","deptNm":"?곌퀎?듯빀?꾧났 AI諛섎룄泥댁냼?꾪듃?⑥뼱","deptSortSeqno2":"1035700"},{"_rowType":"N","univCd":"G6A00","asignDeprtCd":"G6A01","cmpsjDivNm":"?꾧났","univDeptNm":"?щ쾾???,"deptSortSeqno1":"1037500","deptNm":"?щ쾾???援?뼱援먯쑁怨?,"deptSortSeqno2":"1036000"}]
+
+## /com/SsoCtr/findEstblCorseDtlList.do
+ session 033 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'smtClCd',
+  'unvfrStdrDeptCd',
+  'asignDeprtCd',
+  'serchDiv',
+  'estblDeprtCd'
+]
+ reqRows [{"_rowType":"U","syy":"2026","smtCd":"20","smtClCd":"","unvfrStdrDeptCd":"20000","asignDeprtCd":"B10547","serchDiv":"0","estblDeprtCd":""},{"_rowType":"O","syy":"","smtCd":"","smtClCd":"","unvfrStdrDeptCd":"","asignDeprtCd":"","serchDiv":"","estblDeprtCd":""}]
+ resParams { ErrorCode: '0' }
+  ds dsSles131 rows 17
+  cols [
+  'subjtCd',       'atnlcPosblPcnt',
+  'subjtNm',       'remrk',
+  'ddd',           'thryHrs',
+  'slesLessnItem', 'chrgInstrEmpno',
+  'corseDvclsNo',  'chrgInstrEmpnm',
+  'timtbNm',       'cmpsjCdt',
+  'cmpsjDivNm',    'prctsHrs',
+  'hjDeptNm',      'cmpsjHyDivCd',
+  'cmpsjDivCd',    'sameAltntYn',
+  'appcsPcnt'
+]
+  sample [{"_rowType":"N","subjtCd":"U736303","atnlcPosblPcnt":"45","subjtNm":"?꾨줈洹몃옒諛띯뀫","remrk":"","ddd":"","thryHrs":"2","slesLessnItem":"?곷??됯? B??,"chrgInstrEmpno":"10291","corseDvclsNo":"01","chrgInstrEmpnm":"?≫빐??,"timtbNm":"??5,6 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎\n??5,6 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎","cmpsjCdt":"3","cmpsjDivNm":"?꾧났?좏깮","prctsHrs":"2","hjDeptNm":"?묒“?숆낵紐?,"cmpsjHyDivCd":"04","cmpsjDivCd":"02","sameAltntYn":"","appcsPcnt":"0"},{"_rowType":"N","subjtCd":"U736304","atnlcPosblPcnt":"45","subjtNm":"?붿??멸났?숈꽕怨?,"remrk":"","ddd":"","thryHrs":"2","slesLessnItem":"?곷??됯? B??,"chrgInstrEmpno":"11403","corseDvclsNo":"01","chrgInstrEmpnm":"理쒗쁽??,"timtbNm":"??2,3,4,5 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎","cmpsjCdt":"3","cmpsjDivNm":"?꾧났?좏깮","prctsHrs":"2","hjDeptNm":"?묒“?숆낵紐?,"cmpsjHyDivCd":"04","cmpsjDivCd":"02","sameAltntYn":"","appcsPcnt":"0"}]
+ session 182 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'smtClCd',
+  'unvfrStdrDeptCd',
+  'asignDeprtCd',
+  'serchDiv',
+  'estblDeprtCd'
+]
+ reqRows [{"_rowType":"U","syy":"2026","smtCd":"20","smtClCd":"","unvfrStdrDeptCd":"20000","asignDeprtCd":"R01","serchDiv":"1","estblDeprtCd":"B10547"},{"_rowType":"O","syy":"","smtCd":"","smtClCd":"","unvfrStdrDeptCd":"","asignDeprtCd":"","serchDiv":"","estblDeprtCd":""}]
+ resParams { ErrorCode: '0' }
+  ds dsSles131 rows 15
+  cols [
+  'subjtCd',       'atnlcPosblPcnt',
+  'subjtNm',       'remrk',
+  'ddd',           'thryHrs',
+  'slesLessnItem', 'chrgInstrEmpno',
+  'corseDvclsNo',  'chrgInstrEmpnm',
+  'timtbNm',       'cmpsjCdt',
+  'cmpsjDivNm',    'prctsHrs',
+  'hjDeptNm',      'cmpsjHyDivCd',
+  'cmpsjDivCd',    'sameAltntYn',
+  'appcsPcnt'
+]
+  sample [{"_rowType":"N","subjtCd":"008564","atnlcPosblPcnt":"40","subjtNm":"竊놂섧?몄꽦肄붿묶??,"remrk":"","ddd":"","thryHrs":"1","slesLessnItem":"Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆","chrgInstrEmpno":"10333","corseDvclsNo":"KN","chrgInstrEmpnm":"?먮큺湲?,"timtbNm":"湲?9 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎","cmpsjCdt":"1","cmpsjDivNm":"援먯뼇?꾩닔","prctsHrs":"0","hjDeptNm":"?묒“?숆낵紐?,"cmpsjHyDivCd":"01","cmpsjDivCd":"03","sameAltntYn":"","appcsPcnt":"0"},{"_rowType":"N","subjtCd":"008564","atnlcPosblPcnt":"40","subjtNm":"竊놂섧?몄꽦肄붿묶??,"remrk":"","ddd":"","thryHrs":"1","slesLessnItem":"Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆","chrgInstrEmpno":"10986","corseDvclsNo":"KP","chrgInstrEmpnm":"源遊됲쁽","timtbNm":"湲?9 而댄벂?곗떎?듭떎2 ???먯뿰愿3痢?1?몄떎","cmpsjCdt":"1","cmpsjDivNm":"援먯뼇?꾩닔","prctsHrs":"0","hjDeptNm":"?묒“?숆낵紐?,"cmpsjHyDivCd":"01","cmpsjDivCd":"03","sameAltntYn":"","appcsPcnt":"0"}]
+
+## /com/sapl/SaplapCtr/saveHopeAppcsDtlsCancl.do
+ session 192 ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'stuno',
+  'unvfrStdrDeptCd',
+  'subjtCd',
+  'corseDvclsNo',
+  'ceckTrgetGbn',
+  'hiPass',
+  'ttcMapngNo',
+  'gschSubjtYn',
+  'stdntChngLmttYn',
+  'bchdmCntcSubjtYn'
+]
+ reqRows [{"_rowType":"I","syy":"2026","smtCd":"20","stuno":"202311420","unvfrStdrDeptCd":"20000","subjtCd":"008565","corseDvclsNo":"77","ceckTrgetGbn":"","hiPass":"","ttcMapngNo":"","gschSubjtYn":"","stdntChngLmttYn":"","bchdmCntcSubjtYn":""}]
+ resParams { ErrorCode: '0' }
+
+## /com/SsoCtr/findAppcsSchdlList.do
+ session 26 ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz ct text/xml
+ reqCols [ 'syy', 'smtCd', 'unvfrStdrDeptCd', 'notcClCd', 'atnlcNotcClCd' ]
+ reqRows [{"_rowType":"U","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","notcClCd":"","atnlcNotcClCd":""},{"_rowType":"O","syy":"","smtCd":"","unvfrStdrDeptCd":"","notcClCd":"","atnlcNotcClCd":""}]
+ resParams { ErrorCode: '0' }
+  ds dsSapl121 rows 9
+  cols [
+  'beginDt',      'appcsNm',
+  'appcsSchdlNm', 'endDate',
+  'remrk',        'endTm',
+  'gopubYn',      'endDt',
+  'aplyFlag',     'beginTm',
+  'appcsSchdlCd'
+]
+  sample [{"_rowType":"N","beginDt":"20260728000000000","appcsNm":"?섍컯?щ쭩諛붽뎄??,"appcsSchdlNm":"?섍컯?щ쭩諛붽뎄??,"endDate":"26.07.28(??10:00 ~ 26.08.03(??17:00 源뚯?","remrk":"","endTm":"1700","gopubYn":"1","endDt":"20260803000000000","aplyFlag":"1","beginTm":"1000","appcsSchdlCd":"220"},{"_rowType":"N","beginDt":"20260810000000000","appcsNm":"?섍컯?좎껌","appcsSchdlNm":"?섍컯?좎껌(4?숇뀈, 珥덇낵?숆린??","endDate":"26.08.10(??10:00 ~ 26.08.11(??09:00 源뚯?","remrk":"","endTm":"0900","gopubYn":"1","endDt":"20260811000000000","aplyFlag":"0","beginTm":"1000","appcsSchdlCd":"310"}]
+ session 29 ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz ct text/xml
+ reqCols [ 'syy', 'smtCd', 'unvfrStdrDeptCd', 'notcClCd', 'atnlcNotcClCd' ]
+ reqRows [{"_rowType":"N","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","notcClCd":"","atnlcNotcClCd":"I"}]
+ resParams { ErrorCode: '0' }
+  ds dsSapl121 rows 9
+  cols [
+  'beginDt',      'appcsNm',
+  'appcsSchdlNm', 'endDate',
+  'remrk',        'endTm',
+  'gopubYn',      'endDt',
+  'aplyFlag',     'beginTm',
+  'appcsSchdlCd'
+]
+  sample [{"_rowType":"N","beginDt":"20260728000000000","appcsNm":"?섍컯?щ쭩諛붽뎄??,"appcsSchdlNm":"?섍컯?щ쭩諛붽뎄??,"endDate":"26.07.28(??10:00 ~ 26.08.03(??17:00 源뚯?","remrk":"","endTm":"1700","gopubYn":"1","endDt":"20260803000000000","aplyFlag":"1","beginTm":"1000","appcsSchdlCd":"220"},{"_rowType":"N","beginDt":"20260810000000000","appcsNm":"?섍컯?좎껌","appcsSchdlNm":"?섍컯?좎껌(4?숇뀈, 珥덇낵?숆린??","endDate":"26.08.10(??10:00 ~ 26.08.11(??09:00 源뚯?","remrk":"","endTm":"0900","gopubYn":"1","endDt":"20260811000000000","aplyFlag":"0","beginTm":"1000","appcsSchdlCd":"310"}]
+
+## /com/SsoCtr/findAppcsLogin.do
+ session 34 ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'unvfrStdrDeptCd',
+  'stuno',
+  'password',
+  'hy',
+  'deptCd',
+  'notcClCd',
+  'appcsKindCd'
+]
+ reqRows [{"_rowType":"U","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","stuno":"202311420","password":"***","hy":"","deptCd":"","notcClCd":"L","appcsKindCd":"100"},{"_rowType":"O","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","stuno":"","password":"","hy":"","deptCd":"","notcClCd":"L","appcsKindCd":""}]
+ resParams { ErrorCode: '0' }
+  ds dsFlag rows 1
+  cols [ 'flag' ]
+  sample [{"_rowType":"N","flag":"1"}]
+  ds dsSession rows 1
+  cols [
+  'msg',
+  'initPswdYn',
+  'userSupport',
+  'userNm',
+  'encStr',
+  'persNo',
+  'wasInfo',
+  'needChangePwd',
+  'deptNm',
+  'locale'
+]
+  sample [{"_rowType":"N","msg":"success","initPswdYn":"0","userSupport":"0!@#undefined","userNm":"?곗듅??,"encStr":"***","persNo":"202311420","wasInfo":"?댁쁺","needChangePwd":"0","deptNm":"而댄벂?곌났?숆낵","locale":"ko"}]
+
+## /com/SsoCtr/findStunoInfo.do
+ session 35 ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'unvfrStdrDeptCd',
+  'stuno',
+  'password',
+  'hy',
+  'deptCd',
+  'notcClCd',
+  'appcsKindCd'
+]
+ reqRows [{"_rowType":"N","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","stuno":"202311420","password":"***","hy":"","deptCd":"","notcClCd":"L","appcsKindCd":"100"}]
+ resParams { ErrorCode: '0' }
+  ds dsStunoInfo rows 1
+  cols [
+  'entnsDt',         'univCd',
+  'dgriCrseCd',      'cmpsjSecnt',
+  'unvfrStdrDeptCd', 'applyCrseCd',
+  'majorCd',         'deptCd',
+  'hy',              'syy',
+  'schrgSttusCd',    'minCdtNum',
+  'schrgSttusNm',    'deprtNm',
+  'deprtCd',         'stdntNm',
+  'maxCdtNum',       'smtCd',
+  'dghtDivCd',       'mngtYn',
+  'stuno'
+]
+  sample [{"_rowType":"N","entnsDt":"20230221","univCd":"B10520","dgriCrseCd":"0","cmpsjSecnt":"3","unvfrStdrDeptCd":"20000","applyCrseCd":"00","majorCd":"","deptCd":"B10547","hy":"2","syy":"2026","schrgSttusCd":"01","minCdtNum":"12","schrgSttusNm":"?ы븰","deprtNm":"IT臾명솕?덉닠???而댄벂?곌났?숆낵","deprtCd":"B10547","stdntNm":"?곗듅??,"maxCdtNum":"20","smtCd":"20","dghtDivCd":"01","mngtYn":"0","stuno":"202311420"}]
+
+## /com/SsoCtr/findAppcsLoginChk.do
+ session 36 ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'unvfrStdrDeptCd',
+  'stuno',
+  'password',
+  'hy',
+  'deptCd',
+  'notcClCd',
+  'appcsKindCd'
+]
+ reqRows [{"_rowType":"U","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","stuno":"202311420","password":"***","hy":"2","deptCd":"B10547","notcClCd":"L","appcsKindCd":"100"},{"_rowType":"O","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","stuno":"202311420","password":"***","hy":"","deptCd":"","notcClCd":"L","appcsKindCd":"100"}]
+ resParams { ErrorCode: '0' }
+  ds dsLoginInfoChk rows 6
+  cols [ 'possYn', 'appcsSchdlCd', 'appcsSchdlSeqno', 'appcsTrgetTypeCnt' ]
+  sample [{"_rowType":"N","possYn":"1","appcsSchdlCd":"220","appcsSchdlSeqno":"1","appcsTrgetTypeCnt":"0"},{"_rowType":"N","possYn":"0","appcsSchdlCd":"310","appcsSchdlSeqno":"3","appcsTrgetTypeCnt":"0"}]
+
+## /com/sapl/SaplapCtr/findEstblDeprtList.do
+ session 61 ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'unvfrStdrDeptCd',
+  'cmpsjHyDivCd',
+  'cmpsjDivCd',
+  'serchDiv',
+  'estblCrseDivCd',
+  'cltrDomnCd',
+  'stuno',
+  'asignDeprtCd',
+  'subjtCd',
+  'corseDvclsNo'
+]
+ reqRows [{"_rowType":"U","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","cmpsjHyDivCd":"","cmpsjDivCd":"","serchDiv":"0","estblCrseDivCd":"","cltrDomnCd":"","stuno":"202311420","asignDeprtCd":"","subjtCd":"","corseDvclsNo":""},{"_rowType":"O","syy":"","smtCd":"","unvfrStdrDeptCd":"","cmpsjHyDivCd":"","cmpsjDivCd":"","serchDiv":"","estblCrseDivCd":"","cltrDomnCd":"","stuno":"","asignDeprtCd":"","subjtCd":"","corseDvclsNo":""}]
+ resParams { ErrorCode: '0' }
+  ds dsEstblDeprtCd rows 82
+  cols [ 'asignDeprtCd', 'deptNm', 'cmpsjDivCd' ]
+  sample [{"_rowType":"N","asignDeprtCd":"B10451","deptNm":"?쒖썝????앺뭹?곸뼇?숆낵","cmpsjDivCd":"1"},{"_rowType":"N","asignDeprtCd":"B10704","deptNm":"?④낵?援щ텇?놁쓬 AI諛섎룄泥댁냼?꾪듃?⑥뼱","cmpsjDivCd":"1"}]
+
+## /com/sapl/SaplapCtr/findCltrDomnList.do
+ session 62 ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz ct text/xml
+ reqCols [
+  'syy',
+  'smtCd',
+  'unvfrStdrDeptCd',
+  'cmpsjHyDivCd',
+  'cmpsjDivCd',
+  'serchDiv',
+  'estblCrseDivCd',
+  'cltrDomnCd',
+  'stuno',
+  'asignDeprtCd',
+  'subjtCd',
+  'corseDvclsNo'
+]
+ reqRows [{"_rowType":"U","syy":"2026","smtCd":"20","unvfrStdrDeptCd":"20000","cmpsjHyDivCd":"","cmpsjDivCd":"","serchDiv":"0","estblCrseDivCd":"","cltrDomnCd":"","stuno":"202311420","asignDeprtCd":"","subjtCd":"","corseDvclsNo":""},{"_rowType":"O","syy":"","smtCd":"","unvfrStdrDeptCd":"","cmpsjHyDivCd":"","cmpsjDivCd":"","serchDiv":"","estblCrseDivCd":"","cltrDomnCd":"","stuno":"","asignDeprtCd":"","subjtCd":"","corseDvclsNo":""}]
+ resParams { ErrorCode: '0' }
+  ds dsCltrDomnCd rows 12
+  cols [ 'code', 'codeNm' ]
+  sample [{"_rowType":"N","code":"BA1","codeNm":"洹좏삎援먯뼇 - 臾명븰?살삁?졼꺕臾명솕"},{"_rowType":"N","code":"BB1","codeNm":"洹좏삎援먯뼇 - ??궗?泥좏븰"}]

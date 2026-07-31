@@ -157,9 +157,28 @@ export interface SugangSubjectSearchOptions extends Partial<SugangTermContext> {
   keyword?: string; // 과목명/코드 검색어
   subjtCd?: string; // 과목 코드 또는 검색어
   corseDvclsNo?: string; // 분반
-  listType?: "specialty" | "general" | "both"; // 조회 목록 종류
+  /**
+   * @deprecated 검색은 항상 findEstblSubjtGnrlList 만 사용한다.
+   * 내 희망바구니 목록은 getMyHopeBasketList / findEstblSubjtShpbsList 를 쓴다.
+   */
+  listType?: "specialty" | "general" | "both";
   menuId?: string; // 메뉴 ID
   pgmId?: string; // 프로그램 ID
+}
+
+/** 내 희망바구니 목록 조회 옵션 */
+export interface SugangMyHopeBasketListOptions extends Partial<SugangTermContext> {
+  serchDiv?: string; // 서버 필터 구분 (기본 0)
+  cmpsjHyDivCd?: string;
+  cmpsjDivCd?: string;
+  estblCrseDivCd?: string;
+  cltrDomnCd?: string;
+  /** 화면 기본은 학과 콤보 값이 들어가지만, 내 목록 조회 시 비워도 서버가 학번 기준으로 반환한다 */
+  asignDeprtCd?: string;
+  subjtCd?: string;
+  corseDvclsNo?: string;
+  menuId?: string;
+  pgmId?: string;
 }
 
 /** 개설 과목(검색 결과) */
@@ -190,8 +209,56 @@ export interface SugangSubject {
   appcsLmttPcnt: string; // 수강 제한 인원
   thryHrs: string; // 이론 시수
   prctsHrs: string; // 실습 시수
-  sourceList: "specialty" | "general" | "timetable" | "unknown"; // 출처 목록
+  /**
+   * 출처 목록
+   * - general: 개설 교과목 검색 (GnrlList)
+   * - basket: 내가 담은 희망바구니 (ShpbsList)
+   * - specialty: 과거 오해 표기(basket 동의어, 하위 호환)
+   * - timetable: 전공 개설 시간표 상세
+   */
+  sourceList: "specialty" | "general" | "basket" | "timetable" | "unknown";
   raw: SsvRow; // 원본 행
+}
+
+/** 시간표 문자열(timtbNm)의 요일 코드 */
+export type SugangWeekdayCode = "월" | "화" | "수" | "목" | "금" | "토" | "일";
+
+/** timtbNm 한 줄에서 파싱한 단일 교시 슬롯 */
+export interface SugangTimtbSlot {
+  day: SugangWeekdayCode; // 요일
+  dayIndex: number; // 0=월 … 6=일
+  period: number; // 교시 번호
+  place: string; // 강의실/장소 원문
+  rawLine: string; // 파싱에 쓰인 원본 줄
+}
+
+/** 희망바구니 간이 시간표 셀에 들어가는 과목 요약 */
+export interface SugangHopeBasketTimetableCellSubject {
+  subjtCd: string;
+  subjtNm: string;
+  corseDvclsNo: string;
+  place: string; // 해당 교시 강의실(timtbNm에서 파싱)
+  cmpsjCdt: string;
+  chrgInstrEmpnm: string; // 담당 교수명
+}
+
+/** 희망바구니 간이 시간표 셀(요일×교시) */
+export interface SugangHopeBasketTimetableCell {
+  day: SugangWeekdayCode;
+  period: number;
+  subjects: SugangHopeBasketTimetableCellSubject[];
+  hasConflict: boolean; // 같은 칸에 2과목 이상
+}
+
+/** 희망바구니 간이 시간표 집계 결과 */
+export interface SugangHopeBasketTimetable {
+  subjects: SugangSubject[]; // 원본 바구니 목록
+  slots: Array<SugangTimtbSlot & { subject: SugangSubject }>; // 펼친 교시 슬롯
+  cells: SugangHopeBasketTimetableCell[]; // 충돌 포함 셀 목록
+  totalCredits: number; // 신청 학점 합
+  courseCount: number; // 신청 과목 수
+  conflicts: SugangHopeBasketTimetableCell[]; // 충돌 셀만
+  unparsed: Array<{ subject: SugangSubject; timtbNm: string }>; // timtbNm 파싱 실패 항목
 }
 
 /** 바구니 담기/취소 옵션 */
@@ -276,6 +343,40 @@ export interface SugangTimetableSubject {
   raw: SsvRow; // 원본 행
 }
 
+/** 본인 학과·학년 기준 전공 일괄 담기 옵션 */
+export interface SugangMajorAutoAddOptions {
+  /** true면 조회만 하고 담지 않음 */
+  dryRun?: boolean;
+  /** true면 담기 전 서버 검증 생략 */
+  skipCheck?: boolean;
+  /**
+   * true면 이수학년이 비어 있거나 전체(0/00/99)인 과목도 포함.
+   * 기본 true — 학년 지정 없는 전공 개설도 후보에 넣는다.
+   */
+  includeUnknownYear?: boolean;
+  /** 개설 학과 코드 덮어쓰기 (기본: 학생 deptCd) */
+  asignDeprtCd?: string;
+  /** 학년 코드 덮어쓰기 (기본: 학생 hy) */
+  hy?: string;
+}
+
+/** 본인 학과·학년 기준 전공 일괄 담기 결과 */
+export interface SugangMajorAutoAddResult {
+  student: SugangStudentInfo;
+  deptCd: string;
+  hy: string;
+  syy: string;
+  smtCd: string;
+  /** 학과 시간표 전체(필터 전) */
+  allSubjects: SugangTimetableSubject[];
+  /** 학과+학년 매칭 후보 */
+  candidates: SugangTimetableSubject[];
+  results: Array<{
+    subject: SugangTimetableSubject;
+    result: SugangBasketMutationResult;
+  }>;
+}
+
 /** 학사일정 코드 조회 결과 (예: 202620) */
 export interface SugangTermCodeInfo {
   termCode: string; // 결합 코드 (YYYY + smtCd)
@@ -288,7 +389,8 @@ export interface SugangTermCodeInfo {
 /** SAZ 분석 요약 */
 export interface SugangSazBasketSummary {
   logins: SugangLoginResult[]; // 로그인 복원 결과
-  subjects: SugangSubject[]; // 검색된 과목
+  subjects: SugangSubject[]; // 개설 검색(GnrlList) 과목
+  myBasket: SugangSubject[]; // 내 희망바구니(ShpbsList) 과목
   basketAdds: SugangBasketMutationResult[]; // 바구니 담기 결과
   basketCancels: SugangBasketMutationResult[]; // 바구니 취소 결과
   schedules: SugangAppcsSchedule[]; // 수강 일정

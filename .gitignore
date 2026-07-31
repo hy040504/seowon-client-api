@@ -4,6 +4,7 @@ node_modules/
 test/
 files/
 downloads/
+output/
 .puppeteer-user-data/
 .env
 .env.*

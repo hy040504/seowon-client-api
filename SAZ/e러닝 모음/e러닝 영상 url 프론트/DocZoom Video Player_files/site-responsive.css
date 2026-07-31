@@ -1,0 +1,266 @@
+/*반응형 섬네일 크기*/
+
+.thumbnail-container-horizontal-item-small .thumbnail-root,
+.thumbnail-container-horizontal-item-normal .thumbnail-root {
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+/*사이트 포스트 리스트 가로 리스트 아이템 스타일*/
+.site-post-thumbnail-root.horizontal-item {
+  margin-left: 0px;
+  margin-right: 28px;
+  width: 262.484px;
+}
+
+.site-post-thumbnail-root.horizontal-item .panel.panel-card.medium-small .panel-body {
+  padding-top: 10px;
+  padding-bottom: 12px;
+}
+
+.site-post-thumbnail-root.horizontal-item .panel .panel-header {
+  max-height: 40px !important;
+  min-height: 40px !important;
+  margin-bottom: 12px;
+  vertical-align: top;
+  overflow: hidden;
+  white-space: normal;
+  text-overflow: ellipsis;
+}
+
+.site-post-thumbnail-root .thumbnail-info .user-name {
+  font-size: 0.82em;
+  margin-left: 0px;
+  overflow: hidden;
+}
+
+.site-post-thumbnail-root .thumbnail-info .content-date {
+  font-size: 0.82em;
+  margin-right: 0px;
+  margin-left: 6px;
+}
+
+@media (min-width: 1200px) {
+  /*3:9 비율의 컨테이너*/
+  .thumbnail-container-75 .thumbnail-root .thumbnail img {
+    width: auto;
+    max-height: 140px !important;
+    min-height: 140px !important;
+  }
+
+  /*100%의 컨테이너*/
+  .thumbnail-container-100 .thumbnail-root .thumbnail img {
+    width: auto;
+    max-height: 180px !important;
+    min-height: 180px !important;
+  }
+
+  .thumbnail-container-horizontal-item-small .thumbnail-root {
+    max-width: 150px;
+    min-width: 130px;
+  }
+  .thumbnail-container-horizontal-item-small .thumbnail-root .thumbnail img {
+    width: auto;
+    height: 110px !important;
+  }
+
+  .thumbnail-container-horizontal-item-normal .thumbnail-root {
+    max-width: 240px;
+    min-width: 180px;
+  }
+
+  .thumbnail-container-horizontal-item-normal .thumbnail-root .thumbnail img {
+    width: auto;
+    height: 160px !important;
+  }
+}
+
+@media (max-width: 1199px) {
+  .thumbnail-container-75 .thumbnail-root .thumbnail img {
+    width: auto;
+    max-height: 154px !important;
+    min-height: 154px !important;
+  }
+
+  .thumbnail-container-100 .thumbnail-root .thumbnail img {
+    width: auto;
+    max-height: 200px !important;
+    min-height: 200px !important;
+  }
+
+  .thumbnail-container-horizontal-item-small .thumbnail-root {
+    max-width: 150px;
+    min-width: 130px;
+  }
+
+  .thumbnail-container-horizontal-item-small .thumbnail-root .thumbnail img {
+    width: auto;
+    height: 110px !important;
+  }
+
+  .thumbnail-container-horizontal-item-normal .thumbnail-root {
+    max-width: 240px;
+    min-width: 180px;
+  }
+  .thumbnail-container-horizontal-item-normal .thumbnail-root .thumbnail img {
+    width: auto;
+    height: 160px !important;
+  }
+}
+
+@media (max-width: 991px) {
+  .thumbnail-container-75 .thumbnail-root .thumbnail img {
+    width: auto;
+    max-height: 220px !important;
+    min-height: 220px !important;
+  }
+
+  .thumbnail-container-100 .thumbnail-root .thumbnail img {
+    width: auto;
+    max-height: 220px !important;
+    min-height: 220px !important;
+  }
+
+  .thumbnail-container-horizontal-item-small .thumbnail-root {
+    max-width: 150px;
+    min-width: 120px;
+  }
+
+  .thumbnail-container-horizontal-item-small .thumbnail-root .thumbnail img {
+    width: auto;
+    height: 110px !important;
+  }
+
+  .thumbnail-container-horizontal-item-normal .thumbnail-root {
+    max-width: 200px;
+    min-width: 140px;
+  }
+  .thumbnail-container-horizontal-item-normal .thumbnail-root .thumbnail img {
+    width: auto;
+    height: 120px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .thumbnail-container-75 .thumbnail-root .thumbnail img {
+    width: auto;
+    max-height: 210px !important;
+    min-height: 210px !important;
+  }
+
+  .thumbnail-container-100 .thumbnail-root .thumbnail img {
+    width: auto;
+    max-height: 210px !important;
+    min-height: 210px !important;
+  }
+
+  .thumbnail-container-horizontal-item-small .thumbnail-root {
+    max-width: 150px;
+    min-width: 120px;
+  }
+
+  .thumbnail-container-horizontal-item-small .thumbnail-root .thumbnail img {
+    width: auto;
+    height: 110px !important;
+  }
+
+  .thumbnail-container-horizontal-item-normal .thumbnail-root {
+    max-width: 200px;
+    min-width: 140px;
+  }
+  .thumbnail-container-horizontal-item-normal .thumbnail-root .thumbnail img {
+    width: auto;
+    height: 120px !important;
+  }
+}
+
+@media (max-width: 500px) {
+  .thumbnail-container-75 .thumbnail-root .thumbnail img {
+    width: auto;
+    max-height: 120px !important;
+    min-height: 120px !important;
+  }
+
+  .thumbnail-container-100 .thumbnail-root .thumbnail img {
+    width: auto;
+    max-height: 120px !important;
+    min-height: 120px !important;
+  }
+
+  .thumbnail-container-horizontal-item-small .thumbnail-root {
+    max-width: 150px;
+    min-width: 120px;
+  }
+
+  .thumbnail-container-horizontal-item-small .thumbnail-root .thumbnail img {
+    width: auto;
+    height: 110px !important;
+  }
+
+  .thumbnail-container-horizontal-item-normal .thumbnail-root {
+    max-width: 150px;
+    min-width: 120px;
+  }
+  .thumbnail-container-horizontal-item-normal .thumbnail-root .thumbnail img {
+    width: auto;
+    height: 100px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .thumbnail-container-75 .thumbnail-root .thumbnail img {
+    width: auto;
+    max-height: 106px !important;
+    min-height: 106px !important;
+  }
+
+  .thumbnail-container-100 .thumbnail-root .thumbnail img {
+    width: auto;
+    max-height: 106px !important;
+    min-height: 106px !important;
+  }
+
+  .thumbnail-container-horizontal-item-small .thumbnail-root {
+    max-width: 150px;
+    min-width: 120px;
+  }
+
+  .thumbnail-container-horizontal-item-small .thumbnail-root .thumbnail img {
+    width: auto;
+    height: 110px !important;
+  }
+
+  .thumbnail-container-horizontal-item-normal .thumbnail-root {
+    max-width: 140px;
+    min-width: 120px;
+  }
+  .thumbnail-container-horizontal-item-normal .thumbnail-root .thumbnail img {
+    width: auto;
+    height: 100px !important;
+  }
+}
+
+/*1+ (1+1) 중첩 row - 아래와 같이 해야 큰 화면에서 오른쪽 정렬이 맞는다. */
+@media (min-width: 992px) {
+  .nested-row-container {
+    /*padding-right: 0px;*/
+    margin-right: 0px;
+  }
+
+  .nested-row-container .nested-row {
+    padding-left: 0px;
+    margin-left: 0px;
+    padding-right: 0px;
+    margin-right: 0px;
+  }
+
+  .nested-row-container .nested-row .nested-row-left {
+    padding-left: 0px;
+    margin-left: 0px;
+  }
+
+  .nested-row-container .nested-row .nested-row-right {
+    padding-right: 0px;
+    margin-right: 0px;
+  }
+}

@@ -1,0 +1,438 @@
+﻿\n================================================================================
+/com/SsoCtr/findBaseInfo.do
+--- session 22 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436134471
+RES BODY:
+<?xml version="1.0" encoding="UTF-8"?>
+<Root xmlns="http://www.nexacroplatform.com/platform/dataset">
+	<Parameters>
+		<Parameter id="ErrorCode" type="int">0</Parameter>
+	</Parameters>
+	<Dataset id="dsBaseInfo">
+		<ColumnInfo>
+			<Column id="all" type="string" size="32"/>
+			<Column id="image" type="string" size="32"/>
+			<Column id="big" type="string" size="32"/>
+			<Column id="textMaxSize" type="int" size="4"/>
+			<Column id="reportDataPdfServerUrl" type="undefined" size="0"/>
+			<Column id="pdfMaxSize" type="int" size="4"/>
+			<Column id="imageMaxSize" type="int" size="4"/>
+			<Column id="pdf" type="undefined" size="0"/>
+			<Column id="bigMaxSize" type="int" size="4"/>
+			<Column id="text" type="string" size="32"/>
+			<Column id="reportDataServerUrl" type="undefined" size="0"/>
+			<Column id="allMaxSize" type="int" size="4"/>
+			<Column id="mailPopup" type="undefined" size="0"/>
+		</ColumnInfo>
+		<Rows>
+			<Row>
+				<Col id="all">bmp@@jpg@@jpeg@@png@@gif@@tit@@tiff@@psd@@&#10;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;zip@@7z@@alz@@a01@@a02@@a03@@egg@@egl@@&#10;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;hwp@@hwpx@@xls@@xlsx@@ppt@@pptx@@csv@@txt@@doc@@pdf@@docx@@&#10;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;wav@@avi@@mp3@@mpg@@mpeg@@swf@@dwg@@au@@ogg</Col>
+				<Col id="image">bmp@@jpg@@jpeg@@png@@gif@@tit@@tiff@@psd@@au@@ogg@@svg@@webp</Col>
+				<Col id="big">bmp@@jpg@@jpeg@@png@@gif@@tit@@tiff@@psd@@&#10;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;zip@@7z@@alz@@a01@@a02@@a03@@egg@@egl@@&#10;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;hwp@@hwpx@@xls@@xlsx@@ppt@@pptx@@csv@@txt@@doc@@pdf@@docx@@&#10;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;wav@@avi@@mp3@@mpg@@mpeg@@swf@@dwg@@au@@ogg</Col>
+				<Col id="textMaxSize">40960</Col>
+				<Col id="pdfMaxSize">40960</Col>
+				<Col id="imageMaxSize">10000</Col>
+				<Col id="bigMaxSize">512000</Col>
+				<Col id="text">gng@@csv@@txt</Col>
+				<Col id="allMaxSize">40960</Col>
+			</Row>
+		</Rows>
+	</Dataset>
+</Root>
+
+--- session 48 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436149109
+RES BODY:
+<?xml version="1.0" encoding="UTF-8"?>
+<Root xmlns="http://www.nexacroplatform.com/platform/dataset">
+	<Parameters>
+		<Parameter id="ErrorCode" type="int">0</Parameter>
+	</Parameters>
+	<Dataset id="dsBaseInfo">
+		<ColumnInfo>
+			<Column id="all" type="string" size="32"/>
+			<Column id="image" type="string" size="32"/>
+			<Column id="big" type="string" size="32"/>
+			<Column id="textMaxSize" type="int" size="4"/>
+			<Column id="reportDataPdfServerUrl" type="undefined" size="0"/>
+			<Column id="pdfMaxSize" type="int" size="4"/>
+			<Column id="imageMaxSize" type="int" size="4"/>
+			<Column id="pdf" type="undefined" size="0"/>
+			<Column id="bigMaxSize" type="int" size="4"/>
+			<Column id="text" type="string" size="32"/>
+			<Column id="reportDataServerUrl" type="undefined" size="0"/>
+			<Column id="allMaxSize" type="int" size="4"/>
+			<Column id="mailPopup" type="undefined" size="0"/>
+		</ColumnInfo>
+		<Rows>
+			<Row>
+				<Col id="all">bmp@@jpg@@jpeg@@png@@gif@@tit@@tiff@@psd@@&#10;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;zip@@7z@@alz@@a01@@a02@@a03@@egg@@egl@@&#10;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;hwp@@hwpx@@xls@@xlsx@@ppt@@pptx@@csv@@txt@@doc@@pdf@@docx@@&#10;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;wav@@avi@@mp3@@mpg@@mpeg@@swf@@dwg@@au@@ogg</Col>
+				<Col id="image">bmp@@jpg@@jpeg@@png@@gif@@tit@@tiff@@psd@@au@@ogg@@svg@@webp</Col>
+				<Col id="big">bmp@@jpg@@jpeg@@png@@gif@@tit@@tiff@@psd@@&#10;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;zip@@7z@@alz@@a01@@a02@@a03@@egg@@egl@@&#10;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;hwp@@hwpx@@xls@@xlsx@@ppt@@pptx@@csv@@txt@@doc@@pdf@@docx@@&#10;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;&#32;wav@@avi@@mp3@@mpg@@mpeg@@swf@@dwg@@au@@ogg</Col>
+				<Col id="textMaxSize">40960</Col>
+				<Col id="pdfMaxSize">40960</Col>
+				<Col id="imageMaxSize">10000</Col>
+				<Col id="bigMaxSize">512000</Col>
+				<Col id="text">gng@@csv@@txt</Col>
+				<Col id="allMaxSize">40960</Col>
+			</Row>
+		</Rows>
+	</Dataset>
+</Root>
+
+\n================================================================================
+/com/SsoCtr/isLogin.do
+--- session 23 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436134471
+RES BODY:
+<?xml version="1.0" encoding="UTF-8"?>
+<Root xmlns="http://www.nexacroplatform.com/platform/dataset">
+	<Parameters>
+		<Parameter id="ErrorCode" type="int">0</Parameter>
+	</Parameters>
+	<Dataset id="dsSession">
+		<ColumnInfo>
+			<Column id="msg" type="string" size="32"/>
+			<Column id="initPswdYn" type="string" size="32"/>
+		</ColumnInfo>
+		<Rows>
+			<Row>
+				<Col id="msg">fail</Col>
+				<Col id="initPswdYn">1</Col>
+			</Row>
+		</Rows>
+	</Dataset>
+	<Dataset id="DS_LOGINCONFIRM">
+		<ColumnInfo>
+			<Column id="isLogin" type="string" size="32"/>
+		</ColumnInfo>
+		<Rows>
+			<Row>
+				<Col id="isLogin">0</Col>
+			</Row>
+		</Rows>
+	</Dataset>
+</Root>
+
+--- session 33 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436140879
+RES BODY:
+<?xml version="1.0" encoding="UTF-8"?>
+<Root xmlns="http://www.nexacroplatform.com/platform/dataset">
+	<Parameters>
+		<Parameter id="ErrorCode" type="int">0</Parameter>
+	</Parameters>
+	<Dataset id="dsSession">
+		<ColumnInfo>
+			<Column id="msg" type="string" size="32"/>
+			<Column id="initPswdYn" type="string" size="32"/>
+		</ColumnInfo>
+		<Rows>
+			<Row>
+				<Col id="msg">fail</Col>
+				<Col id="initPswdYn">1</Col>
+			</Row>
+		</Rows>
+	</Dataset>
+	<Dataset id="DS_LOGINCONFIRM">
+		<ColumnInfo>
+			<Column id="isLogin" type="string" size="32"/>
+		</ColumnInfo>
+		<Rows>
+			<Row>
+				<Col id="isLogin">0</Col>
+			</Row>
+		</Rows>
+	</Dataset>
+</Root>
+
+\n================================================================================
+/com/SsoCtr/findScomUnvfrSchdlInfo.do
+--- session 25 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8flag=1univunvfrSchdlCd=SAPL00010001regDeptCd=20000applcDeptCd=applyCrseCd=dgriCrseCd=hy=syy=smtCd=requestTimeStr=1785436134625
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsUnvfc_RowType_reslt:string(32)N202620
+--- session 31 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8flag=1univunvfrSchdlCd=SAPL00010001regDeptCd=20000applcDeptCd=applyCrseCd=dgriCrseCd=hy=syy=smtCd=requestTimeStr=1785436140843
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsUnvfc_RowType_reslt:string(32)N202620
+\n================================================================================
+/com/SsoCtr/findAppcsSchdlList.do
+--- session 26 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436134669Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)notcClCd:STRING(256)atnlcNotcClCd:STRING(256)U20262020000O
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsSapl121_RowType_beginDt:datetime(17)appcsNm:string(32)appcsSchdlNm:string(32)endDate:string(32)remrk:undefined(0)endTm:string(32)gopubYn:string(32)endDt:datetime(17)aplyFlag:string(32)beginTm:string(32)appcsSchdlCd:string(32)N20260728000000000?섍컯?щ쭩諛붽뎄???섍컯?щ쭩諛붽뎄??26.07.28(??10:00 ~ 26.08.03(??17:00 源뚯?170012026080300000000011000220N20260810000000000?섍컯?좎껌?섍컯?좎껌(4?숇뀈, 珥덇낵?숆린??26.08.10(??10:00 ~ 26.08.11(??09:00 源뚯?090012026081100000000001000310N20260811000000000?섍컯?좎껌?섍컯?좎껌(3?숇뀈)26.08.11(??10:00 ~ 26.08.12(??09:00 源뚯?090012026081200000000001000310N20260812000000000?섍컯?좎껌?섍컯?좎껌(2?숇뀈)26.08.12(??10:00 ~ 26.08.13(紐?09:00 源뚯?090012026081300000000001000310N20260813000000000?섍컯?좎껌?섍컯?좎껌(1?숇뀈)26.08.13(紐?10:00 ~ 26.08.14(湲?09:00 源뚯?090012026081400000000001000310N20260814000000000?섍컯?좎껌?섍컯?좎껌(?꾩껜)26.08.14(湲?10:00 ~ 26.08.14(湲?17:00 源뚯?170012026081400000000001000310N20260805000000000?섍컯?좎껌?섍컯?좎껌(?뚯뒪??26.08.05(??09:00 ~ 26.08.07(湲?17:00 源뚯?170002026080700000000000900310N20260929000000000?섍컯?좎껌?섍컯?좎껌(?좎엯???멸뎅??26.09.29(??00:00 ~ 26.09.29(??23:59 源뚯?235902026092900000000000000310N20260901000000000?섍컯?좎껌蹂寃??섍컯?좎껌蹂寃?26.09.01(??10:00 ~ 26.09.07(??17:00 源뚯?170012026090700000000001000340
+--- session 29 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436140694Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)notcClCd:STRING(256)atnlcNotcClCd:STRING(256)N20262020000I
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsSapl121_RowType_beginDt:datetime(17)appcsNm:string(32)appcsSchdlNm:string(32)endDate:string(32)remrk:undefined(0)endTm:string(32)gopubYn:string(32)endDt:datetime(17)aplyFlag:string(32)beginTm:string(32)appcsSchdlCd:string(32)N20260728000000000?섍컯?щ쭩諛붽뎄???섍컯?щ쭩諛붽뎄??26.07.28(??10:00 ~ 26.08.03(??17:00 源뚯?170012026080300000000011000220N20260810000000000?섍컯?좎껌?섍컯?좎껌(4?숇뀈, 珥덇낵?숆린??26.08.10(??10:00 ~ 26.08.11(??09:00 源뚯?090012026081100000000001000310N20260811000000000?섍컯?좎껌?섍컯?좎껌(3?숇뀈)26.08.11(??10:00 ~ 26.08.12(??09:00 源뚯?090012026081200000000001000310N20260812000000000?섍컯?좎껌?섍컯?좎껌(2?숇뀈)26.08.12(??10:00 ~ 26.08.13(紐?09:00 源뚯?090012026081300000000001000310N20260813000000000?섍컯?좎껌?섍컯?좎껌(1?숇뀈)26.08.13(紐?10:00 ~ 26.08.14(湲?09:00 源뚯?090012026081400000000001000310N20260814000000000?섍컯?좎껌?섍컯?좎껌(?꾩껜)26.08.14(湲?10:00 ~ 26.08.14(湲?17:00 源뚯?170012026081400000000001000310N20260805000000000?섍컯?좎껌?섍컯?좎껌(?뚯뒪??26.08.05(??09:00 ~ 26.08.07(湲?17:00 源뚯?170002026080700000000000900310N20260929000000000?섍컯?좎껌?섍컯?좎껌(?좎엯???멸뎅??26.09.29(??00:00 ~ 26.09.29(??23:59 源뚯?235902026092900000000000000310N20260901000000000?섍컯?좎껌蹂寃??섍컯?좎껌蹂寃?26.09.01(??10:00 ~ 26.09.07(??17:00 源뚯?170012026090700000000001000340
+\n================================================================================
+/com/SsoCtr/findAppcsNotcList.do
+--- session 27 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436134669Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)notcClCd:STRING(256)atnlcNotcClCd:STRING(256)U20262020000IO
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsSapl011_RowType_atnlcNotcChnCtnt:undefined(0)nlognNotcYn:string(32)chk:string(32)atnlcNotcEngTitle:string(32)atnlcNotcNo:bigdecimal(16)atnlcNotcCtnt:string(32)atnlcNotcOrd:bigdecimal(16)atnlcNotcChnTitle:string(32)atnlcNotcEngCtnt:undefined(0)syy:string(32)attflUuid:string(32)emrgyNotcTrgetYn:string(32)atnlcNotcTitle:string(32)attflUuidNm:string(32)smtCd:string(32)atnlcNotcClCd:string(32)N10?섍컯?좎껌 ?덈궡2022200004<p class="0" style="text-align: center; font-size: 12pt; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;"><!-- [if !supportEmptyParas]--></p>
+<p class="0" style="text-align: center; font-size: 12pt; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;"><!-- [if !supportEmptyParas]--></p>
+<p class="0" style="text-align: center; font-size: 12pt; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;"><!-- [if !supportEmptyParas]--></p>
+<p>[2026-2 ?섍컯?щ쭩諛붽뎄??湲곌컙 以?蹂寃쎌궗??&nbsp;</p>
+<table class="MsoNormalTable" style="width: 1080px; border-collapse: collapse; height: 567.187px; border: medium none currentcolor;" border="1" width="0" cellspacing="0" cellpadding="0">
+<tbody>
+<tr style="height: 37.2461px;">
+<td style="width: 1070px; border: 1pt inset rgb(52, 73, 94); background: rgb(194, 224, 244); padding: 0cm; height: 37.2461px;" colspan="7" width="1440">
+<p class="MsoNormal" style="margin-bottom: .0001pt; text-align: left; line-height: normal; mso-pagination: widow-orphan; text-autospace: ideograph-numeric ideograph-other; word-break: keep-all;" align="left"><span lang="EN-US" style="mso-bidi-font-size: 10.0pt; font-family: 援대┝; mso-bidi-font-family: 援대┝; mso-font-kerning: 0pt;">[</span><span style="mso-bidi-font-size: 10.0pt; font-family: 援대┝; mso-bidi-font-family: 援대┝; mso-font-kerning: 0pt;">媛뺤쓽 蹂寃?span lang="EN-US">]</span></span></p>
+</td>
+</tr>
+<tr style="height: 37.2461px;">
+<td style="border-width: medium 1pt 1pt; border-style: none inset inset; border-color: currentcolor rgb(52, 73, 94) rgb(52, 73, 94); border-image: initial; background: rgb(194, 224, 244); padding: 0cm; height: 37.2461px; width: 177.715px;">
+<p class="MsoNormal" style="margin-bottom: 0.0001pt; line-height: normal; word-break: keep-all; text-align: center;" align="left"><span style="mso-bidi-font-size: 10.0pt; font-family: 援대┝; mso-bidi-font-family: 援대┝; mso-font-kerning: 0pt;">?숆낵<span lang="EN-US">(</span>遺??span lang="EN-US">)</span></span></p>
+</td>
+<td style="border-width: medium 1pt 1pt medium; border-style: none inset inset none; border-color: currentcolor rgb(52, 73, 94) rgb(52, 73, 94) currentcolor; background: rgb(194, 224, 244); padding: 0cm; height: 37.2461px; width: 99.7461px;">
+<p class="MsoNormal" style="margin-bottom: 0.0001pt; line-height: normal; word-break: keep-all; text-align: center;" align="left"><span style="mso-bidi-font-size: 10.0pt; font-family: 援대┝; mso-bidi-font-family: 援대┝; mso-font-kerning: 0pt;">?댁닔援щ텇</span></p>
+</td>
+<td style="border-width: medium 1pt 1pt medium; border-style: none inset inset none; border-color: currentcolor rgb(52, 73, 94) rgb(52, 73, 94) c
+--- session 28 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436134891Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)notcClCd:STRING(256)atnlcNotcClCd:STRING(256)U20262020000IO20262020000I
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsSapl011_RowType_atnlcNotcChnCtnt:undefined(0)nlognNotcYn:string(32)chk:string(32)atnlcNotcEngTitle:undefined(0)atnlcNotcNo:bigdecimal(16)atnlcNotcCtnt:string(32)atnlcNotcOrd:bigdecimal(16)atnlcNotcChnTitle:undefined(0)atnlcNotcEngCtnt:undefined(0)syy:string(32)attflUuid:string(32)emrgyNotcTrgetYn:string(32)atnlcNotcTitle:string(32)attflUuidNm:string(32)smtCd:string(32)atnlcNotcClCd:string(32)N002024100020<p class="0" style="text-align: center; font-size: 12pt; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;"><!-- [if !supportEmptyParas]--></p>
+<p class="0" style="text-align: center; font-size: 12pt; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;"><!-- [if !supportEmptyParas]--></p>
+<p class="0" style="text-align: center; font-size: 12pt; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;"><!-- [if !supportEmptyParas]--></p>
+<p class="0" style="text-align: center; font-size: 12pt; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;"><!-- [if !supportEmptyParas]--></p>
+<p class="0" style="text-align: center; font-size: 12pt; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;"><!-- [if !supportEmptyParas]--></p>
+<p class="0" style="text-align: center; font-size: 12pt; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;"><!-- [if !supportEmptyParas]--></p>
+<p class="0" style="text-align: center; font-size: 12pt; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;"><!-- [if !supportEmptyParas]--></p>
+<p class="0" style="text-align: center; font-size: 12pt; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;"><!-- [if !supportEmptyParas]--></p>
+<p>[2026-2 ?섍컯?щ쭩諛붽뎄??湲곌컙 以?蹂寃쎌궗??&nbsp;</p>
+<table class="MsoNormalTable" style="width: 1080px; border-collapse: collapse; height: 124.91px; border: medium none currentcolor;" border="1" width="0" cellspacing="0" cellpadding="0">
+<tbody>
+<tr style="height: 37.2461px;">
+<td style="width: 1070px; border: 1pt inset rgb(52, 73, 94); background: rgb(194, 224, 244); padding: 0cm; height: 37.2461px;" colspan="7" width="1440">
+<p class="MsoNormal" style="margin-bottom: .0001pt; text-align: left; line-height: normal; mso-pagination: widow-orphan; text-autospace: ideograph-numeric ideograph-other; word-break: keep-all;" align="left"><span style="font-size: 16px;"><span lang="EN-US" style="mso-bidi-font-size: 
+\n================================================================================
+/com/SsoCtr/findAppcsLogin.do
+--- session 34 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436148818Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)stuno:STRING(256)password:STRING(256)hy:STRING(256)deptCd:STRING(256)notcClCd:STRING(256)appcsKindCd:STRING(256)U20262020000202311420hy040504!L100O20262020000L
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsFlag_RowType_flag:string(32)N1Dataset:dsSession_RowType_msg:string(32)initPswdYn:string(32)userSupport:string(32)userNm:string(32)encStr:string(32)persNo:string(32)wasInfo:string(32)needChangePwd:string(32)deptNm:string(32)locale:string(32)Nsuccess00!@#undefined?곗듅??CUwKoHQSj+oZoXw0r/hF67rLFNx7OV65QY2BC+wS81Y=202311420?댁쁺0而댄벂?곌났?숆낵ko
+\n================================================================================
+/com/SsoCtr/findStunoInfo.do
+--- session 35 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436148924Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)stuno:STRING(256)password:STRING(256)hy:STRING(256)deptCd:STRING(256)notcClCd:STRING(256)appcsKindCd:STRING(256)N20262020000202311420hy040504!L100
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsStunoInfo_RowType_entnsDt:string(32)univCd:string(32)dgriCrseCd:string(32)cmpsjSecnt:bigdecimal(16)unvfrStdrDeptCd:string(32)applyCrseCd:string(32)majorCd:undefined(0)deptCd:string(32)hy:string(32)syy:string(32)schrgSttusCd:string(32)minCdtNum:bigdecimal(16)schrgSttusNm:string(32)deprtNm:string(32)deprtCd:string(32)stdntNm:string(32)maxCdtNum:bigdecimal(16)smtCd:string(32)dghtDivCd:string(32)mngtYn:string(32)stuno:string(32)N20230221B10520032000000B10547220260112?ы븰IT臾명솕?덉닠???而댄벂?곌났?숆낵B10547?곗듅??2020010202311420
+\n================================================================================
+/com/SsoCtr/findAppcsLoginChk.do
+--- session 36 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436148962Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)stuno:STRING(256)password:STRING(256)hy:STRING(256)deptCd:STRING(256)notcClCd:STRING(256)appcsKindCd:STRING(256)U20262020000202311420hy040504!2B10547L100O20262020000202311420hy040504!L100
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsLoginInfoChk_RowType_possYn:string(32)appcsSchdlCd:string(32)appcsSchdlSeqno:bigdecimal(16)appcsTrgetTypeCnt:string(32)N122010N031030N031050N031060N031070N034010
+\n================================================================================
+/com/cmsv/MenuCtr/findMenu.do
+--- session 38 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8strMenuId=M100779requestTimeStr=1785436149014
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsMenuInfo_RowType_upperMenuId:string(32)sysCd:string(32)menuChnNm:undefined(0)pgmDivCd:string(32)sessnUseYn:string(32)pgmId:string(32)menuDivCd:string(32)menuExecYn:undefined(0)menuEngNm:undefined(0)menuDispYn:string(32)mvmnUrl:undefined(0)menuGrade:int(4)menuId:string(32)useYn:string(32)indinUseYn:string(32)pgmPathNm:string(32)reltnMenuList:undefined(0)addAttrbVal3:string(32)menuPath:string(32)addAttrbVal2:undefined(0)addAttrbVal1:undefined(0)menuNotcCtnt:undefined(0)pgmNm:string(32)myMenuYn:bigdecimal(16)dispOrd:bigdecimal(16)menuNm:string(32)NM102007BIZ11P001609P15M10077900/sch/sapl/saplap/saplap0130?좎껌(web)?숈궗?됱젙 > ?섍컯?좎껌 > [蹂꾨룄濡쒓렇???숈깮?섍컯?좎껌 > [?숈깮]?섍컯?щ쭩諛붽뎄?덉떊泥?[?숈깮]?λ컮援щ땲 ?섍컯?좎껌050[?숈깮]?섍컯?щ쭩諛붽뎄?덉떊泥?
+\n================================================================================
+/com/cmsv/CodeCtr/findCodeComboList.do
+--- session 58 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8cmmnCd=SCUR0100|SSRM0030|SSRM0020|SLES0900|CSYS1030|SCUR0150useYn=1|1|1|1|1|1textMode=N|N|N|N|N|NdataSet=dsCmpsjDivCd|dsSchrgSttusCd|dsDgriCrseCd|dsEstblCrseDivCd|dsDghtDivCd|dsCmpsjHyDivCdrequestTimeStr=1785436149447
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsDghtDivCd_RowType_code:string(32)useYn:string(32)abnm:undefined(0)fullNm:string(32)N011二쇨컙N021?쇨컙Dataset:dsCmpsjHyDivCd_RowType_code:string(32)useYn:string(32)abnm:string(32)fullNm:string(32)N04111N0311-21-2N0211-31-3N0111-41-4N07122N0612-32-3N0512-42-4N09133N0813-43-4N10144N1111-51-5N1212-52-5N1313-53-5N1414-54-5N15155Dataset:dsSchrgSttusCd_RowType_code:string(32)useYn:string(32)abnm:string(32)fullNm:string(32)N011?ы븰?ы븰N021?댄븰?댄븰N031?섎즺?섎즺N041議몄뾽議몄뾽N051?쒖쟻?쒖쟻N061紐낆삁議몄뾽紐낆삁議몄뾽N071援먮쪟痍⑥냼援먮쪟痍⑥냼N091媛?낇븰媛?낇븰Dataset:dsCmpsjDivCd_RowType_code:string(32)useYn:string(32)abnm:string(32)fullNm:string(32)N011?꾪븘?꾧났?꾩닔N021?꾩꽑?꾧났?좏깮N031援먰븘援먯뼇?꾩닔N041援먯꽑援먯뼇?좏깮N341援먯쭅援먯쭅N051怨듯넻怨듯넻N061?쇱꽑?쇰컲?좏깮N071遺??遺?꾧났?꾩닔N511遺??遺?꾧났?좏깮N091蹂듯븘蹂듭닔?꾧났?꾩닔N521蹂듭꽑蹂듭닔?꾧났?좏깮N081吏곹븘援먯쭅?꾩닔N171吏곸꽑援먯쭅?좏깮N181?좎쟾?좎쟾N351?좉탳?좉탳N261?곗꽑?곌퀎?꾧났?좏깮N271?고븘?곌퀎?꾧났?꾩닔N531?듯븘?듯빀?꾧났?꾩닔N541?듭꽑?듯빀?꾧났?좏깮N331?쇱뿰?쇱뿰N801援곗씠?щ떇援곗씠?щ떇Dataset:dsEstblCrseDivCd_RowType_code:string(32)useYn:string(32)abnm:string(32)fullNm:string(32)N001?숈궗?숈궗N011?앹궗?앹궗N021諛뺤궗諛뺤궗N031?앸컯?ш났???앸컯?ш났??N081怨꾩젅??怨꾩젅??N091?쇨컙???쇨컙??Dataset:dsDgriCrseCd_RowType_code:string(32)useYn:string(32)abnm:string(32)fullNm:string(32)N01?숈궗?숈궗N11?앹궗?앹궗N21諛뺤궗諛뺤궗N91鍮꾪븰??鍮꾪븰?꾧낵??
+--- session 014 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8cmmnCd=SLES0100|SLES0900|CSYS1030|SCUR0100|SCUR0150useYn=1|1|1|1|1textMode=N|N|N|N|NdataSet=dsSmtCd|dsEstblCrseDivCd|dsDghtDivCd|dsCmpsjDivCd|dsCmpsjHyDivCdrequestTimeStr=1785436936769
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsDghtDivCd_RowType_code:string(32)useYn:string(32)abnm:undefined(0)fullNm:string(32)N011二쇨컙N021?쇨컙Dataset:dsCmpsjHyDivCd_RowType_code:string(32)useYn:string(32)abnm:string(32)fullNm:string(32)N04111N0311-21-2N0211-31-3N0111-41-4N07122N0612-32-3N0512-42-4N09133N0813-43-4N10144N1111-51-5N1212-52-5N1313-53-5N1414-54-5N15155Dataset:dsEstblCrseDivCd_RowType_code:string(32)useYn:string(32)abnm:string(32)fullNm:string(32)N001?숈궗?숈궗N011?앹궗?앹궗N021諛뺤궗諛뺤궗N031?앸컯?ш났???앸컯?ш났??N081怨꾩젅??怨꾩젅??N091?쇨컙???쇨컙??Dataset:dsCmpsjDivCd_RowType_code:string(32)useYn:string(32)abnm:string(32)fullNm:string(32)N011?꾪븘?꾧났?꾩닔N021?꾩꽑?꾧났?좏깮N031援먰븘援먯뼇?꾩닔N041援먯꽑援먯뼇?좏깮N341援먯쭅援먯쭅N051怨듯넻怨듯넻N061?쇱꽑?쇰컲?좏깮N071遺??遺?꾧났?꾩닔N511遺??遺?꾧났?좏깮N091蹂듯븘蹂듭닔?꾧났?꾩닔N521蹂듭꽑蹂듭닔?꾧났?좏깮N081吏곹븘援먯쭅?꾩닔N171吏곸꽑援먯쭅?좏깮N181?좎쟾?좎쟾N351?좉탳?좉탳N261?곗꽑?곌퀎?꾧났?좏깮N271?고븘?곌퀎?꾧났?꾩닔N531?듯븘?듯빀?꾧났?꾩닔N541?듭꽑?듯빀?꾧났?좏깮N331?쇱뿰?쇱뿰N801援곗씠?щ떇援곗씠?щ떇Dataset:dsSmtCd_RowType_code:string(32)useYn:string(32)abnm:string(32)fullNm:string(32)N001?꾩껜?꾪븰湲?N10111?숆린N111?щ쫫?щ쫫?숆린N20122?숆린N211寃⑥슱寃⑥슱?숆린N30133?숆린N40144?숆린
+\n================================================================================
+/com/SsoCtr/findMyGLIOList.do
+--- session 59 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8columnList=loginIdrequestTimeStr=1785436149526
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:DS_GLIO_RowType_loginId:string(32)N202311420
+--- session 002 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8columnList=deptCdrequestTimeStr=1785436378338
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:DS_GLIO_RowType_deptCd:string(32)NB10547
+\n================================================================================
+/com/sapl/SaplapCtr/findEstblDeprtList.do
+--- session 61 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436149603Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)cmpsjHyDivCd:STRING(256)cmpsjDivCd:STRING(256)serchDiv:STRING(256)estblCrseDivCd:STRING(256)cltrDomnCd:STRING(256)stuno:STRING(256)asignDeprtCd:STRING(256)subjtCd:STRING(256)corseDvclsNo:STRING(256)U202620200000202311420O
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsEstblDeprtCd_RowType_asignDeprtCd:string(32)deptNm:string(32)cmpsjDivCd:string(32)NB10451?쒖썝????앺뭹?곸뼇?숆낵1NB10704?④낵?援щ텇?놁쓬 AI諛섎룄泥댁냼?꾪듃?⑥뼱1NB10704?④낵?援щ텇?놁쓬 AI諛섎룄泥댁냼?꾪듃?⑥뼱99NB10191?④낵?援щ텇?놁쓬 ?숈궗吏?먰?(援먭낵/媛쒖꽕)1NG6A00?щ쾾????щ쾾???1NG6A01?щ쾾???援?뼱援먯쑁怨?1NG6A02?щ쾾????곸뼱援먯쑁怨?1NG6A03?щ쾾???援먯쑁?숆낵1NG6A04?щ쾾????좎븘援먯쑁怨?1NG6A05?щ쾾????ㅻ━援먯쑁怨?1NG6A07?щ쾾????ы쉶援먯쑁怨?1NG6A08?щ쾾?????궗援먯쑁怨?1NG6A09?щ쾾???吏由ш탳?↔낵1NG6A10?щ쾾????섑븰援먯쑁怨?1NG6A11?щ쾾????앸Ъ援먯쑁怨?1NG6A14?щ쾾???泥댁쑁援먯쑁怨?1NG6A15?щ쾾????뚯븙援먯쑁怨?1NG6B20湲濡쒕쾶寃쎌쁺???援?젣?숇?1NG6B21湲濡쒕쾶寃쎌쁺????곸뼱?꾧났1NG6B25湲濡쒕쾶寃쎌쁺???以묎뎅?몄뼱臾명솕?꾧났1N558?듬났?⑸????듯빀?ы쉶98NB10718?듬났?⑸???AI李쎌뾽1NB10718?듬났?⑸???AI李쎌뾽99NB10719?듬났?⑸???AI?붿옣?덉쑖??99NB10720?듬났?⑸???AI?붿??몃낫??99NB10721?듬났?⑸???AI?됱깮援먯쑁?살긽??99NB10722?듬났?⑸???AI諛붿씠?ㅻ럭??99NB10723?듬났?⑸???AI諛붿씠?ㅽ뿬?ㅼ???99NB10561?듬났?⑸????먯쑀?꾧났?숇?1NB10325誘몃옒???寃쎌쁺쨌遺?숈궛?꾧났1NG6K52誘몃옒????ы쉶蹂듭??숈쟾怨?1NB10195誘몃옒????앺솢泥댁쑁?꾧났1NB10324誘몃옒????곷떞?щ━?꾧났1NB10323誘몃옒????쇱씠?꾩꽕怨꾩쟾怨?1NB10322誘몃옒???臾명솕?덉닠寃쎌쁺?꾧났1NB10321誘몃옒???諛붿씠?ㅼ퐫?ㅻ찓?깆쟾怨?1NB10560誘몃옒????몄떇寃쎌쁺?꾧났1NG6L01?대㉧?덊떚援먯뼇????대㉧?덊떚援먯뼇???1NB10278湲濡쒖뺄怨듦났?쒕퉬?ㅻ????묎툒援ъ“?숆낵1NB10522怨듦났?쒕퉬?ㅻ???寃쎌쁺?숇?1NB10530怨듦났?쒕퉬?ㅻ???寃쎌쁺?숈쟾怨?1NB10531怨듦났?쒕퉬?ㅻ????뚭퀎?숈쟾怨?1NB10532怨듦났?쒕퉬?ㅻ???臾댁뿭?숈쟾怨?1NB10523怨듦났?쒕퉬?ㅻ?????났愿愿묓븰怨?1NB10524怨듦났?쒕퉬?ㅻ???寃쎌같?됱젙?숇?1NB10533怨듦났?쒕퉬?ㅻ???寃쎌같?됱젙?꾧났1NB10534怨듦났?쒕퉬?ㅻ???踰붿즲?섏궗?꾧났1NB10525怨듦났?쒕퉬?ㅻ????뚮갑?됱젙?숆낵1NB10526怨듦났?쒕퉬?ㅻ????묎툒援ъ“?숆낵1NB10527怨듦났?쒕퉬?ㅻ????ы쉶蹂듭??숇?1NB10535怨듦났?쒕퉬?ㅻ????ы쉶蹂듭??숈쟾怨?1NB10536怨듦났?쒕퉬?ㅻ???蹂듭??됱젙?숈쟾怨?1NB10528怨듦났?쒕퉬?ㅻ????꾨룞蹂듭??숆낵1NB10529怨듦났?쒕퉬?ㅻ????곷떞?щ━?숆낵1NB10537諛붿씠?ㅽ뿬?ㅻ????명뀛?몄떇議곕━?숇?1NB10545諛붿씠?ㅽ뿬?ㅻ????명뀛議곕━?꾧났1NB10546諛붿씠?ㅽ뿬?ㅻ????명뀛?붿??몄떇?뚮즺?꾧났1NB10538諛붿씠?ㅽ뿬?ㅻ????앺뭹?곸뼇?숆낵1NB10539諛붿씠?ㅽ뿬?ㅻ????앺뭹怨듯븰怨?1NB10540諛붿씠?ㅽ뿬?ㅻ????섍꼍怨듯븰怨?1NB10541諛붿씠?ㅽ뿬?ㅻ???諛붿씠?ㅼ퐫?ㅻ찓?깊븰怨?1NB10542諛붿씠?ㅽ뿬?ㅻ???酉고떚?숆낵1NB10543諛붿씠?ㅽ뿬?ㅻ????쒖빟怨듯븰怨?1NB10544諛붿씠?ㅽ뿬?ㅻ????ъ뒪耳?댁슫?숉븰怨?1NB10574諛붿씠?ㅽ뿬?ㅻ????덉??ㅽ룷痢좏븰遺1NB10575諛붿씠?ㅽ뿬?ㅻ????ㅽ룷痢좎??꾩쟾怨?1NB10576諛붿씠?ㅽ뿬?ㅻ????ㅽ룷痢좎궛?낆쟾怨?1NB10549IT臾명솕?덉닠???誘몃뵒?댁퐯?먯툩?숇?1NB10555IT臾명솕?덉닠????곸긽誘몃뵒?댁쟾怨?1NB10556IT臾명솕?덉닠???硫?곕??붿뼱?꾧났1NB10550IT臾명솕?덉닠????뱁댆肄섑뀗痢좏븰怨?1NB10551IT臾명솕?덉닠????붿옄?명븰怨?1NB10552IT臾명솕?덉닠???嫄댁텞?숆낵1NB10553IT臾명솕?덉닠???愿묎퀬?띾낫?숆낵1NB10554IT臾명솕?덉닠????⑥뀡?섎쪟?숆낵1NB10547IT臾명솕?덉닠???而댄벂?곌났?숆낵1NB10548IT臾명솕?덉닠???AI?뚰봽?몄썾?댄븰怨?1NB10563援?젣???K-culture?숇?1NB10564援?젣???湲濡쒕쾶鍮꾩쫰?덉뒪?꾧났1NB10565援?젣???湲濡쒕쾶?ㅽ룷痢좎쟾怨?1NB10566援?젣???湲濡쒕쾶而ㅻ??덉??댁뀡?꾧났1NB10567援?젣???湲濡쒕쾶?쒓뎅?댁쟾怨?1
+\n================================================================================
+/com/sapl/SaplapCtr/findCltrDomnList.do
+--- session 62 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436149603Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)cmpsjHyDivCd:STRING(256)cmpsjDivCd:STRING(256)serchDiv:STRING(256)estblCrseDivCd:STRING(256)cltrDomnCd:STRING(256)stuno:STRING(256)asignDeprtCd:STRING(256)subjtCd:STRING(256)corseDvclsNo:STRING(256)U202620200000202311420O
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsCltrDomnCd_RowType_code:string(32)codeNm:string(32)NBA1洹좏삎援먯뼇 - 臾명븰?살삁?졼꺕臾명솕NBB1洹좏삎援먯뼇 - ??궗?泥좏븰NBC1洹좏삎援먯뼇 - ?뺤튂?산꼍?쒌꺕?ы쉶NBD1洹좏삎援먯뼇 - 怨쇳븰怨쇨린??NBE1洹좏삎援먯뼇 - ?ㅼ슜?ㅼ쿇NBF1洹좏삎援먯뼇 - 李쎌쓽?듯빀NR01援먯뼇?꾩닔 - 以묒젏援먯뼇NR02援먯뼇?꾩닔 - 湲곗큹?숈뾽(怨듯넻)NR03援먯뼇?꾩닔 - 湲곗큹?숈뾽(?몃Ц??ы쉶怨쇳븰)NR04援먯뼇?꾩닔 - 湲곗큹?숈뾽(?먯뿰怨쇳븰)NR05援먯뼇?꾩닔 - 湲곗큹?숈뾽(?덉껜??NR06援먯뼇?꾩닔 - 湲곗큹?숈뾽(?듯빀)
+\n================================================================================
+/com/sapl/SaplapCtr/findEstblSubjtGnrlList.do
+--- session 74 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436149657Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)cmpsjHyDivCd:STRING(256)cmpsjDivCd:STRING(256)serchDiv:STRING(256)estblCrseDivCd:STRING(256)cltrDomnCd:STRING(256)stuno:STRING(256)asignDeprtCd:STRING(256)subjtCd:STRING(256)corseDvclsNo:STRING(256)U202620200000202311420B10547O202620200000202311420
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsSles131_RowType_otMesg:undefined(0)asignDeprtCd:string(32)univNm:string(32)srclnLctreLangDivCd:undefined(0)lessnSessnDivCd:string(32)chrgInstrEmpno:string(32)corseDvclsNo:string(32)appcsLmttNmprModfPrhbtYn:string(32)chrgInstrEmpnm:string(32)lctreEvlSubjcDivCd:undefined(0)ttRatlcYn:undefined(0)cmpsjCdt:bigdecimal(16)hopeAppcsCnt:bigdecimal(16)syllaInputMthdCd:undefined(0)chrgInstrRegDt:datetime(17)appcsLmttPcnt:bigdecimal(16)subjtCd:string(32)fuscvCapdsUropDivCd:undefined(0)serchDiv:string(32)remrk:undefined(0)chk:string(32)thryHrs:bigdecimal(16)estblCrseDivCd:string(32)otNo:string(32)rcognHrs:bigdecimal(16)sesnlNigstDivCd:undefined(0)lessnChoicAttrbItemVal113:string(32)timtbDplctPermKindCd:undefined(0)prctsHrs:undefined(0)prctsSubjtYn:string(32)cmpsjHyDivCd:string(32)genMstDeptNm:undefined(0)sameAltntYn:string(32)rmvlcYn:string(32)lessnChoicAttrbItemVal119:string(32)gradeEvlMthdCd:string(32)syllaFrstRegDt:undefined(0)subjtNm:string(32)hrsUnlmtTypeCd:undefined(0)unvfrStdrDeptCd:string(32)timtbNm:string(32)syy:string(32)lessnChoicAttrbItemVal123:string(32)gradeInputCorseDvclsNo:string(32)sesnlFrmptCd:undefined(0)genMstDeptCd:undefined(0)smtCd:string(32)ddd:undefined(0)estblDeprtNm:string(32)dghtDivCd:string(32)cmpsjDivCd:string(32)NB10547IT臾명솕?덉닠???A10291010?≫빐??3162026062400000000045736010003001300072 嫄?0033而댄벂?곌뎄議?20000??7 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎
+紐?2,3 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎202600120而댄벂?곌났?숆낵0101NB10547IT臾명솕?덉닠???A10163010諛뺤썒洹?3152026062400000000045736012003001300072 嫄?0033?댁쁺泥댁젣20000湲?1,2,3 媛뺤쓽?????먯뿰愿3痢?0?몄떎202600120而댄벂?곌났?숆낵0101NB10547IT臾명솕?덉닠???A11571010?댁옱??314202607090000000004573604100300130007?곗씠?踰좎씠?ㅼ떆?ㅽ뀥0033?곗씠?곕쿋?댁뒪20000??6,7,8 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎202600120而댄벂?곌났?숆낵0101NB10547IT臾명솕?덉닠???A10291010?≫빐??3172026062400000000045U7363030020014021040034?꾨줈洹몃옒諛띯뀫20000??5,6 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎
+??5,6 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎202600120而댄벂?곌났?숆낵0102NB10547IT臾명솕?덉닠???A11403010理쒗쁽??3172026062400000000045U7363040020014021040034?붿??멸났?숈꽕怨?20000??2,3,4,5 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎202600120而댄벂?곌났?숆낵0102NB10547IT臾명솕?덉닠???A10333010?먮큺湲?3920260624000000000457360070020014021070034竊듸석竊⑼섯?쒖뒪?쒖떎??20000??5,6 而댄벂?곗떎?듭떎1 ???먯뿰愿2痢?3?몄떎
+??5,6 而댄벂?곗떎?듭떎1 ???먯뿰愿2痢?3?몄떎202600120而댄벂?곌났?숆낵0102NB10547IT臾명솕?덉닠???A10333010?먮큺湲?1112026070900000000045736058000012121070034李쎌뾽?꾨줈?앺듃?ㅼ뒿??20000紐?6,7 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎202600120而댄벂?곌났?숆낵0102NB10547IT臾명솕?덉닠???A11489010?띿꽌鍮?31520260624000000000457360820020014121070034?먮컮?꾨줈洹몃옒諛랃섄20000湲?5,6,7,8 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎202600120而댄벂?곌났?숆낵0102NB10547IT臾명솕?덉닠???A11159010吏?곸븘272026062400000000030736083002001200070033而댄벂?곗젙蹂대끉由щ컦?쇱닠20000紐?9,10 而댄벂?곗떎?듭떎1 ???먯뿰愿2痢?3?몄떎202600120而댄벂?곌났?숆낵0102NB10547IT臾명솕?덉닠???A10333010?먮큺湲?3162026062400000000045736019003001300090033?뚰봽?몄썾?닿컻諛쒕갑踰뺣줎20000??8 媛뺤쓽?????먯뿰愿3痢?0?몄떎
+紐?2,3 而댄벂?곗떎?듭떎1 ???먯뿰愿2痢?3?몄떎202600120而댄벂?곌났?숆낵0102NB10547IT臾명솕?덉닠???A11403010理쒗쁽??31720260707000000000457360210020014021090034?ㅽ듃?뚰겕?꾨줈洹몃옒諛?20000??3,4 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎
+??3,4 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎202600120而댄벂?곌났?숆낵0102NB10547IT臾명솕?덉닠???A10333010?먮큺湲?
+--- session 007 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436401227Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)cmpsjHyDivCd:STRING(256)cmpsjDivCd:STRING(256)serchDiv:STRING(256)estblCrseDivCd:STRING(256)cltrDomnCd:STRING(256)stuno:STRING(256)asignDeprtCd:STRING(256)subjtCd:STRING(256)corseDvclsNo:STRING(256)U202620200000202311420B10547unix?쒖뒪??O202620200000202311420B10547而댄벂?곌뎄議?
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsSles131
+\n================================================================================
+/com/sapl/SaplapCtr/findEstblSubjtShpbsList.do
+--- session 75 from ?섍컯?좎껌諛붽뎄??濡쒓렇???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436149660Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)cmpsjHyDivCd:STRING(256)cmpsjDivCd:STRING(256)serchDiv:STRING(256)estblCrseDivCd:STRING(256)cltrDomnCd:STRING(256)stuno:STRING(256)asignDeprtCd:STRING(256)subjtCd:STRING(256)corseDvclsNo:STRING(256)U202620200000202311420B10547O202620200000202311420
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsSles131
+--- session 006 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436380623Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)cmpsjHyDivCd:STRING(256)cmpsjDivCd:STRING(256)serchDiv:STRING(256)estblCrseDivCd:STRING(256)cltrDomnCd:STRING(256)stuno:STRING(256)asignDeprtCd:STRING(256)subjtCd:STRING(256)corseDvclsNo:STRING(256)N202620200000202311420B10547而댄벂?곌뎄議?
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsSles131_RowType_subjtCd:string(32)univCd:string(32)subjtNm:string(32)univNm:string(32)remrk:undefined(0)chk:string(32)orgSubjtNm:string(32)estblCrseDivCd:string(32)unvfrStdrDeptCd:string(32)estblDeprtNm:string(32)estblDeprtCd:string(32)corseDvclsNo:string(32)timtbNm:string(32)syy:string(32)ttcMapngNo:undefined(0)ttRatlcYn:undefined(0)cmpsjCdt:bigdecimal(16)smtCd:string(32)dghtDivCd:string(32)cmpsjHyDivCd:string(32)cmpsjDivCd:string(32)N736010B10520而댄벂?곌뎄議?IT臾명솕?덉닠???0而댄벂?곌뎄議?0020000而댄벂?곌났?숆낵B1054701??7 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎
+紐?2,3 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎2026320010701
+\n================================================================================
+/com/SsoCtr/findSysdate.do
+--- session 003 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+
+RES BODY:
+<?xml version="1.0" encoding="UTF-8"?>
+<Root xmlns="http://www.nexacroplatform.com/platform/dataset">
+	<Parameters>
+		<Parameter id="_sysdate" type="string">20260731033258</Parameter>
+		<Parameter id="ErrorCode" type="int">0</Parameter>
+	</Parameters>
+</Root>
+
+--- session 016 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+
+RES BODY:
+<?xml version="1.0" encoding="UTF-8"?>
+<Root xmlns="http://www.nexacroplatform.com/platform/dataset">
+	<Parameters>
+		<Parameter id="_sysdate" type="string">20260731033344</Parameter>
+		<Parameter id="ErrorCode" type="int">0</Parameter>
+	</Parameters>
+</Root>
+
+\n================================================================================
+/com/sapl/SaplapCtr/findSaplHopeAppcsChk.do
+--- session 004 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436379525Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)cmpsjHyDivCd:STRING(256)cmpsjDivCd:STRING(256)serchDiv:STRING(256)estblCrseDivCd:STRING(256)cltrDomnCd:STRING(256)stuno:STRING(256)asignDeprtCd:STRING(256)subjtCd:STRING(256)corseDvclsNo:STRING(256)N202620200000202311420B10547而댄벂?곌뎄議?
+RES BODY:
+SSV:UTF-8ErrorCode:int=0
+--- session 017 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436425344Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)unvfrStdrDeptCd:STRING(256)cmpsjHyDivCd:STRING(256)cmpsjDivCd:STRING(256)serchDiv:STRING(256)estblCrseDivCd:STRING(256)cltrDomnCd:STRING(256)stuno:STRING(256)asignDeprtCd:STRING(256)subjtCd:STRING(256)corseDvclsNo:STRING(256)N202620200000202311420B10547?댁쁺泥댁젣
+RES BODY:
+SSV:UTF-8ErrorCode:int=0
+\n================================================================================
+/com/sapl/SaplapCtr/saveHopeAppcsDtls.do
+--- session 005 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436379630Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)stuno:STRING(256)unvfrStdrDeptCd:STRING(256)subjtCd:STRING(256)corseDvclsNo:STRING(256)ceckTrgetGbn:STRING(256)hiPass:STRING(256)ttcMapngNo:STRING(256)gschSubjtYn:STRING(256)stdntChngLmttYn:STRING(256)bchdmCntcSubjtYn:STRING(256)I2026202023114202000073601001H00
+RES BODY:
+SSV:UTF-8ErrorCode:int=0
+--- session 018 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436425451Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)stuno:STRING(256)unvfrStdrDeptCd:STRING(256)subjtCd:STRING(256)corseDvclsNo:STRING(256)ceckTrgetGbn:STRING(256)hiPass:STRING(256)ttcMapngNo:STRING(256)gschSubjtYn:STRING(256)stdntChngLmttYn:STRING(256)bchdmCntcSubjtYn:STRING(256)I2026202023114202000073601201H00
+RES BODY:
+SSV:UTF-8ErrorCode:int=0
+\n================================================================================
+/com/SsoCtr/findEstblCorseList.do
+--- session 016 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436936865Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)smtClCd:STRING(256)unvfrStdrDeptCd:STRING(256)subjtCd:STRING(256)subjtNm:STRING(256)cmpsjDivCd:STRING(256)cmpsjHyDivCd:STRING(256)asignDeprtCd:STRING(256)asignDeprtNm:STRING(256)estblCrseDivCd:STRING(256)instrEmpnm:STRING(256)instrEmpno:STRING(256)prgGbn:STRING(256)serchDiv:STRING(256)U20262020000SLESCS02500OSLESCS0250
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsSles131_RowType_univCd:string(32)asignDeprtCd:string(32)cmpsjDivNm:string(32)univDeptNm:string(32)deptSortSeqno1:string(32)deptNm:string(32)deptSortSeqno2:string(32)N9999B10704?꾧났?④낵?援щ텇?놁쓬1041507?곌퀎?듯빀?꾧났 AI諛섎룄泥댁냼?꾪듃?⑥뼱1035700NG6A00G6A01?꾧났?щ쾾???1037500?щ쾾???援?뼱援먯쑁怨?1036000NG6A00G6A02?꾧났?щ쾾???1037700?щ쾾????곸뼱援먯쑁怨?1036000NG6A00G6A03?꾧났?щ쾾???1037800?щ쾾???援먯쑁?숆낵1036000NG6A00G6A04?꾧났?щ쾾???1038000?щ쾾????좎븘援먯쑁怨?1036000NG6A00G6A05?꾧났?щ쾾???1038100?щ쾾????ㅻ━援먯쑁怨?1036000NG6A00G6A07?꾧났?щ쾾???1038300?щ쾾????ы쉶援먯쑁怨?1036000NG6A00G6A08?꾧났?щ쾾???1038400?щ쾾?????궗援먯쑁怨?1036000NG6A00G6A09?꾧났?щ쾾???1038500?щ쾾???吏由ш탳?↔낵1036000NG6A00G6A10?꾧났?щ쾾???1038600?щ쾾????섑븰援먯쑁怨?1036000NG6A00G6A11?꾧났?щ쾾???1038800?щ쾾????앸Ъ援먯쑁怨?1036000NG6A00G6A14?꾧났?щ쾾???1039100?щ쾾???泥댁쑁援먯쑁怨?1036000NG6A00G6A15?꾧났?щ쾾???1039500?щ쾾????뚯븙援먯쑁怨?1036000NG6B00G6B21?꾧났湲濡쒕쾶寃쎌쁺???1100300援?젣?숇? ?곸뼱?꾧났1093500NG6B00G6B25?꾧났湲濡쒕쾶寃쎌쁺???1100700援?젣?숇? 以묎뎅?몄뼱臾명솕?꾧났1093500NG6N00B10718?꾧났?듬났?⑸???1041508?곌퀎?듯빀?꾧났 AI李쎌뾽1094000NG6N00B10561?꾧났?듬났?⑸???1113500?먯쑀?꾧났?숇?1094000NG6KA0B10325?꾧났誘몃옒???1110912鍮꾩쟾?숇? 寃쎌쁺쨌遺?숈궛?꾧났1094100NG6KA0G6K52?꾧났誘몃옒???1110913鍮꾩쟾?숇? ?ы쉶蹂듭??숈쟾怨?1094100NG6KA0B10195?꾧났誘몃옒???1110916鍮꾩쟾?숇? ?앺솢泥댁쑁?꾧났1094100NG6KA0B10324?꾧났誘몃옒???1110917鍮꾩쟾?숇? ?곷떞?щ━?꾧났1094100NG6KA0B10323?꾧났誘몃옒???1110918鍮꾩쟾?숇? ?쇱씠?꾩꽕怨꾩쟾怨?1094100NG6KA0B10322?꾧났誘몃옒???1110919鍮꾩쟾?숇? 臾명솕?덉닠寃쎌쁺?꾧났1094100NG6KA0B10321?꾧났誘몃옒???1110920鍮꾩쟾?숇? 諛붿씠?ㅼ퐫?ㅻ찓?깆쟾怨?1094100NG6KA0B10560?꾧났誘몃옒???1110921鍮꾩쟾?숇? ?몄떇寃쎌쁺?꾧났1094100NB10518B10522?꾧났怨듦났?쒕퉬?ㅻ???1096100寃쎌쁺?숇?1096000NB10518B10530?꾧났怨듦났?쒕퉬?ㅻ???1096110寃쎌쁺?숇? 寃쎌쁺?숈쟾怨?1096000NB10518B10531?꾧났怨듦났?쒕퉬?ㅻ???1096120寃쎌쁺?숇? ?뚭퀎?숈쟾怨?1096000NB10518B10532?꾧났怨듦났?쒕퉬?ㅻ???1096130寃쎌쁺?숇? 臾댁뿭?숈쟾怨?1096000NB10518B10523?꾧났怨듦났?쒕퉬?ㅻ???1096200怨듦났?쒕퉬?ㅻ?????났愿愿묓븰怨?1096000NB10518B10524?꾧났怨듦났?쒕퉬?ㅻ???1096300寃쎌같?됱젙?숇?1096000NB10518B10533?꾧났怨듦났?쒕퉬?ㅻ???1096310寃쎌같?됱젙?숇? 寃쎌같?됱젙?꾧났1096000NB10518B10534?꾧났怨듦났?쒕퉬?ㅻ???1096320寃쎌같?됱젙?숇? 踰붿즲?섏궗?꾧났1096000NB10518B10525?꾧났怨듦났?쒕퉬?ㅻ???1096400怨듦났?쒕퉬?ㅻ????뚮갑?됱젙?숆낵1096000NB10518B10526?꾧났怨듦났?쒕퉬?ㅻ???1096500怨듦났?쒕퉬?ㅻ????묎툒援ъ“?숆낵1096000NB10518B10527?꾧났怨듦났?쒕퉬?ㅻ???1096600?ы쉶蹂듭??숇?1096000NB10518B10535?꾧났怨듦났?쒕퉬?ㅻ???1096610?ы쉶蹂듭??숇? ?ы쉶蹂듭??숈쟾怨?1096000NB10518B10536?꾧났怨듦났?쒕퉬?ㅻ???1096620?ы쉶蹂듭??숇? 蹂듭??됱젙?숈쟾怨?1096000NB10518B10528?꾧났怨듦났?쒕퉬?ㅻ???1096700怨듦났?쒕퉬?ㅻ????꾨룞蹂듭??숆낵1096000NB10518B10529?꾧났怨듦났?쒕퉬?ㅻ???1096800怨듦났?쒕퉬?ㅻ????곷떞?щ━?숆낵1096000NB10519B10537?꾧났諛붿씠?ㅽ뿬?ㅻ???1097100?명뀛?몄떇議곕━?숇?1097000NB10519B10545?꾧났諛붿씠?ㅽ뿬?ㅻ???1097110?명뀛?몄떇議곕━?숇? ?명뀛議곕━?꾧났1097000NB10519B10546?꾧났諛붿씠?ㅽ뿬?ㅻ???1097120?명뀛?몄떇議곕━?숇? ?명뀛?붿??몄떇?뚮즺?꾧났1097000NB10519B10538?꾧났諛붿씠?ㅽ뿬?ㅻ???1097200諛붿씠?ㅽ뿬?ㅻ????앺뭹?곸뼇?숆낵1097000NB10519B10539?꾧났諛붿씠?ㅽ뿬?ㅻ???1097300諛붿씠?ㅽ뿬?ㅻ????앺뭹怨듯븰怨?1097000NB10519B10540?꾧났諛붿씠?ㅽ뿬?ㅻ???1097400諛붿씠?ㅽ뿬?ㅻ????섍꼍怨듯븰怨?1097000NB10519B10541?꾧났諛붿씠?ㅽ뿬?ㅻ???1097500諛붿씠?ㅽ뿬?ㅻ???諛붿씠?ㅼ퐫?ㅻ찓?깊븰怨?1097000NB10519B10542?꾧났諛붿씠?ㅽ뿬?ㅻ???1097600諛붿씠?ㅽ뿬?ㅻ???酉고떚?숆낵1097000NB10519B10543?꾧났諛붿씠?ㅽ뿬?ㅻ???1097700諛붿씠?ㅽ뿬?ㅻ????쒖빟怨듯븰怨?1097000NB10519B10544?꾧났諛붿씠?ㅽ뿬?ㅻ???1097800諛붿씠?ㅽ뿬?ㅻ????ъ뒪耳?댁슫?숉븰怨?1097000NB10519B10574?꾧났諛붿씠?ㅽ뿬?ㅻ???1097900?덉??ㅽ룷痢좏븰遺1097000NB10519B10575?꾧났諛붿씠?ㅽ뿬?ㅻ???1097910?덉??ㅽ룷痢좏븰遺 ?ㅽ룷痢좎??꾩쟾怨?1097000NB10519B10576?꾧났諛붿씠?ㅽ뿬?ㅻ???1097920?덉??ㅽ룷痢좏븰遺 ?ㅽ룷痢좎궛?낆쟾怨?1097000NB10520B10549?꾧났IT臾명솕?덉닠???1098100誘몃뵒?댁퐯?먯툩?숇?1098000NB10520B10555?꾧났IT臾명솕?덉닠???1098110誘몃뵒?댁퐯?먯툩?숇? ?곸긽誘몃뵒?댁쟾怨?1098000NB10520B10556?꾧났IT臾명솕?덉닠???1098120誘몃뵒?댁퐯?먯툩?숇? 硫?곕??붿뼱?꾧났1098000NB10520B10550?꾧났IT臾명솕?덉닠???1098200IT臾명솕?덉닠????뱁댆肄섑뀗痢좏븰怨?1098000NB10520B10551?꾧났IT臾명솕?덉닠???1098300IT臾명솕?덉닠????붿옄?명븰怨?1098000NB10520B10552?꾧났IT臾명솕?덉닠???1098400IT臾명솕?덉닠???嫄댁텞?숆낵1098000NB10520B10553?꾧났IT臾명솕?덉닠???1098500IT臾명솕?덉닠???愿묎퀬?띾낫?숆낵1098000NB10520B10554?꾧났IT臾명솕?덉닠???109
+--- session 017 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436941213Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)smtClCd:STRING(256)unvfrStdrDeptCd:STRING(256)subjtCd:STRING(256)subjtNm:STRING(256)cmpsjDivCd:STRING(256)cmpsjHyDivCd:STRING(256)asignDeprtCd:STRING(256)asignDeprtNm:STRING(256)estblCrseDivCd:STRING(256)instrEmpnm:STRING(256)instrEmpno:STRING(256)prgGbn:STRING(256)serchDiv:STRING(256)N20262020000SLESCS02500
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsSles131_RowType_univCd:string(32)asignDeprtCd:string(32)cmpsjDivNm:string(32)univDeptNm:string(32)deptSortSeqno1:string(32)deptNm:string(32)deptSortSeqno2:string(32)N9999B10704?꾧났?④낵?援щ텇?놁쓬1041507?곌퀎?듯빀?꾧났 AI諛섎룄泥댁냼?꾪듃?⑥뼱1035700NG6A00G6A01?꾧났?щ쾾???1037500?щ쾾???援?뼱援먯쑁怨?1036000NG6A00G6A02?꾧났?щ쾾???1037700?щ쾾????곸뼱援먯쑁怨?1036000NG6A00G6A03?꾧났?щ쾾???1037800?щ쾾???援먯쑁?숆낵1036000NG6A00G6A04?꾧났?щ쾾???1038000?щ쾾????좎븘援먯쑁怨?1036000NG6A00G6A05?꾧났?щ쾾???1038100?щ쾾????ㅻ━援먯쑁怨?1036000NG6A00G6A07?꾧났?щ쾾???1038300?щ쾾????ы쉶援먯쑁怨?1036000NG6A00G6A08?꾧났?щ쾾???1038400?щ쾾?????궗援먯쑁怨?1036000NG6A00G6A09?꾧났?щ쾾???1038500?щ쾾???吏由ш탳?↔낵1036000NG6A00G6A10?꾧났?щ쾾???1038600?щ쾾????섑븰援먯쑁怨?1036000NG6A00G6A11?꾧났?щ쾾???1038800?щ쾾????앸Ъ援먯쑁怨?1036000NG6A00G6A14?꾧났?щ쾾???1039100?щ쾾???泥댁쑁援먯쑁怨?1036000NG6A00G6A15?꾧났?щ쾾???1039500?щ쾾????뚯븙援먯쑁怨?1036000NG6B00G6B21?꾧났湲濡쒕쾶寃쎌쁺???1100300援?젣?숇? ?곸뼱?꾧났1093500NG6B00G6B25?꾧났湲濡쒕쾶寃쎌쁺???1100700援?젣?숇? 以묎뎅?몄뼱臾명솕?꾧났1093500NG6N00B10718?꾧났?듬났?⑸???1041508?곌퀎?듯빀?꾧났 AI李쎌뾽1094000NG6N00B10561?꾧났?듬났?⑸???1113500?먯쑀?꾧났?숇?1094000NG6KA0B10325?꾧났誘몃옒???1110912鍮꾩쟾?숇? 寃쎌쁺쨌遺?숈궛?꾧났1094100NG6KA0G6K52?꾧났誘몃옒???1110913鍮꾩쟾?숇? ?ы쉶蹂듭??숈쟾怨?1094100NG6KA0B10195?꾧났誘몃옒???1110916鍮꾩쟾?숇? ?앺솢泥댁쑁?꾧났1094100NG6KA0B10324?꾧났誘몃옒???1110917鍮꾩쟾?숇? ?곷떞?щ━?꾧났1094100NG6KA0B10323?꾧났誘몃옒???1110918鍮꾩쟾?숇? ?쇱씠?꾩꽕怨꾩쟾怨?1094100NG6KA0B10322?꾧났誘몃옒???1110919鍮꾩쟾?숇? 臾명솕?덉닠寃쎌쁺?꾧났1094100NG6KA0B10321?꾧났誘몃옒???1110920鍮꾩쟾?숇? 諛붿씠?ㅼ퐫?ㅻ찓?깆쟾怨?1094100NG6KA0B10560?꾧났誘몃옒???1110921鍮꾩쟾?숇? ?몄떇寃쎌쁺?꾧났1094100NB10518B10522?꾧났怨듦났?쒕퉬?ㅻ???1096100寃쎌쁺?숇?1096000NB10518B10530?꾧났怨듦났?쒕퉬?ㅻ???1096110寃쎌쁺?숇? 寃쎌쁺?숈쟾怨?1096000NB10518B10531?꾧났怨듦났?쒕퉬?ㅻ???1096120寃쎌쁺?숇? ?뚭퀎?숈쟾怨?1096000NB10518B10532?꾧났怨듦났?쒕퉬?ㅻ???1096130寃쎌쁺?숇? 臾댁뿭?숈쟾怨?1096000NB10518B10523?꾧났怨듦났?쒕퉬?ㅻ???1096200怨듦났?쒕퉬?ㅻ?????났愿愿묓븰怨?1096000NB10518B10524?꾧났怨듦났?쒕퉬?ㅻ???1096300寃쎌같?됱젙?숇?1096000NB10518B10533?꾧났怨듦났?쒕퉬?ㅻ???1096310寃쎌같?됱젙?숇? 寃쎌같?됱젙?꾧났1096000NB10518B10534?꾧났怨듦났?쒕퉬?ㅻ???1096320寃쎌같?됱젙?숇? 踰붿즲?섏궗?꾧났1096000NB10518B10525?꾧났怨듦났?쒕퉬?ㅻ???1096400怨듦났?쒕퉬?ㅻ????뚮갑?됱젙?숆낵1096000NB10518B10526?꾧났怨듦났?쒕퉬?ㅻ???1096500怨듦났?쒕퉬?ㅻ????묎툒援ъ“?숆낵1096000NB10518B10527?꾧났怨듦났?쒕퉬?ㅻ???1096600?ы쉶蹂듭??숇?1096000NB10518B10535?꾧났怨듦났?쒕퉬?ㅻ???1096610?ы쉶蹂듭??숇? ?ы쉶蹂듭??숈쟾怨?1096000NB10518B10536?꾧났怨듦났?쒕퉬?ㅻ???1096620?ы쉶蹂듭??숇? 蹂듭??됱젙?숈쟾怨?1096000NB10518B10528?꾧났怨듦났?쒕퉬?ㅻ???1096700怨듦났?쒕퉬?ㅻ????꾨룞蹂듭??숆낵1096000NB10518B10529?꾧났怨듦났?쒕퉬?ㅻ???1096800怨듦났?쒕퉬?ㅻ????곷떞?щ━?숆낵1096000NB10519B10537?꾧났諛붿씠?ㅽ뿬?ㅻ???1097100?명뀛?몄떇議곕━?숇?1097000NB10519B10545?꾧났諛붿씠?ㅽ뿬?ㅻ???1097110?명뀛?몄떇議곕━?숇? ?명뀛議곕━?꾧났1097000NB10519B10546?꾧났諛붿씠?ㅽ뿬?ㅻ???1097120?명뀛?몄떇議곕━?숇? ?명뀛?붿??몄떇?뚮즺?꾧났1097000NB10519B10538?꾧났諛붿씠?ㅽ뿬?ㅻ???1097200諛붿씠?ㅽ뿬?ㅻ????앺뭹?곸뼇?숆낵1097000NB10519B10539?꾧났諛붿씠?ㅽ뿬?ㅻ???1097300諛붿씠?ㅽ뿬?ㅻ????앺뭹怨듯븰怨?1097000NB10519B10540?꾧났諛붿씠?ㅽ뿬?ㅻ???1097400諛붿씠?ㅽ뿬?ㅻ????섍꼍怨듯븰怨?1097000NB10519B10541?꾧났諛붿씠?ㅽ뿬?ㅻ???1097500諛붿씠?ㅽ뿬?ㅻ???諛붿씠?ㅼ퐫?ㅻ찓?깊븰怨?1097000NB10519B10542?꾧났諛붿씠?ㅽ뿬?ㅻ???1097600諛붿씠?ㅽ뿬?ㅻ???酉고떚?숆낵1097000NB10519B10543?꾧났諛붿씠?ㅽ뿬?ㅻ???1097700諛붿씠?ㅽ뿬?ㅻ????쒖빟怨듯븰怨?1097000NB10519B10544?꾧났諛붿씠?ㅽ뿬?ㅻ???1097800諛붿씠?ㅽ뿬?ㅻ????ъ뒪耳?댁슫?숉븰怨?1097000NB10519B10574?꾧났諛붿씠?ㅽ뿬?ㅻ???1097900?덉??ㅽ룷痢좏븰遺1097000NB10519B10575?꾧났諛붿씠?ㅽ뿬?ㅻ???1097910?덉??ㅽ룷痢좏븰遺 ?ㅽ룷痢좎??꾩쟾怨?1097000NB10519B10576?꾧났諛붿씠?ㅽ뿬?ㅻ???1097920?덉??ㅽ룷痢좏븰遺 ?ㅽ룷痢좎궛?낆쟾怨?1097000NB10520B10549?꾧났IT臾명솕?덉닠???1098100誘몃뵒?댁퐯?먯툩?숇?1098000NB10520B10555?꾧났IT臾명솕?덉닠???1098110誘몃뵒?댁퐯?먯툩?숇? ?곸긽誘몃뵒?댁쟾怨?1098000NB10520B10556?꾧났IT臾명솕?덉닠???1098120誘몃뵒?댁퐯?먯툩?숇? 硫?곕??붿뼱?꾧났1098000NB10520B10550?꾧났IT臾명솕?덉닠???1098200IT臾명솕?덉닠????뱁댆肄섑뀗痢좏븰怨?1098000NB10520B10551?꾧났IT臾명솕?덉닠???1098300IT臾명솕?덉닠????붿옄?명븰怨?1098000NB10520B10552?꾧났IT臾명솕?덉닠???1098400IT臾명솕?덉닠???嫄댁텞?숆낵1098000NB10520B10553?꾧났IT臾명솕?덉닠???1098500IT臾명솕?덉닠???愿묎퀬?띾낫?숆낵1098000NB10520B10554?꾧났IT臾명솕?덉닠???109
+\n================================================================================
+/com/SsoCtr/findEstblCorseDtlList.do
+--- session 033 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785436949069Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)smtClCd:STRING(256)unvfrStdrDeptCd:STRING(256)asignDeprtCd:STRING(256)serchDiv:STRING(256)estblDeprtCd:STRING(256)U20262020000B105470O
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsSles131_RowType_subjtCd:string(32)atnlcPosblPcnt:bigdecimal(16)subjtNm:string(32)remrk:undefined(0)ddd:undefined(0)thryHrs:bigdecimal(16)slesLessnItem:string(32)chrgInstrEmpno:string(32)corseDvclsNo:string(32)chrgInstrEmpnm:string(32)timtbNm:string(32)cmpsjCdt:bigdecimal(16)cmpsjDivNm:string(32)prctsHrs:bigdecimal(16)hjDeptNm:string(32)cmpsjHyDivCd:string(32)cmpsjDivCd:string(32)sameAltntYn:undefined(0)appcsPcnt:bigdecimal(16)NU73630345?꾨줈洹몃옒諛띯뀫2?곷??됯? B??1029101?≫빐????5,6 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎
+??5,6 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎3?꾧났?좏깮2?묒“?숆낵紐?04020NU73630445?붿??멸났?숈꽕怨?2?곷??됯? B??1140301理쒗쁽????2,3,4,5 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎3?꾧났?좏깮2?묒“?숆낵紐?04020N73601045而댄벂?곌뎄議?3?곷??됯? A?? [湲?湲곕낯?댁닔1029101?≫빐????7 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎
+紐?2,3 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎3?꾧났?꾩닔?묒“?숆낵紐?07012 嫄?0N73601245?댁쁺泥댁젣3?곷??됯? A?? [湲?湲곕낯?댁닔1016301諛뺤썒洹?湲?1,2,3 媛뺤쓽?????먯뿰愿3痢?0?몄떎3?꾧났?꾩닔?묒“?숆낵紐?07012 嫄?0N73604145?곗씠?곕쿋?댁뒪3?꾧났?몃옓?쒓탳怨쇰ぉ, ?곷??됯? A?? [湲?湲곕낯?댁닔1157101?댁옱????6,7,8 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎3?꾧났?꾩닔?묒“?숆낵紐?0701?곗씠?踰좎씠?ㅼ떆?ㅽ뀥0N73600745竊듸석竊⑼섯?쒖뒪?쒖떎??2?곷??됯? B??1033301?먮큺湲???5,6 而댄벂?곗떎?듭떎1 ???먯뿰愿2痢?3?몄떎
+??5,6 而댄벂?곗떎?듭떎1 ???먯뿰愿2痢?3?몄떎3?꾧났?좏깮2?묒“?숆낵紐?07020N73605845李쎌뾽?꾨줈?앺듃?ㅼ뒿??李쎌뾽, ?곷??됯? B?? ??곗묶1033301?먮큺湲?紐?6,7 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎1?꾧났?좏깮2?묒“?숆낵紐?07020N73608245?먮컮?꾨줈洹몃옒諛랃섄2?곷??됯? B?? ??곗묶1148901?띿꽌鍮?湲?5,6,7,8 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎3?꾧났?좏깮2?묒“?숆낵紐?07020N73608330而댄벂?곗젙蹂대끉由щ컦?쇱닠2?곷??됯? A?? [援?援먭낵援먯쑁??1115901吏?곸븘紐?9,10 而댄벂?곗떎?듭떎1 ???먯뿰愿2痢?3?몄떎2?꾧났?좏깮?묒“?숆낵紐?07020N73601945?뚰봽?몄썾?닿컻諛쒕갑踰뺣줎3?곷??됯? A??1033301?먮큺湲???8 媛뺤쓽?????먯뿰愿3痢?0?몄떎
+紐?2,3 而댄벂?곗떎?듭떎1 ???먯뿰愿2痢?3?몄떎3?꾧났?좏깮?묒“?숆낵紐?09020N73602145?ㅽ듃?뚰겕?꾨줈洹몃옒諛?2?곷??됯? B??1140301理쒗쁽????3,4 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎
+??3,4 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎3?꾧났?좏깮2?묒“?숆낵紐?09020N73605945李쎌뾽?꾨줈?앺듃?ㅼ뒿??李쎌뾽, ?곷??됯? B?? ??곗묶1033301?먮큺湲?紐?8,9 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎1?꾧났?좏깮2?묒“?숆낵紐?09020N73606845竊⑼퐦竊댄솢??2?꾧났?몃옓?쒓탳怨쇰ぉ, ?곷??됯? B??1098601源遊됲쁽??2,3 而댄벂?곗떎?듭떎1 ???먯뿰愿2痢?3?몄떎
+??1,2 而댄벂?곗떎?듭떎1 ???먯뿰愿2痢?3?몄떎3?꾧났?좏깮2?묒“?숆낵紐?09020N73608845?뱁봽濡쒓렇?섎컢竊⑼섄2?곷??됯? B??1157101?댁옱????1,2 而댄벂?곗떎?듭떎1 ???먯뿰愿2痢?3?몄떎
+??7,8 而댄벂?곗떎?듭떎1 ???먯뿰愿2痢?3?몄떎3?꾧났?좏깮2?묒“?숆낵紐?09020NU73630530而댄벂?곗젙蹂닿탳?ъ뿰援щ컦吏?꾨쾿31115901吏?곸븘??10,11,12 而댄벂?곗떎?듭떎1 ???먯뿰愿2痢?3?몄떎3?꾧났?좏깮0?묒“?숆낵紐?09020N73604845?멸났吏??3?꾧났?몃옓?쒓탳怨쇰ぉ, ?곷??됯? A??1157101?댁옱????10,11,12 媛뺤쓽?????먯뿰愿3痢?0?몄떎3?꾧났?좏깮?묒“?숆낵紐?1002?멸났吏?ν봽濡쒓렇?섎컢0N73606145李쎌뾽罹≪뒪?ㅻ뵒?먯씤??罹≪뒪?ㅻ뵒?먯씤, 李쎌뾽, ?덈??됯? B?? ?덈??됯?, ??곗묶1033301?먮큺湲?紐?10,11,12,13 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎2?꾧났?좏깮4?묒“?숆낵紐?1002?고븰?꾨줈?앺듃??0
+--- session 182 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785437494304Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)smtClCd:STRING(256)unvfrStdrDeptCd:STRING(256)asignDeprtCd:STRING(256)serchDiv:STRING(256)estblDeprtCd:STRING(256)U20262020000R011B10547O
+RES BODY:
+SSV:UTF-8ErrorCode:int=0Dataset:dsSles131_RowType_subjtCd:string(32)atnlcPosblPcnt:bigdecimal(16)subjtNm:string(32)remrk:undefined(0)ddd:undefined(0)thryHrs:bigdecimal(16)slesLessnItem:string(32)chrgInstrEmpno:string(32)corseDvclsNo:string(32)chrgInstrEmpnm:string(32)timtbNm:string(32)cmpsjCdt:bigdecimal(16)cmpsjDivNm:string(32)prctsHrs:bigdecimal(16)hjDeptNm:string(32)cmpsjHyDivCd:string(32)cmpsjDivCd:string(32)sameAltntYn:undefined(0)appcsPcnt:bigdecimal(16)N00856440竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆10333KN?먮큺湲?湲?9 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856440竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆10986KP源遊됲쁽湲?9 而댄벂?곗떎?듭떎2 ???먯뿰愿3痢?1?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856440竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆11403KR理쒗쁽????9 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856440竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆10291KO?≫빐????9 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856440竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆11571KT?댁옱????13 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856540竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆10986KP源遊됲쁽湲?11 而댄벂?곗떎?듭떎2 ???먯뿰愿3痢?1?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856540竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆10333KN?먮큺湲?湲?10 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856540竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆11403KR理쒗쁽????10 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856540竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆10291KO?≫빐????10 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856540竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆11571KT?댁옱????10 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856640竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆11403KR理쒗쁽????11 而댄벂?곗떎?듭떎3 ???먯뿰愿4痢?1?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856640竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆10291KO?≫빐????11 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856640竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆11571KT?댁옱????11 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856640竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆10333KN?먮큺湲?湲?11 而댄벂?곗떎?듭떎6 ???먯뿰愿4痢?5?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030N00856640竊놂섧?몄꽦肄붿묶??1Pass/Non pass, P/F, 釉붾옖?붾뱶, ?낆쟻?됯??쒖쇅??? SU?몄꽦?몄쬆10986KP源遊됲쁽湲?12 而댄벂?곗떎?듭떎2 ???먯뿰愿3痢?1?몄떎1援먯뼇?꾩닔0?묒“?숆낵紐?01030
+\n================================================================================
+/com/sapl/SaplapCtr/saveHopeAppcsDtlsCancl.do
+--- session 192 from ?섍컯?좎껌諛붽뎄???좎껌 諛?寃???⑦궥 2.saz status 200
+COOKIE SESSIONID=bd6f7734-3810-4e8e-93b6-d714e299886b
+REQ BODY:
+SSV:utf-8requestTimeStr=1785437580323Dataset:dsParam_RowType_syy:STRING(256)smtCd:STRING(256)stuno:STRING(256)unvfrStdrDeptCd:STRING(256)subjtCd:STRING(256)corseDvclsNo:STRING(256)ceckTrgetGbn:STRING(256)hiPass:STRING(256)ttcMapngNo:STRING(256)gschSubjtYn:STRING(256)stdntChngLmttYn:STRING(256)bchdmCntcSubjtYn:STRING(256)I2026202023114202000000856577
+RES BODY:
+SSV:UTF-8ErrorCode:int=0

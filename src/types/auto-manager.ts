@@ -4,7 +4,8 @@ import type {
   EcampusLessonItem,
   EcampusScoreSummary,
   SugangBasketMutationResult,
-  SugangSubject
+  SugangSubject,
+  SugangTimetableSubject
 } from "../index.js";
 
 /** 자동 학습 대기열 항목 */
@@ -37,7 +38,7 @@ export interface MaterialDownloadState {
 
 /** 희망바구니 일괄 담기 결과 항목 */
 export interface BasketBatchAddItem {
-  subject: SugangSubject; // 담기 대상 과목
+  subject: SugangSubject | SugangTimetableSubject; // 담기 대상 과목
   result: SugangBasketMutationResult; // 담기 API 결과
 }
 

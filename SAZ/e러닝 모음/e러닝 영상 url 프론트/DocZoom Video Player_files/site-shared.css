@@ -1,0 +1,620 @@
+body {
+}
+
+/*공통*/
+
+/* Preloader */
+
+.loading-container {
+  position: relative;
+}
+
+.loading-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  /*background-color:#fff; /* change if the mask should have another color then white */
+  z-index: 1000;
+}
+
+.loading-image {
+  width: 200px;
+  height: 200px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background-image: url(img/loading.gif);
+  background-repeat: no-repeat;
+  background-position: center;
+  margin: -100px 0 0 -100px;
+}
+
+.top-loading-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  /*background-color:#fff; /* change if the mask should have another color then white */
+  z-index: 1000;
+}
+
+.top-loading-image {
+  width: 200px;
+  height: 200px;
+  position: absolute;
+  left: 50%;
+  top: 20%;
+  background-image: url(img/loading.gif);
+  background-repeat: no-repeat;
+  background-position: center;
+  margin: 0 0 0 -100px;
+}
+
+/*Fullscreen Loading Splash*/
+.loading-container-full {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  top: 0;
+  background: rgba(255, 255, 255, 0);
+  z-index: 998; /* makes sure it stays on top */
+}
+
+.loading-image-full {
+  width: 200px;
+  height: 200px;
+  position: fixed;
+  text-align: center;
+  left: 50%;
+  top: 50%;
+  margin-left: -100px;
+  margin-top: -100px;
+  background-image: url(img/loading.gif);
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 999; /* makes sure it stays on top */
+}
+
+/*Common Layout*/
+
+.force-single-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.force-line-break {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.force-center {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.dont-break-out {
+  /* These are technically the same, but use both */
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+
+  -ms-word-break: break-all;
+  /* This is the dangerous one in WebKit, as it breaks things wherever */
+  word-break: break-all;
+  /* Instead use this non-standard one: */
+  word-break: break-word;
+
+  /* Adds a hyphen where the word breaks, if supported (No Blink) */
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+span.line {
+  display: inline-block;
+}
+
+div.line-block-narrow {
+  display: inline-block;
+  margin-right: 4px;
+}
+
+div.line-block {
+  display: inline-block;
+  margin-right: 20px;
+}
+
+span.line select {
+  display: inline-block;
+}
+
+.phrase {
+  margin-bottom: 10px;
+}
+
+.block-element {
+  display: block;
+}
+
+.alert-narrow {
+  padding: 10px 15px;
+}
+
+@media (min-width: 0px) and (max-width: 767px) {
+  .fsi-row-xs-level {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+  }
+}
+@media (min-width: 768px) and (max-width: 991px) {
+  .fsi-row-sm-level {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+  }
+}
+@media (min-width: 992px) and (max-width: 1199px) {
+  .fsi-row-md-level {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+  }
+}
+@media (min-width: 1200px) {
+  .fsi-row-lg-level {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+  }
+}
+
+.fill-container {
+  min-height: 100%;
+  min-width: 100%;
+}
+
+.fill-container-width {
+  min-width: 100%;
+}
+
+.horizontal-flow-item {
+  display: inline-block;
+  margin-right: 10px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.horizontal-flow-menu li {
+  display: inline-block;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  margin-right: 5px;
+}
+
+.footer_widget .horizontal-flow-menu li ~ li {
+  padding-left: 8px;
+  border-left: 1px solid #bebebe;
+  line-height: 12px;
+}
+
+.no-bottom-margin {
+  margin-bottom: 0px;
+}
+
+.no-top-margin {
+  margin-top: 0px;
+}
+
+.no-margin {
+  margin: 0px;
+}
+
+.small-top-margin {
+  margin-top: 7px;
+}
+
+.normal-top-margin {
+  margin-top: 14px;
+}
+
+.large-top-margin {
+  margin-top: 24px;
+}
+
+.small-bottom-margin {
+  margin-bottom: 7px;
+}
+
+.normal-bottom-margin {
+  margin-bottom: 14px;
+}
+
+.panel.navbar-top-docker {
+  border-top-width: 0px;
+  padding-top: 10px;
+}
+
+.vertical-align {
+  display: flex;
+  align-items: center;
+}
+
+.form-control.small-padding {
+  padding: 4px 8px;
+  height: auto;
+}
+
+.align-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.align-center-text {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+/*오버레이 툴바*/
+.overlay-toolbar-container {
+  position: relative;
+}
+
+.overlay-toolbar {
+  position: absolute;
+}
+
+/*Bootbox*/
+/*버튼 순서를 바꿔준다.*/
+.modal-footer button {
+  float: right;
+  margin-left: 6px;
+}
+
+/*버튼*/
+.btn-icon-only {
+  padding: 5px;
+}
+
+.panel .panel-footer .btn-icon-only i {
+  margin: 4px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.btn.btn-sm.narrow {
+  padding: 4px 8px;
+}
+
+.dropdown-menu.button-dropdown-menu {
+  font-size: 14px;
+  padding: 4px;
+  margin-top: 0px;
+  border-radius: 0;
+  -webkit-box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.4),
+    inset 0 0 2px rgba(255, 255, 255, 0.5);
+  -moz-box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.4),
+    inset 0 0 2px rgba(255, 255, 255, 0.75);
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.4),
+    inset 0 0 2px rgba(255, 255, 255, 0.75);
+}
+
+.dropdown-menu.button-dropdown-menu a {
+  font-size: 14px;
+}
+
+/*Bootstrap 확장*/
+
+/* pull-right on lg devices */
+@media (min-width: 1200px) {
+  .pull-right-lg {
+    float: right;
+  }
+}
+
+@media (min-width: 992px) {
+  .pull-right-md {
+    float: right;
+  }
+}
+
+@media (min-width: 768px) {
+  .pull-right-sm {
+    float: right;
+  }
+}
+
+/*Context Dropdown Meun Animation*/
+.dropdown.context-menu.animated.slide-down .dropdown-menu {
+  -webkit-transition:
+    max-height 0.3s,
+    opacity 0.2s 0.1s,
+    visibility 0s 0.3s;
+  -moz-transition:
+    max-height 0.3s,
+    opacity 0.2s 0.1s,
+    visibility 0s 0.3s;
+  -ms-transition:
+    max-height 0.3s,
+    opacity 0.2s 0.1s,
+    visibility 0s 0.3s;
+  -o-transition:
+    max-height 0.3s,
+    opacity 0.2s 0.1s,
+    visibility 0s 0.3s;
+  transition:
+    max-height 0.3s,
+    opacity 0.2s 0.1s,
+    visibility 0s 0.3s;
+
+  max-height: 0;
+  opacity: 0;
+  visibility: hidden;
+
+  display: block;
+  /*overflow: hidden;*/
+}
+.dropdown.context-menu.animated.slide-down.open .dropdown-menu {
+  -webkit-transition:
+    max-height 0.3s,
+    opacity 0.2s,
+    visibility 0s;
+  -moz-transition:
+    max-height 0.3s,
+    opacity 0.2s,
+    visibility 0s;
+  -ms-transition:
+    max-height 0.3s,
+    opacity 0.2s,
+    visibility 0s;
+  -o-transition:
+    max-height 0.3s,
+    opacity 0.2s,
+    visibility 0s;
+  transition:
+    max-height 0.3s,
+    opacity 0.2s,
+    visibility 0s;
+
+  max-height: 480px;
+  opacity: 1;
+  visibility: visible;
+}
+
+/*부모 엘리먼트가 overflow:hidden인 경우에 대한 처리*/
+/*overflow가 hidden이 아닌 부모 엘리먼트에 지정하면 된다*/
+.hidden-overflow-drowdown-parent {
+  position: relative;
+}
+
+.hidden-overflow-drowdown-parent .dropup.open {
+  position: absolute;
+}
+
+.hidden-overflow-drowdown-parent .dropup.open {
+}
+
+.thumbnail-info .hidden-overflow-drowdown-parent .user-name .dropup.open {
+  left: 1.25em;
+}
+
+/*position이 absolute로 변경되면서 overflow된 부분이 화면에 표시될 때 다른 텍스트를 가려서 이상하게 보이지 않도록 한다.*/
+.thumbnail-info .hidden-overflow-drowdown-parent .user-name .dropup.open a {
+  background-color: white;
+}
+
+/*컴포넌트*/
+
+hr.vertical-narrow {
+  margin: 10px 0;
+}
+
+/*아이템 컨테이너*/
+.horizontal-scrolling-wrapper {
+  overflow-x: scroll;
+  overflow-y: hidden;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.horizontal-scrolling-wrapper > div {
+  display: inline-block;
+}
+
+/*버튼*/
+.single-line-botton-group {
+  min-width: 110px;
+}
+
+.single-line-botton-group-sm {
+  min-width: 78px;
+}
+
+.single-line-button-group {
+  min-width: 110px;
+}
+
+.single-line-button-group-sm {
+  min-width: 78px;
+}
+
+.single-line-button-group-tiny {
+  margin-left: 2px;
+  margin-right: 2px;
+}
+
+.no-horizontal-padding {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+.single-line-label {
+  margin-bottom: 3px;
+}
+
+.error-string {
+  color: black;
+  margin-left: 10px;
+}
+
+.panel.panel-default .btn.btn-default.btn-transparent {
+  background-color: transparent;
+}
+
+.btn.btn-default.btn-transparent.btn-borderless {
+  border-color: transparent;
+}
+
+.btn.btn-default.btn-transparent.btn-borderless:hover {
+  border-color: #adadad;
+}
+
+.btn.btn-default.btn-transparent.btn-inline {
+  padding: 4px 8px;
+  margin-top: -2px;
+}
+
+.btn.btn-default.btn-transparent.btn-inline.btn-tiny {
+  padding: 2px 8px;
+  margin-top: -2px;
+}
+
+.btn.btn-default.btn-transparent.btn-inline.btn-table-cell {
+  padding: 4px 6px;
+  margin: -4px -6px;
+}
+
+.panel .btn.btn-default.btn-transparent.btn-inline.btn-icon-only i {
+  font-size: 1.1em;
+}
+
+.btn.btn-tiny.icon-button i {
+  margin-right: 0px;
+}
+
+.panel .panel-body ul.unstyled.info {
+  padding-left: 20px;
+}
+
+.panel .panel-body ul.unstyled.info li {
+  margin-bottom: 8px;
+}
+
+.alert ul.unstyled.info {
+  padding-left: 20px;
+}
+
+/*ej widgets*/
+.bootstrap-dropdown-menu.e-uploadbox.e-widget .e-selectpart.e-select {
+  background-color: transparent;
+  font-family: "Nanum Gothic", "Malgun Gothic", Arial;
+  font-size: 1em;
+  font-weight: normal;
+  box-shadow: none;
+  height: 100%;
+  width: 100% !important;
+  border-width: 0px;
+}
+
+.bootstrap-dropdown-menu.e-uploadbox.e-widget .e-selectpart.e-select .e-inputbtn.e-btn {
+  font-size: 1em;
+  font-family: "Nanum Gothic", "Malgun Gothic", Arial;
+  font-weight: normal;
+  text-align: left;
+  padding-left: 15px;
+}
+
+.panel
+  .panel-heading
+  .bootstrap-dropdown-menu.e-uploadbox.e-widget
+  .e-selectpart.e-select
+  .e-inputbtn.e-btn {
+  font-size: 14px;
+}
+
+@media (min-width: 767px) {
+  .bootstrap-dropdown-menu.e-uploadbox.e-widget .e-selectpart.e-select .e-inputbtn.e-btn {
+    font-size: 13px;
+  }
+}
+
+.bootstrap-dropdown-menu.e-uploadbox.e-disable .e-select:hover,
+.bootstrap-dropdown-menu.e-uploadbox.e-widget.e-disable .e-selectpart.e-select:hover,
+.bootstrap-dropdown-menu.e-uploadbox.e-widget.e-disable .e-selectpart.e-select:hover .e-inputbtn {
+  box-shadow: 0 0px 0px 0 rgba(0, 0, 0, 0.26);
+  background-color: #fafafa;
+  color: rgba(0, 0, 0, 0.87);
+  font-family: "Nanum Gothic", "Malgun Gothic", Arial;
+  font-size: 1em;
+}
+
+@media (min-width: 767px) {
+  .bootstrap-dropdown-menu.e-uploadbox.e-disable .e-select:hover,
+  .bootstrap-dropdown-menu.e-uploadbox.e-widget.e-disable .e-selectpart.e-select:hover,
+  .bootstrap-dropdown-menu.e-uploadbox.e-widget.e-disable .e-selectpart.e-select:hover .e-inputbtn {
+    font-size: 13px;
+  }
+}
+
+.ej-uploadbox-top-center.e-dialog.e-uploadbox {
+  position: fixed !important;
+  top: 200px !important;
+  left: 50% !important;
+  -webkit-transform: translateX(-50%);
+  -moz-transform: translateX(-50%);
+  -ms-transform: translateX(-50%);
+  -o-transform: translateX(-50%);
+  transform: translateX(-50%);
+}
+
+.e-uploadbox .e-uploadclosebtn.disable {
+  pointer-events: none;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.e-rte-toolbar-icon.video.e-video {
+  height: auto;
+}
+
+/*ejToolbar에 삽입된 ejUploadbox의 browse 버튼 디자인 오버라이딩*/
+.ej-rte-toolbar-upload-image-button {
+  font-size: 16px;
+  text-align: center;
+}
+.ej-rte-toolbar-upload-image-button .e-selectpart.e-select.e-box.e-corner {
+  box-shadow: none;
+  color: rgba(0, 0, 0, 0.54);
+}
+.ej-rte-toolbar-upload-image-button .e-selectpart.e-select.e-box.e-corner {
+  box-shadow: none;
+  color: rgba(0, 0, 0, 0.54);
+}
+#ej-toobar-upload-image-button {
+  padding: 0px;
+  width: 36px;
+  height: 36px;
+}
+#upload_image_toolbar_button_SelectButton {
+  color: rgba(0, 0, 0, 0.54);
+}
+
+/*fontawesome*/
+i.fa.vertical-center {
+  vertical-align: middle;
+  margin-bottom: 2px;
+}

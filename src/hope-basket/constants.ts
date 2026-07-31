@@ -44,7 +44,9 @@ export const SUGANG_PATHS = {
   findEstblCorseDtlList: "/com/SsoCtr/findEstblCorseDtlList.do",
   findEstblDeprtList: "/com/sapl/SaplapCtr/findEstblDeprtList.do",
   findCltrDomnList: "/com/sapl/SaplapCtr/findCltrDomnList.do",
+  /** 내 희망바구니 목록 (장바구니 조회) */
   findEstblSubjtShpbsList: "/com/sapl/SaplapCtr/findEstblSubjtShpbsList.do",
+  /** 개설 교과목 검색 */
   findEstblSubjtGnrlList: "/com/sapl/SaplapCtr/findEstblSubjtGnrlList.do",
   findSaplHopeAppcsChk: "/com/sapl/SaplapCtr/findSaplHopeAppcsChk.do",
   saveHopeAppcsDtls: "/com/sapl/SaplapCtr/saveHopeAppcsDtls.do",

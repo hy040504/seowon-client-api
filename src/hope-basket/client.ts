@@ -15,17 +15,22 @@ import {
   createSugangBasketCheckRequest,
   createSugangCultureDomainListRequest,
   createSugangDepartmentListRequest,
+  buildHopeBasketTimetable,
   createSugangGeneralSubjectListRequest,
   createSugangHomeRequest,
   createSugangLoginCheckRequest,
   createSugangLoginRequest,
-  createSugangSpecialtySubjectListRequest,
+  createSugangMyHopeBasketListRequest,
   createSugangStudentInfoRequest,
   createSugangTermCodeRequest,
   createSugangTimetableDepartmentListRequest,
   createSugangTimetableDetailListRequest,
   DEFAULT_SUGANG_BASE_URL,
   DEFAULT_UNVFR_STDR_DEPT_CD,
+  exportHopeBasketTimetableImage,
+  filterTimetableSubjectsForStudentYear,
+  formatHopeBasketTimetableGrid,
+  renderHopeBasketTimetableSvg,
   parseSugangAppcsScheduleListResponse,
   parseSugangBasketMutationResponse,
   parseSugangCultureDomainListResponse,
@@ -40,8 +45,12 @@ import {
   type HopeBasketClientOptions,
   type SugangCultureDomain,
   type SugangDepartment,
+  type SugangHopeBasketTimetable,
   type SugangLoginCredentials,
   type SugangLoginResult,
+  type SugangMajorAutoAddOptions,
+  type SugangMajorAutoAddResult,
+  type SugangMyHopeBasketListOptions,
   type SugangStudentInfo,
   type SugangSubject,
   type SugangSubjectSearchOptions,
@@ -74,8 +83,8 @@ const RETRYABLE_CODES = new Set([
  * 수강희망바구니(예비 담기) 전용 클라이언트.
  *
  * 범위:
- * - 포함: 희망바구니 로그인, 과목 검색, 담기/취소, 관련 일정/시간표 조회
- * - 미포함: 정식 수강신청(본신청) 등록/정정/삭제
+ * - 포함: 로그인, 개설 검색, 내 바구니 목록, 담기/취소, 간이 시간표, 관련 일정/학과 개설 시간표
+ * - 미포함: 정식 수강신청(본신청), ClipReport 원본 합산 시간표 이미지
  *
  * 호스트는 sugangh.seowon.ac.kr 이지만, 이 클래스는 hope-basket 기능만 다룬다.
  * 정식 수강신청은 추후 별도 모듈로 구현한다.
@@ -332,29 +341,158 @@ export class HopeBasketClient {
   }
 
   /**
-   * 희망바구니용 개설 과목을 검색한다
+   * 개설 교과목을 검색한다 (findEstblSubjtGnrlList)
+   *
+   * 내 희망바구니 목록이 필요하면 getMyHopeBasketList 를 사용한다.
+   * listType 은 과거 호환용이며 검색 경로에 영향을 주지 않는다.
+   *
    * @param {SugangSubjectSearchOptions} [options={}] - 검색 조건
-   * @returns {Promise<SugangSubject[]>} 중복 제거된 과목 목록
+   * @returns {Promise<SugangSubject[]>} 개설 과목 목록
    */
   async searchSubjects(options: SugangSubjectSearchOptions = {}): Promise<SugangSubject[]> {
     await this.ensureReady();
-    const listType = options.listType ?? "both";
     const query = this.withStudentContext(options);
-    const results: SugangSubject[] = [];
+    const request = createSugangGeneralSubjectListRequest(query, this.baseUrl);
+    const body = await this.postSsv(request);
+    return dedupeSubjects(parseSugangSubjectListResponse(body, "general"));
+  }
 
-    if (listType === "specialty" || listType === "both") {
-      const request = createSugangSpecialtySubjectListRequest(query, this.baseUrl);
-      const body = await this.postSsv(request);
-      results.push(...parseSugangSubjectListResponse(body, "specialty"));
+  /**
+   * 내가 담은 희망바구니 목록을 조회한다 (findEstblSubjtShpbsList)
+   *
+   * 홈 화면 하단 그리드 "수강희망바구니 신청 교과목"과 동일 API다.
+   *
+   * @param {SugangMyHopeBasketListOptions} [options={}] - 조회 옵션
+   * @returns {Promise<SugangSubject[]>} 내 바구니 과목 목록
+   */
+  async getMyHopeBasketList(options: SugangMyHopeBasketListOptions = {}): Promise<SugangSubject[]> {
+    await this.ensureReady();
+    const query = this.withStudentContext(options);
+    // 화면은 학과 콤보 값을 같이 보내지만, 비워도 학번 기준으로 내 목록이 내려온다
+    const request = createSugangMyHopeBasketListRequest(query, this.baseUrl);
+    const body = await this.postSsv(request);
+    return dedupeSubjects(parseSugangSubjectListResponse(body, "basket"));
+  }
+
+  /**
+   * 내 희망바구니 목록을 가져와 timtbNm 기반 간이 시간표를 구성한다
+   *
+   * ShpbsList 응답에 담당교수 필드가 비어 있는 경우가 많아,
+   * 과목코드로 개설 검색(GnrlList)을 한 번 더 조회해 교수명을 보강한다.
+   *
+   * @param {SugangMyHopeBasketListOptions} [options={}] - 목록 조회 옵션
+   * @returns {Promise<SugangHopeBasketTimetable>} 간이 시간표 집계
+   */
+  async getMyHopeBasketTimetable(
+    options: SugangMyHopeBasketListOptions = {}
+  ): Promise<SugangHopeBasketTimetable> {
+    const subjects = await this.getMyHopeBasketList(options);
+    const enriched = await this.enrichBasketSubjectsWithInstructor(subjects);
+    return buildHopeBasketTimetable(enriched);
+  }
+
+  /**
+   * 바구니 목록에 담당 교수명이 비어 있으면 개설 검색으로 보강한다
+   * @param {SugangSubject[]} subjects - 원본 바구니 목록
+   * @returns {Promise<SugangSubject[]>} 교수명이 채워진 목록
+   * @private
+   */
+  private async enrichBasketSubjectsWithInstructor(
+    subjects: SugangSubject[]
+  ): Promise<SugangSubject[]> {
+    if (!subjects.length) return subjects;
+
+    // 과목코드별 개설 검색 결과 캐시 (동일 코드 중복 호출 방지)
+    const byCode = new Map<string, SugangSubject[]>();
+    const needCodes = [
+      ...new Set(
+        subjects
+          .filter((item) => !item.chrgInstrEmpnm?.trim() && item.subjtCd)
+          .map((item) => item.subjtCd)
+      )
+    ];
+
+    for (const code of needCodes) {
+      try {
+        this.emitProgress(`교수명 보강 중: ${code}`);
+        const found = await this.searchSubjects({
+          keyword: code,
+          subjtCd: code
+        });
+        byCode.set(
+          code,
+          found.filter((item) => item.subjtCd === code && item.chrgInstrEmpnm)
+        );
+      } catch {
+        byCode.set(code, []);
+      }
     }
 
-    if (listType === "general" || listType === "both") {
-      const request = createSugangGeneralSubjectListRequest(query, this.baseUrl);
-      const body = await this.postSsv(request);
-      results.push(...parseSugangSubjectListResponse(body, "general"));
-    }
+    return subjects.map((subject) => {
+      if (subject.chrgInstrEmpnm?.trim()) return subject;
+      const candidates = byCode.get(subject.subjtCd) ?? [];
+      const match =
+        candidates.find((item) => item.corseDvclsNo === subject.corseDvclsNo) || candidates[0];
+      if (!match?.chrgInstrEmpnm) return subject;
+      return {
+        ...subject,
+        chrgInstrEmpnm: match.chrgInstrEmpnm,
+        chrgInstrEmpno: match.chrgInstrEmpno || subject.chrgInstrEmpno
+      };
+    });
+  }
 
-    return dedupeSubjects(results);
+  /**
+   * 내 희망바구니 간이 시간표를 콘솔용 그리드 문자열로 반환한다
+   * @param {SugangMyHopeBasketListOptions} [options={}] - 목록 조회 옵션
+   * @returns {Promise<string>} ASCII 시간표 그리드
+   */
+  async formatMyHopeBasketTimetable(options: SugangMyHopeBasketListOptions = {}): Promise<string> {
+    const timetable = await this.getMyHopeBasketTimetable(options);
+    return formatHopeBasketTimetableGrid(timetable);
+  }
+
+  /**
+   * 내 희망바구니 시간표를 SVG/PNG 이미지 파일로 저장한다
+   *
+   * AI 이미지 생성이 아니라 데이터 기반 렌더다.
+   * PNG는 로컬 Chrome/Edge + puppeteer-core 가 있을 때 시도한다.
+   *
+   * @param {SugangMyHopeBasketListOptions & { outputDir?: string; fileBaseName?: string; title?: string; tryPng?: boolean }} [options] - 조회·저장 옵션
+   * @returns {Promise<{ timetable: SugangHopeBasketTimetable; htmlPath: string; pngPath?: string }>} 집계와 파일 경로
+   */
+  async exportMyHopeBasketTimetableImage(
+    options: SugangMyHopeBasketListOptions & {
+      outputDir?: string;
+      fileBaseName?: string;
+      title?: string;
+      tryPng?: boolean;
+    } = {}
+  ): Promise<{
+    timetable: SugangHopeBasketTimetable;
+    htmlPath: string;
+    pngPath?: string;
+  }> {
+    const timetable = await this.getMyHopeBasketTimetable(options);
+    const files = await exportHopeBasketTimetableImage(timetable, {
+      outputDir: options.outputDir,
+      fileBaseName: options.fileBaseName,
+      title: options.title,
+      tryPng: options.tryPng
+    });
+    return { timetable, ...files };
+  }
+
+  /**
+   * 내 희망바구니 시간표 SVG 문자열을 반환한다
+   * @param {SugangMyHopeBasketListOptions & { title?: string }} [options] - 조회·렌더 옵션
+   * @returns {Promise<string>} SVG 문서
+   */
+  async renderMyHopeBasketTimetableSvg(
+    options: SugangMyHopeBasketListOptions & { title?: string } = {}
+  ): Promise<string> {
+    const timetable = await this.getMyHopeBasketTimetable(options);
+    return renderHopeBasketTimetableSvg(timetable, { title: options.title });
   }
 
   /**
@@ -422,14 +560,14 @@ export class HopeBasketClient {
     keyword: string,
     options: {
       asignDeprtCd?: string;
+      /** @deprecated 검색은 항상 개설 목록(GnrlList)만 사용 */
       listType?: SugangSubjectSearchOptions["listType"];
       pick?: (subjects: SugangSubject[]) => SugangSubject | undefined;
     } = {}
   ): Promise<{ subject: SugangSubject; result: SugangBasketMutationResult }> {
     const subjects = await this.searchSubjects({
       keyword,
-      asignDeprtCd: options.asignDeprtCd ?? this.student?.deptCd,
-      listType: options.listType ?? "both"
+      asignDeprtCd: options.asignDeprtCd ?? this.student?.deptCd
     });
     if (!subjects.length) {
       throw new Error(`검색 결과가 없습니다: ${keyword}`);
@@ -477,6 +615,90 @@ export class HopeBasketClient {
     );
     const body = await this.postSsv(request);
     return parseSugangTimetableDetailListResponse(body);
+  }
+
+  /**
+   * 로그인 학생의 학과·학년·학기(학년도)에 맞는 전공 개설 과목을 찾아 희망바구니에 담는다
+   *
+   * 흐름:
+   * 1) 학생 정보(deptCd, hy, syy, smtCd) 확보
+   * 2) 학과별 개설 강의시간표(findEstblCorseDtlList) 조회
+   * 3) 이수학년(cmpsjHyDivCd)이 학생 학년과 맞는 분반 필터
+   * 4) dryRun이 아니면 순차 담기
+   *
+   * @param {SugangMajorAutoAddOptions} [options={}] - 필터/담기 옵션
+   * @returns {Promise<SugangMajorAutoAddResult>} 후보·담기 결과
+   */
+  async addMajorCoursesForStudent(
+    options: SugangMajorAutoAddOptions = {}
+  ): Promise<SugangMajorAutoAddResult> {
+    await this.ensureReady();
+    const student = this.student;
+    if (!student?.stuno) {
+      throw new Error("학생 정보가 없습니다. 먼저 로그인하세요.");
+    }
+
+    const deptCd = options.asignDeprtCd || student.deptCd || student.deprtCd;
+    const hy = options.hy || student.hy;
+    const syy = student.syy || this.term.syy;
+    const smtCd = student.smtCd || this.term.smtCd;
+
+    if (!deptCd) {
+      throw new Error("학생 학과 코드(deptCd)를 확인할 수 없습니다.");
+    }
+    if (!hy) {
+      throw new Error("학생 학년(hy)을 확인할 수 없습니다.");
+    }
+
+    this.emitProgress(`학과 전공 시간표 조회 중... (학과=${deptCd}, 학년=${hy}, ${syy}-${smtCd})`);
+    const allSubjects = await this.getTimetableSubjects({
+      asignDeprtCd: deptCd,
+      syy,
+      smtCd
+    });
+    const candidates = filterTimetableSubjectsForStudentYear(
+      allSubjects,
+      { hy },
+      { includeUnknownYear: options.includeUnknownYear }
+    );
+
+    const results: SugangMajorAutoAddResult["results"] = [];
+    if (!options.dryRun) {
+      for (const subject of candidates) {
+        this.emitProgress(`담는 중: ${subject.subjtCd}-${subject.corseDvclsNo} ${subject.subjtNm}`);
+        try {
+          const result = await this.addToBasket({
+            subjtCd: subject.subjtCd,
+            corseDvclsNo: subject.corseDvclsNo,
+            skipCheck: options.skipCheck
+          });
+          results.push({ subject, result });
+        } catch (err: any) {
+          results.push({
+            subject,
+            result: {
+              success: false,
+              message: err?.message || String(err),
+              action: "add",
+              subjtCd: subject.subjtCd,
+              corseDvclsNo: subject.corseDvclsNo,
+              raw: { encoding: "utf-8", params: {}, datasets: [], raw: "" }
+            }
+          });
+        }
+      }
+    }
+
+    return {
+      student,
+      deptCd,
+      hy,
+      syy,
+      smtCd,
+      allSubjects,
+      candidates,
+      results
+    };
   }
 
   /**
@@ -650,7 +872,7 @@ function normalizeBaseUrl(baseUrl: string): string {
 }
 
 /**
- * specialty/general 검색 결과 중복을 제거한다
+ * 동일 과목코드-분반 중복을 제거한다
  * @param {SugangSubject[]} subjects - 원본 목록
  * @returns {SugangSubject[]} 중복 제거 목록
  * @private
@@ -658,7 +880,7 @@ function normalizeBaseUrl(baseUrl: string): string {
 function dedupeSubjects(subjects: SugangSubject[]): SugangSubject[] {
   const map = new Map<string, SugangSubject>();
   for (const subject of subjects) {
-    const key = `${subject.subjtCd}::${subject.corseDvclsNo}::${subject.sourceList}`;
+    const key = `${subject.subjtCd}::${subject.corseDvclsNo}`;
     if (!map.has(key)) map.set(key, subject);
   }
   return [...map.values()];
@@ -720,9 +942,7 @@ function normalizeNetworkError(error: unknown): Error {
     );
   }
   if (code === "ETIMEDOUT" || message.toLowerCase().includes("timeout")) {
-    return new Error(
-      "희망바구니 서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도하세요."
-    );
+    return new Error("희망바구니 서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도하세요.");
   }
   if (error instanceof Error) return error;
   return new Error(message || "희망바구니 요청 중 알 수 없는 오류가 발생했습니다.");

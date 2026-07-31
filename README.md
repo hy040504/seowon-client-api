@@ -4,11 +4,11 @@
 
 ## 지원 범위
 
-| 영역 | 상태 | 비고 |
-| :--- | :--- | :--- |
-| e-campus 로그인/과목/강의실/이러닝/성적 | 지원 | `EcampusClient` |
-| 수강**희망바구니** (예비 담기) | 지원 | `HopeBasketClient` |
-| 정식 수강신청 (본신청 등록/정정) | **미지원** | 추후 별도 모듈 예정 |
+| 영역                                    | 상태       | 비고                |
+| :-------------------------------------- | :--------- | :------------------ |
+| e-campus 로그인/과목/강의실/이러닝/성적 | 지원       | `EcampusClient`     |
+| 수강**희망바구니** (예비 담기)          | 지원       | `HopeBasketClient`  |
+| 정식 수강신청 (본신청 등록/정정)        | **미지원** | 추후 별도 모듈 예정 |
 
 > 이 프로젝트는 서원대학교 공식 SDK가 아닙니다. 계정·쿠키·세션·LMS 캡처·다운로드 파일은 공개 저장소에 올리지 마세요.
 
@@ -27,9 +27,11 @@
 ### 수강희망바구니 (`sugangh.seowon.ac.kr`)
 
 - 희망바구니 전용 로그인 (`appcsKindCd=100`)
-- 과목 검색 (전공계열/일반 목록)
+- 개설 교과목 검색 (`findEstblSubjtGnrlList`)
+- 내가 담은 희망바구니 목록 (`findEstblSubjtShpbsList`)
 - 희망바구니 담기 / 취소
-- 관련 일정, 개설 학과, 교양 영역, 전공 시간표 조회
+- 내 바구니 간이 시간표 (`timtbNm` 파싱; ClipReport 원본 이미지는 미포함)
+- 관련 일정, 개설 학과, 교양 영역, 학과별 개설 시간표 조회
 - Fiddler SAZ에서 희망바구니 세션 복원
 
 **정식 수강신청(본신청) API는 포함하지 않습니다.**
@@ -59,26 +61,26 @@ SEOWON_PASSWORD=your_password
 DOWNLOAD_HIGH_WATER_MARK=1024
 ```
 
-| 환경 변수 | 설명 |
-| :--- | :--- |
-| `SEOWON_ID` | 로그인 아이디 또는 학번 |
-| `SEOWON_PASSWORD` | 로그인 비밀번호 |
+| 환경 변수                  | 설명                                |
+| :------------------------- | :---------------------------------- |
+| `SEOWON_ID`                | 로그인 아이디 또는 학번             |
+| `SEOWON_PASSWORD`          | 로그인 비밀번호                     |
 | `DOWNLOAD_HIGH_WATER_MARK` | 다운로드 버퍼 크기(KB), 기본 `1024` |
 
 쿠키 파일:
 
-| 파일 | 용도 |
-| :--- | :--- |
-| `.seowon-ecampus.cookies.json` | e-campus 세션 |
+| 파일                               | 용도            |
+| :--------------------------------- | :-------------- |
+| `.seowon-ecampus.cookies.json`     | e-campus 세션   |
 | `.seowon-hope-basket.cookies.json` | 희망바구니 세션 |
 
 ## CLI 도구
 
-| 도구 | 실행 명령 | 용도 |
-| :--- | :--- | :--- |
-| `prompt-client` | `npm run prompt:client` | 기능별 API 응답/파싱 결과 확인 |
-| `auto-manager` | `npm run auto:manager` | e-campus 다운로드·자동 시청·과제·성적 반복 작업 |
-| `hope-basket-manager` | `npm run hope-basket:manager` | 수강희망바구니(예비 담기) 전용 CLI |
+| 도구                  | 실행 명령                     | 용도                                            |
+| :-------------------- | :---------------------------- | :---------------------------------------------- |
+| `prompt-client`       | `npm run prompt:client`       | 기능별 API 응답/파싱 결과 확인                  |
+| `auto-manager`        | `npm run auto:manager`        | e-campus 다운로드·자동 시청·과제·성적 반복 작업 |
+| `hope-basket-manager` | `npm run hope-basket:manager` | 수강희망바구니(예비 담기) 전용 CLI              |
 
 `npm run sugang:manager`는 `hope-basket:manager`의 별칭입니다.
 
@@ -90,33 +92,35 @@ npm run prompt:client
 
 **e-campus**
 
-| 명령 | 설명 |
-| :--- | :--- |
-| `login` | 로그인 및 쿠키 저장 |
-| `courses` | 전체 과목 목록 |
-| `notices` | 선택 과목 공지 |
-| `materials` | 선택 과목 강의자료 |
-| `assignments` | 선택 과목 과제·제출 상태 |
-| `classroom-resources` | 공지/강의자료/과제 통합 |
-| `elearning-lessons` | 이러닝 차시 목록 |
-| `elearning-open` | 시청 창 메타데이터 |
-| `elearning-mp4` | MP4 URL 분석 |
-| `elearning-download` | 차시 영상 다운로드 |
-| `elearning-watch` | 학습 세션 시작 |
+| 명령                  | 설명                     |
+| :-------------------- | :----------------------- |
+| `login`               | 로그인 및 쿠키 저장      |
+| `courses`             | 전체 과목 목록           |
+| `notices`             | 선택 과목 공지           |
+| `materials`           | 선택 과목 강의자료       |
+| `assignments`         | 선택 과목 과제·제출 상태 |
+| `classroom-resources` | 공지/강의자료/과제 통합  |
+| `elearning-lessons`   | 이러닝 차시 목록         |
+| `elearning-open`      | 시청 창 메타데이터       |
+| `elearning-mp4`       | MP4 URL 분석             |
+| `elearning-download`  | 차시 영상 다운로드       |
+| `elearning-watch`     | 학습 세션 시작           |
 
 **희망바구니 (본신청 아님)**
 
-| 명령 | 설명 |
-| :--- | :--- |
-| `hope-basket-login` | 희망바구니 로그인 |
-| `hope-basket-search` | 과목 검색 |
-| `hope-basket-add` | 바구니 담기 |
-| `hope-basket-cancel` | 바구니 취소 |
-| `hope-basket-schedules` | 관련 일정 |
-| `hope-basket-departments` | 개설 학과 |
-| `hope-basket-domains` | 교양 영역 |
-| `hope-basket-timetable` | 전공 시간표 |
-| `help` | 도움말 |
+| 명령                       | 설명                    |
+| :------------------------- | :---------------------- |
+| `hope-basket-login`        | 희망바구니 로그인       |
+| `hope-basket-search`       | 개설 과목 검색          |
+| `hope-basket-add`          | 바구니 담기             |
+| `hope-basket-my-list`      | 내가 담은 목록          |
+| `hope-basket-my-timetable` | 내 바구니 간이 시간표   |
+| `hope-basket-cancel`       | 바구니 취소             |
+| `hope-basket-schedules`    | 관련 일정               |
+| `hope-basket-departments`  | 개설 학과               |
+| `hope-basket-domains`      | 교양 영역               |
+| `hope-basket-timetable`    | 학과별 개설 전공 시간표 |
+| `help`                     | 도움말                  |
 
 구 별칭 `sugang-*` 도 동일 명령으로 연결됩니다.
 
@@ -160,13 +164,15 @@ npm run hope-basket:manager
 
 ```text
 1. 로그인 / 세션 갱신
-2. 과목 검색
+2. 개설 강의 검색
 3. 희망바구니 검색 후 선택 담기
-4. 희망바구니 키워드 일괄 담기
-5. 희망바구니 취소
-6. 희망바구니 관련 일정 조회
-7. 개설 학과 / 교양 영역 조회
-8. 전공 강의시간표 조회
+4. 본인 학과·학년 전공 일괄 담기
+5. 내가 담은 희망바구니 목록
+6. 내 희망바구니 시간표 이미지 (HTML/PNG, 데이터 렌더)
+7. 희망바구니 취소
+8. 희망바구니 관련 일정 조회
+9. 개설 학과 / 교양 영역 조회
+10. 학과별 개설 강의시간표 조회 (내 시간표 아님)
 0. 종료
 ```
 
@@ -267,11 +273,35 @@ await basket.addToBasket({
   corseDvclsNo: subjects[0].corseDvclsNo
 });
 
+const myList = await basket.getMyHopeBasketList();
+const myTimetable = await basket.getMyHopeBasketTimetable();
+console.log(await basket.formatMyHopeBasketTimetable());
+
+// 학생의 학과·학년 기준 전공 과목 일괄 담기 (또는 조회)
+const preview = await basket.addMajorCoursesForStudent({
+  dryRun: true, // true면 실제로 담지 않고 후보 목록만 반환
+  includeUnknownYear: true // 학년 미지정 과목 포함 여부
+});
+console.log(
+  `전체 ${preview.allSubjects.length}개 전공 분반 중 ${preview.candidates.length}개 과목 매칭`
+);
+
 await basket.cancelFromBasket({
-  subjtCd: subjects[0].subjtCd,
-  corseDvclsNo: subjects[0].corseDvclsNo
+  subjtCd: myList[0].subjtCd,
+  corseDvclsNo: myList[0].corseDvclsNo
 });
 ```
+
+#### 학년 매칭 필터 (`SCUR0150` 공통코드)
+
+학생의 학년(`student.hy`, 예: `"2"`)과 과목의 이수학년구분코드(`cmpsjHyDivCd`, 예: `"07"`) 간의 실제 서원대 수강신청 공통코드 매핑 규칙을 적용하여 필터링합니다:
+
+- **1학년**: `01` (1-4), `02` (1-3), `03` (1-2), `04` (1), `11` (1-5)
+- **2학년**: `05` (2-4), `06` (2-3), `07` (2), `12` (2-5)
+- **3학년**: `08` (3-4), `09` (3), `13` (3-5)
+- **4학년**: `10` (4), `14` (4-5)
+- **5학년**: `15` (5)
+- **전체/미지정**: `00`, `99`, 빈 값 등 (`includeUnknownYear` 옵션에 따라 매칭 여부 결정)
 
 ### SAZ 패킷 분석
 
@@ -294,45 +324,51 @@ e-campus 파서: `src/ecampus/saz.ts` · 희망바구니 파서: `src/hope-baske
 
 ### EcampusClient
 
-| 메서드 | 설명 |
-| :--- | :--- |
-| `login()` | 계정 로그인 및 쿠키 저장 |
-| `ensureAuthenticated()` | 유효 쿠키 없으면 재로그인 |
-| `getCourseList()` | 전체 과목 목록 |
-| `getCourseGroups()` | 교과/비교과 그룹 |
-| `getNoticeList()` | 공지사항 |
-| `getMaterialList()` | 강의자료 |
-| `getMaterialAttachments()` | 강의자료 첨부 URL |
-| `getAssignmentList()` | 과제·제출 상태 |
-| `getClassroomResources()` | 공지/자료/과제 통합 |
-| `getScoreOpenInfo()` | 성적 공개 여부 |
-| `getScoreAccessInfo()` | 공개 조건·설문 게이트 |
-| `getScore()` / `getScorePageHtml()` | 성적 페이지 |
-| `getScoreSummary()` | 항목별 점수/총점/등급 |
-| `getElearningLessonList()` | 이러닝 차시 |
-| `openLessonWindow()` | 시청 창 메타데이터 |
-| `getElearningMp4Url()` | MP4 주소 |
-| `downloadElearningMp4()` | 영상 다운로드 |
-| `addStudyRecord()` | 학습 기록 전송 |
-| `viewLessonStudyDetail()` | 학습 이력 상세 |
+| 메서드                              | 설명                      |
+| :---------------------------------- | :------------------------ |
+| `login()`                           | 계정 로그인 및 쿠키 저장  |
+| `ensureAuthenticated()`             | 유효 쿠키 없으면 재로그인 |
+| `getCourseList()`                   | 전체 과목 목록            |
+| `getCourseGroups()`                 | 교과/비교과 그룹          |
+| `getNoticeList()`                   | 공지사항                  |
+| `getMaterialList()`                 | 강의자료                  |
+| `getMaterialAttachments()`          | 강의자료 첨부 URL         |
+| `getAssignmentList()`               | 과제·제출 상태            |
+| `getClassroomResources()`           | 공지/자료/과제 통합       |
+| `getScoreOpenInfo()`                | 성적 공개 여부            |
+| `getScoreAccessInfo()`              | 공개 조건·설문 게이트     |
+| `getScore()` / `getScorePageHtml()` | 성적 페이지               |
+| `getScoreSummary()`                 | 항목별 점수/총점/등급     |
+| `getElearningLessonList()`          | 이러닝 차시               |
+| `openLessonWindow()`                | 시청 창 메타데이터        |
+| `getElearningMp4Url()`              | MP4 주소                  |
+| `downloadElearningMp4()`            | 영상 다운로드             |
+| `addStudyRecord()`                  | 학습 기록 전송            |
+| `viewLessonStudyDetail()`           | 학습 이력 상세            |
 
 ### HopeBasketClient
 
 정식 수강신청 본신청 API는 없습니다.
 
-| 메서드 | 설명 |
-| :--- | :--- |
-| `login()` | 희망바구니 로그인·학생 정보 |
-| `syncTermContext()` | 학년도/학기 동기화 |
-| `getAppcsSchedules()` | 관련 일정 |
-| `getDepartments()` | 개설 학과 |
-| `getCultureDomains()` | 교양 영역 |
-| `searchSubjects()` | 과목 검색 |
-| `checkBasketItem()` | 담기 전 검증 |
-| `addToBasket()` | 바구니 담기 |
-| `cancelFromBasket()` | 바구니 취소 |
-| `getTimetableDepartments()` | 전공 시간표 학과 |
-| `getTimetableSubjects()` | 전공 시간표 분반 |
+| 메서드                               | 설명                               |
+| :----------------------------------- | :--------------------------------- |
+| `login()`                            | 희망바구니 로그인·학생 정보        |
+| `syncTermContext()`                  | 학년도/학기 동기화                 |
+| `getAppcsSchedules()`                | 관련 일정                          |
+| `getDepartments()`                   | 개설 학과                          |
+| `getCultureDomains()`                | 교양 영역                          |
+| `searchSubjects()`                   | 개설 교과목 검색 (GnrlList)        |
+| `getMyHopeBasketList()`              | 내가 담은 목록 (ShpbsList)         |
+| `getMyHopeBasketTimetable()`         | 내 바구니 간이 시간표 집계         |
+| `formatMyHopeBasketTimetable()`      | 간이 시간표 ASCII 그리드           |
+| `exportMyHopeBasketTimetableImage()` | 시간표 HTML/PNG 파일 저장          |
+| `renderMyHopeBasketTimetableSvg()`   | 시간표 내부 SVG 마크업 문자열      |
+| `checkBasketItem()`                  | 담기 전 검증                       |
+| `addToBasket()`                      | 바구니 담기                        |
+| `cancelFromBasket()`                 | 바구니 취소                        |
+| `addMajorCoursesForStudent()`        | 본인 학과·학년 전공 일괄 담기/조회 |
+| `getTimetableDepartments()`          | 학과별 개설 시간표 학과            |
+| `getTimetableSubjects()`             | 학과별 개설 시간표 분반            |
 
 ## 프로젝트 구조
 
@@ -356,6 +392,7 @@ src/
     constants.ts               호스트·메뉴·경로 (appcsKindCd=100)
     ssv.ts                     Nexacro SSV 코덱
     basket.ts                  요청 생성·응답 파싱
+    timetable.ts               timtbNm 파싱·간이 시간표
     saz.ts                     희망바구니 SAZ 복원
     client.ts                  HopeBasketClient
     types/                     희망바구니/SSV 타입
@@ -372,18 +409,18 @@ hope-basket-manager.ts         희망바구니 CLI
 
 ## 개발 명령
 
-| 명령 | 설명 |
-| :--- | :--- |
-| `npm run prompt:client` | e-campus·희망바구니 API 진단 CLI |
-| `npm run auto:manager` | e-campus 반복 작업 CLI |
-| `npm run hope-basket:manager` | 희망바구니 CLI |
-| `npm run analyze:saz` | SAZ 패킷 분석 |
-| `npm run capture:live` | Chrome live traffic capture |
-| `npm run typecheck` | TypeScript 검사 |
-| `npm run format:check` | Prettier 검사 |
-| `npm run lint` | ESLint 검사 |
-| `npm test` | Vitest 실행 |
-| `npm run build` | legacy 암호화 준비 후 패키지 빌드 |
+| 명령                          | 설명                              |
+| :---------------------------- | :-------------------------------- |
+| `npm run prompt:client`       | e-campus·희망바구니 API 진단 CLI  |
+| `npm run auto:manager`        | e-campus 반복 작업 CLI            |
+| `npm run hope-basket:manager` | 희망바구니 CLI                    |
+| `npm run analyze:saz`         | SAZ 패킷 분석                     |
+| `npm run capture:live`        | Chrome live traffic capture       |
+| `npm run typecheck`           | TypeScript 검사                   |
+| `npm run format:check`        | Prettier 검사                     |
+| `npm run lint`                | ESLint 검사                       |
+| `npm test`                    | Vitest 실행                       |
+| `npm run build`               | legacy 암호화 준비 후 패키지 빌드 |
 
 ## 코드 주석 규칙
 

@@ -223,7 +223,9 @@ export function readNexacroXmlErrorCode(xml: string): number | undefined {
  * @private
  */
 function isSsvDocument(source: SsvDocument | SsvParams): source is SsvDocument {
-  return typeof source === "object" && source !== null && "datasets" in source && "params" in source;
+  return (
+    typeof source === "object" && source !== null && "datasets" in source && "params" in source
+  );
 }
 
 /**

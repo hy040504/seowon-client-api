@@ -30,6 +30,7 @@ export function parseSugangBasketFromSaz(sazFile: Buffer | Uint8Array): SugangSa
   const summary: SugangSazBasketSummary = {
     logins: [],
     subjects: [],
+    myBasket: [],
     basketAdds: [],
     basketCancels: [],
     schedules: [],
@@ -53,7 +54,8 @@ export function parseSugangBasketFromSaz(sazFile: Buffer | Uint8Array): SugangSa
     if (path.includes(SUGANG_PATHS.findAppcsLoginChk)) loginCheckBodies.push(body);
 
     if (path.includes(SUGANG_PATHS.findEstblSubjtShpbsList)) {
-      summary.subjects.push(...parseSugangSubjectListResponse(body, "specialty"));
+      // ShpbsList = 내 희망바구니 목록 (개설 검색이 아님)
+      summary.myBasket.push(...parseSugangSubjectListResponse(body, "basket"));
     }
     if (path.includes(SUGANG_PATHS.findEstblSubjtGnrlList)) {
       summary.subjects.push(...parseSugangSubjectListResponse(body, "general"));

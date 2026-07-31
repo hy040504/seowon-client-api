@@ -80,8 +80,7 @@ async function main() {
             );
             const subjects = await basket.searchSubjects({
               keyword,
-              asignDeprtCd: asignDeprtCd || undefined,
-              listType: "both"
+              asignDeprtCd: asignDeprtCd || undefined
             });
             printSuccess(`${subjects.length}건 검색`);
             console.log(api.stringifySugangSubjects(subjects));
@@ -93,8 +92,7 @@ async function main() {
             const keyword = await ask(rl, "담을 과목 검색어", "");
             const subjects = await basket.searchSubjects({
               keyword,
-              asignDeprtCd: basket.getStudentInfo()?.deptCd,
-              listType: "both"
+              asignDeprtCd: basket.getStudentInfo()?.deptCd
             });
             if (!subjects.length) {
               printWarning("검색 결과가 없습니다.");
@@ -121,6 +119,26 @@ async function main() {
               subjtCd: addResult.subjtCd,
               corseDvclsNo: addResult.corseDvclsNo
             });
+            break;
+          }
+
+          case "hope-basket-my-list": {
+            await ensureHopeBasketLogin(basket, rl);
+            const myList = await basket.getMyHopeBasketList();
+            const credits = myList.reduce((sum, item) => sum + (Number(item.cmpsjCdt) || 0), 0);
+            printSuccess(`${myList.length}과목 / ${credits}학점`);
+            console.log(api.stringifySugangSubjects(myList) || "(없음)");
+            break;
+          }
+
+          case "hope-basket-my-timetable": {
+            await ensureHopeBasketLogin(basket, rl);
+            const myTimetable = await basket.getMyHopeBasketTimetable();
+            if (!myTimetable.courseCount) {
+              printWarning("담은 과목이 없습니다.");
+              break;
+            }
+            console.log(api.formatHopeBasketTimetableGrid(myTimetable));
             break;
           }
 

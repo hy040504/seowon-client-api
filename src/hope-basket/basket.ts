@@ -19,11 +19,13 @@ import type {
   SugangLoginScheduleCheck,
   SugangSessionInfo,
   SugangStudentInfo,
+  SugangMyHopeBasketListOptions,
   SugangSubject,
   SugangSubjectSearchOptions,
   SugangSsvPostRequest,
   SugangTermCodeInfo,
   SugangTermContext,
+  SugangMajorAutoAddOptions,
   SugangTimetableDepartment,
   SugangTimetableDeptSearchOptions,
   SugangTimetableDetailSearchOptions,
@@ -38,9 +40,14 @@ export type {
   SugangCultureDomain,
   SugangDepartment,
   SugangGetRequest,
+  SugangHopeBasketTimetable,
+  SugangHopeBasketTimetableCell,
   SugangLoginCredentials,
   SugangLoginResult,
   SugangLoginScheduleCheck,
+  SugangMajorAutoAddOptions,
+  SugangMajorAutoAddResult,
+  SugangMyHopeBasketListOptions,
   SugangSazBasketSummary,
   SugangSessionInfo,
   SugangStudentInfo,
@@ -52,8 +59,23 @@ export type {
   SugangTimetableDepartment,
   SugangTimetableDeptSearchOptions,
   SugangTimetableDetailSearchOptions,
-  SugangTimetableSubject
+  SugangTimetableSubject,
+  SugangTimtbSlot,
+  SugangWeekdayCode
 } from "./types/basket.js";
+
+export {
+  buildHopeBasketTimetable,
+  buildKoreanTimetableFileBaseName,
+  exportHopeBasketTimetableImage,
+  formatHopeBasketTimetableGrid,
+  getSeowonPeriodEndTime,
+  getSeowonPeriodStartTime,
+  parseTimtbNm,
+  renderHopeBasketTimetableSvg,
+  SEOWON_PERIOD_TIMES,
+  SUGANG_WEEKDAYS
+} from "./timetable.js";
 
 import { absoluteUrl } from "../ecampus/utils.js";
 import {
@@ -196,25 +218,22 @@ export function createSugangAppcsScheduleListRequest(
   options: { baseUrl?: string; menuId?: string; pgmId?: string; atnlcNotcClCd?: string } = {}
 ): SugangSsvPostRequest {
   const baseUrl = options.baseUrl ?? DEFAULT_SUGANG_BASE_URL;
-  const body = encodeSsvRequest(
-    { requestTimeStr: createSsvRequestTimeStr() },
-    [
-      {
-        id: "dsParam",
-        columns: ["syy", "smtCd", "unvfrStdrDeptCd", "notcClCd", "atnlcNotcClCd"],
-        rows: [
-          {
-            _rowType: "N",
-            syy: context.syy,
-            smtCd: context.smtCd,
-            unvfrStdrDeptCd: context.unvfrStdrDeptCd ?? DEFAULT_UNVFR_STDR_DEPT_CD,
-            notcClCd: "",
-            atnlcNotcClCd: options.atnlcNotcClCd ?? ""
-          }
-        ]
-      }
-    ]
-  );
+  const body = encodeSsvRequest({ requestTimeStr: createSsvRequestTimeStr() }, [
+    {
+      id: "dsParam",
+      columns: ["syy", "smtCd", "unvfrStdrDeptCd", "notcClCd", "atnlcNotcClCd"],
+      rows: [
+        {
+          _rowType: "N",
+          syy: context.syy,
+          smtCd: context.smtCd,
+          unvfrStdrDeptCd: context.unvfrStdrDeptCd ?? DEFAULT_UNVFR_STDR_DEPT_CD,
+          notcClCd: "",
+          atnlcNotcClCd: options.atnlcNotcClCd ?? ""
+        }
+      ]
+    }
+  ]);
 
   return createSsvPost(
     SUGANG_PATHS.findAppcsSchdlList,
@@ -244,41 +263,38 @@ export function createSugangLoginRequest(
   const notcClCd = credentials.notcClCd ?? DEFAULT_NOTC_CL_CD;
   const appcsKindCd = credentials.appcsKindCd ?? DEFAULT_APPCS_KIND_CD;
 
-  const body = encodeSsvRequest(
-    { requestTimeStr: createSsvRequestTimeStr() },
-    [
-      {
-        id: "dsParam",
-        columns: [...LOGIN_COLUMNS],
-        rows: [
-          {
-            _rowType: "U",
-            syy: context.syy,
-            smtCd: context.smtCd,
-            unvfrStdrDeptCd,
-            stuno: credentials.stuno,
-            password: credentials.password,
-            hy: "",
-            deptCd: "",
-            notcClCd,
-            appcsKindCd
-          },
-          {
-            _rowType: "O",
-            syy: context.syy,
-            smtCd: context.smtCd,
-            unvfrStdrDeptCd,
-            stuno: "",
-            password: "",
-            hy: "",
-            deptCd: "",
-            notcClCd,
-            appcsKindCd: ""
-          }
-        ]
-      }
-    ]
-  );
+  const body = encodeSsvRequest({ requestTimeStr: createSsvRequestTimeStr() }, [
+    {
+      id: "dsParam",
+      columns: [...LOGIN_COLUMNS],
+      rows: [
+        {
+          _rowType: "U",
+          syy: context.syy,
+          smtCd: context.smtCd,
+          unvfrStdrDeptCd,
+          stuno: credentials.stuno,
+          password: credentials.password,
+          hy: "",
+          deptCd: "",
+          notcClCd,
+          appcsKindCd
+        },
+        {
+          _rowType: "O",
+          syy: context.syy,
+          smtCd: context.smtCd,
+          unvfrStdrDeptCd,
+          stuno: "",
+          password: "",
+          hy: "",
+          deptCd: "",
+          notcClCd,
+          appcsKindCd: ""
+        }
+      ]
+    }
+  ]);
 
   return createSsvPost(
     SUGANG_PATHS.findAppcsLogin,
@@ -304,29 +320,26 @@ export function createSugangStudentInfoRequest(
   options: { baseUrl?: string; menuId?: string; pgmId?: string } = {}
 ): SugangSsvPostRequest {
   const baseUrl = options.baseUrl ?? DEFAULT_SUGANG_BASE_URL;
-  const body = encodeSsvRequest(
-    { requestTimeStr: createSsvRequestTimeStr() },
-    [
-      {
-        id: "dsParam",
-        columns: [...LOGIN_COLUMNS],
-        rows: [
-          {
-            _rowType: "N",
-            syy: context.syy,
-            smtCd: context.smtCd,
-            unvfrStdrDeptCd: context.unvfrStdrDeptCd ?? DEFAULT_UNVFR_STDR_DEPT_CD,
-            stuno: credentials.stuno,
-            password: credentials.password,
-            hy: "",
-            deptCd: "",
-            notcClCd: credentials.notcClCd ?? DEFAULT_NOTC_CL_CD,
-            appcsKindCd: credentials.appcsKindCd ?? DEFAULT_APPCS_KIND_CD
-          }
-        ]
-      }
-    ]
-  );
+  const body = encodeSsvRequest({ requestTimeStr: createSsvRequestTimeStr() }, [
+    {
+      id: "dsParam",
+      columns: [...LOGIN_COLUMNS],
+      rows: [
+        {
+          _rowType: "N",
+          syy: context.syy,
+          smtCd: context.smtCd,
+          unvfrStdrDeptCd: context.unvfrStdrDeptCd ?? DEFAULT_UNVFR_STDR_DEPT_CD,
+          stuno: credentials.stuno,
+          password: credentials.password,
+          hy: "",
+          deptCd: "",
+          notcClCd: credentials.notcClCd ?? DEFAULT_NOTC_CL_CD,
+          appcsKindCd: credentials.appcsKindCd ?? DEFAULT_APPCS_KIND_CD
+        }
+      ]
+    }
+  ]);
 
   return createSsvPost(
     SUGANG_PATHS.findStunoInfo,
@@ -358,41 +371,38 @@ export function createSugangLoginCheckRequest(
   const notcClCd = credentials.notcClCd ?? DEFAULT_NOTC_CL_CD;
   const appcsKindCd = credentials.appcsKindCd ?? DEFAULT_APPCS_KIND_CD;
 
-  const body = encodeSsvRequest(
-    { requestTimeStr: createSsvRequestTimeStr() },
-    [
-      {
-        id: "dsParam",
-        columns: [...LOGIN_COLUMNS],
-        rows: [
-          {
-            _rowType: "U",
-            syy: context.syy,
-            smtCd: context.smtCd,
-            unvfrStdrDeptCd,
-            stuno: credentials.stuno,
-            password: credentials.password,
-            hy: student.hy,
-            deptCd: student.deptCd,
-            notcClCd,
-            appcsKindCd
-          },
-          {
-            _rowType: "O",
-            syy: context.syy,
-            smtCd: context.smtCd,
-            unvfrStdrDeptCd,
-            stuno: credentials.stuno,
-            password: credentials.password,
-            hy: "",
-            deptCd: "",
-            notcClCd,
-            appcsKindCd
-          }
-        ]
-      }
-    ]
-  );
+  const body = encodeSsvRequest({ requestTimeStr: createSsvRequestTimeStr() }, [
+    {
+      id: "dsParam",
+      columns: [...LOGIN_COLUMNS],
+      rows: [
+        {
+          _rowType: "U",
+          syy: context.syy,
+          smtCd: context.smtCd,
+          unvfrStdrDeptCd,
+          stuno: credentials.stuno,
+          password: credentials.password,
+          hy: student.hy,
+          deptCd: student.deptCd,
+          notcClCd,
+          appcsKindCd
+        },
+        {
+          _rowType: "O",
+          syy: context.syy,
+          smtCd: context.smtCd,
+          unvfrStdrDeptCd,
+          stuno: credentials.stuno,
+          password: credentials.password,
+          hy: "",
+          deptCd: "",
+          notcClCd,
+          appcsKindCd
+        }
+      ]
+    }
+  ]);
 
   return createSsvPost(
     SUGANG_PATHS.findAppcsLoginChk,
@@ -432,13 +442,17 @@ export function createSugangCultureDomainListRequest(
 }
 
 /**
- * 전공계열 과목 검색 요청(shpbs)을 만든다
- * @param {SugangSubjectSearchOptions} options - 검색 조건
+ * 내가 담은 희망바구니 목록 조회 요청(ShpbsList)을 만든다
+ *
+ * saplap0130 화면의 "장바구니 조회" 그리드가 이 API를 사용한다.
+ * 개설 과목 검색(GnrlList)과 경로가 다르므로 혼동하지 않는다.
+ *
+ * @param {SugangMyHopeBasketListOptions} options - 조회 조건 (stuno·학년도·학기 필수에 가깝다)
  * @param {string} [baseUrl=DEFAULT_SUGANG_BASE_URL] - sugangh 기본 URL
- * @returns {SugangSsvPostRequest} 전공계열 검색 POST 요청
+ * @returns {SugangSsvPostRequest} 내 바구니 목록 POST 요청
  */
-export function createSugangSpecialtySubjectListRequest(
-  options: SugangSubjectSearchOptions,
+export function createSugangMyHopeBasketListRequest(
+  options: SugangMyHopeBasketListOptions,
   baseUrl = DEFAULT_SUGANG_BASE_URL
 ): SugangSsvPostRequest {
   return createSearchStyleRequest(
@@ -451,7 +465,7 @@ export function createSugangSpecialtySubjectListRequest(
       estblCrseDivCd: options.estblCrseDivCd ?? "",
       cltrDomnCd: options.cltrDomnCd ?? "",
       asignDeprtCd: options.asignDeprtCd ?? "",
-      subjtCd: options.subjtCd ?? options.keyword ?? "",
+      subjtCd: options.subjtCd ?? "",
       corseDvclsNo: options.corseDvclsNo ?? ""
     },
     {
@@ -463,10 +477,27 @@ export function createSugangSpecialtySubjectListRequest(
 }
 
 /**
- * 일반 개설 과목 검색 요청(gnrl)을 만든다
+ * @deprecated createSugangMyHopeBasketListRequest 사용.
+ * ShpbsList는 전공 검색이 아니라 내 희망바구니 목록이다.
+ */
+export function createSugangSpecialtySubjectListRequest(
+  options: SugangSubjectSearchOptions,
+  baseUrl = DEFAULT_SUGANG_BASE_URL
+): SugangSsvPostRequest {
+  return createSugangMyHopeBasketListRequest(
+    {
+      ...options,
+      subjtCd: options.subjtCd ?? options.keyword ?? ""
+    },
+    baseUrl
+  );
+}
+
+/**
+ * 개설 교과목 검색 요청(GnrlList)을 만든다
  * @param {SugangSubjectSearchOptions} options - 검색 조건
  * @param {string} [baseUrl=DEFAULT_SUGANG_BASE_URL] - sugangh 기본 URL
- * @returns {SugangSsvPostRequest} 일반 과목 검색 POST 요청
+ * @returns {SugangSsvPostRequest} 개설 과목 검색 POST 요청
  */
 export function createSugangGeneralSubjectListRequest(
   options: SugangSubjectSearchOptions,
@@ -566,51 +597,48 @@ export function createSugangTimetableDepartmentListRequest(
   baseUrl = DEFAULT_SUGANG_BASE_URL
 ): SugangSsvPostRequest {
   const context = normalizeTerm(options);
-  const body = encodeSsvRequest(
-    { requestTimeStr: createSsvRequestTimeStr() },
-    [
-      {
-        id: "dsParam",
-        columns: [
-          "syy",
-          "smtCd",
-          "smtClCd",
-          "unvfrStdrDeptCd",
-          "subjtCd",
-          "subjtNm",
-          "cmpsjDivCd",
-          "cmpsjHyDivCd",
-          "asignDeprtCd",
-          "asignDeprtNm",
-          "estblCrseDivCd",
-          "instrEmpnm",
-          "instrEmpno",
-          "prgGbn",
-          "serchDiv"
-        ],
-        rows: [
-          {
-            _rowType: "N",
-            syy: context.syy,
-            smtCd: context.smtCd,
-            smtClCd: "",
-            unvfrStdrDeptCd: context.unvfrStdrDeptCd ?? DEFAULT_UNVFR_STDR_DEPT_CD,
-            subjtCd: options.subjtCd ?? "",
-            subjtNm: options.subjtNm ?? "",
-            cmpsjDivCd: options.cmpsjDivCd ?? "",
-            cmpsjHyDivCd: options.cmpsjHyDivCd ?? "",
-            asignDeprtCd: options.asignDeprtCd ?? "",
-            asignDeprtNm: "",
-            estblCrseDivCd: options.estblCrseDivCd ?? "",
-            instrEmpnm: options.instrEmpnm ?? "",
-            instrEmpno: options.instrEmpno ?? "",
-            prgGbn: options.prgGbn ?? "SLESCS0250",
-            serchDiv: options.serchDiv ?? "0"
-          }
-        ]
-      }
-    ]
-  );
+  const body = encodeSsvRequest({ requestTimeStr: createSsvRequestTimeStr() }, [
+    {
+      id: "dsParam",
+      columns: [
+        "syy",
+        "smtCd",
+        "smtClCd",
+        "unvfrStdrDeptCd",
+        "subjtCd",
+        "subjtNm",
+        "cmpsjDivCd",
+        "cmpsjHyDivCd",
+        "asignDeprtCd",
+        "asignDeprtNm",
+        "estblCrseDivCd",
+        "instrEmpnm",
+        "instrEmpno",
+        "prgGbn",
+        "serchDiv"
+      ],
+      rows: [
+        {
+          _rowType: "N",
+          syy: context.syy,
+          smtCd: context.smtCd,
+          smtClCd: "",
+          unvfrStdrDeptCd: context.unvfrStdrDeptCd ?? DEFAULT_UNVFR_STDR_DEPT_CD,
+          subjtCd: options.subjtCd ?? "",
+          subjtNm: options.subjtNm ?? "",
+          cmpsjDivCd: options.cmpsjDivCd ?? "",
+          cmpsjHyDivCd: options.cmpsjHyDivCd ?? "",
+          asignDeprtCd: options.asignDeprtCd ?? "",
+          asignDeprtNm: "",
+          estblCrseDivCd: options.estblCrseDivCd ?? "",
+          instrEmpnm: options.instrEmpnm ?? "",
+          instrEmpno: options.instrEmpno ?? "",
+          prgGbn: options.prgGbn ?? "SLESCS0250",
+          serchDiv: options.serchDiv ?? "0"
+        }
+      ]
+    }
+  ]);
 
   return createSsvPost(
     SUGANG_PATHS.findEstblCorseList,
@@ -634,35 +662,32 @@ export function createSugangTimetableDetailListRequest(
   baseUrl = DEFAULT_SUGANG_BASE_URL
 ): SugangSsvPostRequest {
   const context = normalizeTerm(options);
-  const body = encodeSsvRequest(
-    { requestTimeStr: createSsvRequestTimeStr() },
-    [
-      {
-        id: "dsParam",
-        columns: [
-          "syy",
-          "smtCd",
-          "smtClCd",
-          "unvfrStdrDeptCd",
-          "asignDeprtCd",
-          "serchDiv",
-          "estblDeprtCd"
-        ],
-        rows: [
-          {
-            _rowType: "N",
-            syy: context.syy,
-            smtCd: context.smtCd,
-            smtClCd: "",
-            unvfrStdrDeptCd: context.unvfrStdrDeptCd ?? DEFAULT_UNVFR_STDR_DEPT_CD,
-            asignDeprtCd: options.asignDeprtCd,
-            serchDiv: options.serchDiv ?? "0",
-            estblDeprtCd: options.estblDeprtCd ?? ""
-          }
-        ]
-      }
-    ]
-  );
+  const body = encodeSsvRequest({ requestTimeStr: createSsvRequestTimeStr() }, [
+    {
+      id: "dsParam",
+      columns: [
+        "syy",
+        "smtCd",
+        "smtClCd",
+        "unvfrStdrDeptCd",
+        "asignDeprtCd",
+        "serchDiv",
+        "estblDeprtCd"
+      ],
+      rows: [
+        {
+          _rowType: "N",
+          syy: context.syy,
+          smtCd: context.smtCd,
+          smtClCd: "",
+          unvfrStdrDeptCd: context.unvfrStdrDeptCd ?? DEFAULT_UNVFR_STDR_DEPT_CD,
+          asignDeprtCd: options.asignDeprtCd,
+          serchDiv: options.serchDiv ?? "0",
+          estblDeprtCd: options.estblDeprtCd ?? ""
+        }
+      ]
+    }
+  ]);
 
   return createSsvPost(
     SUGANG_PATHS.findEstblCorseDtlList,
@@ -847,8 +872,7 @@ export function parseSugangBasketMutationResponse(
         : action === "cancel"
           ? "희망바구니에서 취소했습니다."
           : "희망바구니 검증을 통과했습니다."
-      : errorMsg ||
-        `희망바구니 ${action} 요청이 실패했습니다. (ErrorCode=${errorCode ?? "?"})`,
+      : errorMsg || `희망바구니 ${action} 요청이 실패했습니다. (ErrorCode=${errorCode ?? "?"})`,
     action,
     subjtCd: options.subjtCd,
     corseDvclsNo: options.corseDvclsNo,
@@ -903,6 +927,120 @@ export function parseSugangTimetableDetailListResponse(body: string): SugangTime
 }
 
 /**
+ * 학년 코드를 비교 가능한 형태로 정규화한다 (앞자리 0 제거)
+ * @param {string} value - 원본 학년/이수학년 코드
+ * @returns {string} 정규화 코드
+ */
+/**
+ * 이수학년구분코드(SCUR0150) 또는 정규화된 학년 코드를 1~5단위의 학년 문자열로 변환한다
+ * @param {string} courseYear - 과목 cmpsjHyDivCd
+ * @returns {string} 1~5 정수 문자열 또는 정규화된 값
+ */
+export function mapCourseYearToNumericGrade(courseYear: string): string {
+  const code = String(courseYear ?? "").trim();
+
+  // 1) 0으로 패딩된 2자리 코드 처리 (SCUR0150 공통코드 매핑)
+  switch (code) {
+    // 1학년: 01(1-4), 02(1-3), 03(1-2), 04(1), 11(1-5)
+    case "01":
+    case "02":
+    case "03":
+    case "04":
+    case "11":
+      return "1";
+    // 2학년: 05(2-4), 06(2-3), 07(2), 12(2-5)
+    case "05":
+    case "06":
+    case "07":
+    case "12":
+      return "2";
+    // 3학년: 08(3-4), 09(3), 13(3-5)
+    case "08":
+    case "09":
+    case "13":
+      return "3";
+    // 4학년: 10(4), 14(4-5)
+    case "10":
+    case "14":
+      return "4";
+    // 5학년: 15(5)
+    case "15":
+      return "5";
+  }
+
+  // 2) 매칭되지 않는 경우, 기존 방식대로 앞자리 0 제거 후 반환 (단일 숫자 등 대비)
+  const stripped = code.replace(/^0+/, "");
+  return stripped === "" ? "0" : stripped;
+}
+
+/**
+ * 학년 코드를 비교 가능한 형태로 정규화한다 (앞자리 0 제거)
+ * @param {string} value - 원본 학년/이수학년 코드
+ * @returns {string} 정규화 코드
+ */
+export function normalizeGradeYearCode(value: string): string {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  const stripped = text.replace(/^0+/, "");
+  return stripped === "" ? "0" : stripped;
+}
+
+/**
+ * 과목 이수학년이 학생 학년과 맞는지 판별한다
+ * @param {string} courseYear - 과목 cmpsjHyDivCd
+ * @param {string} studentHy - 학생 hy
+ * @param {{ includeUnknownYear?: boolean }} [options] - 빈/전체 학년 포함 여부
+ * @returns {boolean} 매칭 여부
+ */
+export function matchesStudentGradeYear(
+  courseYear: string,
+  studentHy: string,
+  options: { includeUnknownYear?: boolean } = {}
+): boolean {
+  const includeUnknown = options.includeUnknownYear !== false;
+  const course = mapCourseYearToNumericGrade(courseYear);
+  const student = normalizeGradeYearCode(studentHy);
+
+  // 비어 있거나 전체학년(0/00/99) 표기는 옵션에 따라 포함
+  if (!course || course === "0" || course === "99") {
+    return includeUnknown;
+  }
+  if (!student) return false;
+  return course === student;
+}
+
+/**
+ * 학과 개설 시간표 목록에서 학생 학년에 맞는 분반만 남긴다
+ * (학기·학년도는 시간표 API 요청 시 이미 반영된 것으로 본다)
+ * @param {SugangTimetableSubject[]} subjects - 학과 시간표 분반
+ * @param {Pick<SugangStudentInfo, "hy">} student - 학생 학년
+ * @param {Pick<SugangMajorAutoAddOptions, "includeUnknownYear">} [options] - 필터 옵션
+ * @returns {SugangTimetableSubject[]} 학년 매칭 분반 (과목코드-분반 중복 제거)
+ */
+export function filterTimetableSubjectsForStudentYear(
+  subjects: SugangTimetableSubject[],
+  student: Pick<SugangStudentInfo, "hy">,
+  options: Pick<SugangMajorAutoAddOptions, "includeUnknownYear"> = {}
+): SugangTimetableSubject[] {
+  const matched = subjects.filter((item) =>
+    matchesStudentGradeYear(item.cmpsjHyDivCd, student.hy, {
+      includeUnknownYear: options.includeUnknownYear
+    })
+  );
+
+  // 동일 과목코드-분반 중복 제거 (시간표 행이 여러 번 올 수 있음)
+  const seen = new Set<string>();
+  const unique: SugangTimetableSubject[] = [];
+  for (const item of matched) {
+    const key = `${item.subjtCd}::${item.corseDvclsNo}`;
+    if (!item.subjtCd || seen.has(key)) continue;
+    seen.add(key);
+    unique.push(item);
+  }
+  return unique;
+}
+
+/**
  * 로그인 단계별 응답을 하나의 결과 객체로 합친다
  * @param {{ loginBody: string; studentBody?: string; loginCheckBody?: string }} parts - 단계별 응답 본문
  * @returns {SugangLoginResult} 통합 로그인 결과
@@ -913,9 +1051,7 @@ export function composeSugangLoginResult(parts: {
   loginCheckBody?: string;
 }): SugangLoginResult {
   const login = parseSugangLoginResponse(parts.loginBody);
-  const student = parts.studentBody
-    ? parseSugangStudentInfoResponse(parts.studentBody)
-    : undefined;
+  const student = parts.studentBody ? parseSugangStudentInfoResponse(parts.studentBody) : undefined;
   const scheduleChecks = parts.loginCheckBody
     ? parseSugangLoginCheckResponse(parts.loginCheckBody)
     : undefined;
@@ -993,16 +1129,13 @@ function createSearchStyleRequest(
     corseDvclsNo: fields.corseDvclsNo ?? ""
   };
 
-  const body = encodeSsvRequest(
-    { requestTimeStr: createSsvRequestTimeStr() },
-    [
-      {
-        id: "dsParam",
-        columns: [...SEARCH_COLUMNS],
-        rows: [row]
-      }
-    ]
-  );
+  const body = encodeSsvRequest({ requestTimeStr: createSsvRequestTimeStr() }, [
+    {
+      id: "dsParam",
+      columns: [...SEARCH_COLUMNS],
+      rows: [row]
+    }
+  ]);
 
   return createSsvPost(
     path,
@@ -1031,32 +1164,30 @@ function createBasketMutationRequest(
   overrides: Partial<Record<(typeof BASKET_MUTATION_COLUMNS)[number], string>> = {}
 ): SugangSsvPostRequest {
   const term = normalizeTerm(options);
-  const body = encodeSsvRequest(
-    { requestTimeStr: createSsvRequestTimeStr() },
-    [
-      {
-        id: "dsParam",
-        columns: [...BASKET_MUTATION_COLUMNS],
-        rows: [
-          {
-            _rowType: "I",
-            syy: term.syy,
-            smtCd: term.smtCd,
-            stuno: options.stuno ?? term.stuno ?? "",
-            unvfrStdrDeptCd: term.unvfrStdrDeptCd ?? DEFAULT_UNVFR_STDR_DEPT_CD,
-            subjtCd: options.subjtCd,
-            corseDvclsNo: options.corseDvclsNo,
-            ceckTrgetGbn: overrides.ceckTrgetGbn ?? options.ceckTrgetGbn ?? DEFAULT_BASKET_CHECK_TARGET,
-            hiPass: overrides.hiPass ?? options.hiPass ?? "0",
-            ttcMapngNo: overrides.ttcMapngNo ?? options.ttcMapngNo ?? "",
-            gschSubjtYn: overrides.gschSubjtYn ?? options.gschSubjtYn ?? "0",
-            stdntChngLmttYn: overrides.stdntChngLmttYn ?? options.stdntChngLmttYn ?? "",
-            bchdmCntcSubjtYn: overrides.bchdmCntcSubjtYn ?? options.bchdmCntcSubjtYn ?? ""
-          }
-        ]
-      }
-    ]
-  );
+  const body = encodeSsvRequest({ requestTimeStr: createSsvRequestTimeStr() }, [
+    {
+      id: "dsParam",
+      columns: [...BASKET_MUTATION_COLUMNS],
+      rows: [
+        {
+          _rowType: "I",
+          syy: term.syy,
+          smtCd: term.smtCd,
+          stuno: options.stuno ?? term.stuno ?? "",
+          unvfrStdrDeptCd: term.unvfrStdrDeptCd ?? DEFAULT_UNVFR_STDR_DEPT_CD,
+          subjtCd: options.subjtCd,
+          corseDvclsNo: options.corseDvclsNo,
+          ceckTrgetGbn:
+            overrides.ceckTrgetGbn ?? options.ceckTrgetGbn ?? DEFAULT_BASKET_CHECK_TARGET,
+          hiPass: overrides.hiPass ?? options.hiPass ?? "0",
+          ttcMapngNo: overrides.ttcMapngNo ?? options.ttcMapngNo ?? "",
+          gschSubjtYn: overrides.gschSubjtYn ?? options.gschSubjtYn ?? "0",
+          stdntChngLmttYn: overrides.stdntChngLmttYn ?? options.stdntChngLmttYn ?? "",
+          bchdmCntcSubjtYn: overrides.bchdmCntcSubjtYn ?? options.bchdmCntcSubjtYn ?? ""
+        }
+      ]
+    }
+  ]);
 
   return createSsvPost(
     path,
@@ -1204,4 +1335,3 @@ function mapSubject(row: SsvRow, sourceList: SugangSubject["sourceList"]): Sugan
     raw: row
   };
 }
-

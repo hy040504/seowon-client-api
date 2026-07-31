@@ -60,6 +60,13 @@ export const COMMAND_ALIASES: Record<string, string> = {
   희망바구니취소: "hope-basket-cancel",
   바구니취소: "hope-basket-cancel",
   "sugang-cancel": "hope-basket-cancel",
+  "hope-basket-my-list": "hope-basket-my-list",
+  내희망바구니: "hope-basket-my-list",
+  희망바구니목록: "hope-basket-my-list",
+  "hope-basket-my-timetable": "hope-basket-my-timetable",
+  내희망시간표: "hope-basket-my-timetable",
+  희망바구니가간시간표: "hope-basket-my-timetable",
+  간이시간표: "hope-basket-my-timetable",
   "hope-basket-timetable": "hope-basket-timetable",
   희망바구시간표: "hope-basket-timetable",
   전공시간표: "hope-basket-timetable",
@@ -91,13 +98,15 @@ export const INTERACTIVE_COMMANDS = [
   { key: "elearning-download", label: "이러닝다운로드" },
   { key: "elearning-watch", label: "e러닝 자동 시청 (학습 인증)" },
   { key: "hope-basket-login", label: "희망바구니 로그인 (예비담기, 본신청 아님)" },
-  { key: "hope-basket-search", label: "희망바구니 과목 검색" },
+  { key: "hope-basket-search", label: "희망바구니 개설 과목 검색" },
   { key: "hope-basket-add", label: "희망바구니 담기" },
+  { key: "hope-basket-my-list", label: "내가 담은 희망바구니 목록" },
+  { key: "hope-basket-my-timetable", label: "내 희망바구니 간이 시간표" },
   { key: "hope-basket-cancel", label: "희망바구니 취소" },
   { key: "hope-basket-schedules", label: "희망바구니 관련 일정 조회" },
   { key: "hope-basket-departments", label: "희망바구니 개설 학과 목록" },
   { key: "hope-basket-domains", label: "희망바구니 교양 영역 목록" },
-  { key: "hope-basket-timetable", label: "희망바구니 전공 시간표 조회" },
+  { key: "hope-basket-timetable", label: "학과별 개설 전공 시간표 조회" },
   { key: "exit", label: "종료" }
 ];
 
@@ -244,6 +253,8 @@ export function printHelp(): void {
   희망바구니로그인 | hope-basket-login
   희망바구니검색   | hope-basket-search
   희망바구니담기   | hope-basket-add
+  내희망바구니     | hope-basket-my-list
+  내희망시간표     | hope-basket-my-timetable
   희망바구니취소   | hope-basket-cancel
   희망바구니일정   | hope-basket-schedules
   개설학과         | hope-basket-departments

@@ -1,0 +1,623 @@
+﻿/*모든 색상 스타일은 여기의 정의합니다.*/
+
+/* ---------------------------------------------------- */
+/* Common */
+/* ---------------------------------------------------- */
+
+.site-normal-text {
+  color: black;
+}
+
+.site-normal-paragraph {
+  color: black;
+  font-size: 14px;
+}
+
+.site-plaintext-link {
+  text-decoration: underline;
+}
+
+.site-body-text-link {
+  color: #666;
+  text-decoration: underline;
+}
+
+.label-description-text {
+  color: #a2a2a2;
+  font-weight: normal;
+}
+
+/*.bootstrap-dropdown-menu.e-uploadbox.e-widget .e-selectpart.e-select:hover {
+    background: #4D7DB3;    
+    color: white;
+}
+
+.bootstrap-dropdown-menu.e-uploadbox.e-widget .e-selectpart.e-select .e-inputbtn:hover {
+    color: white !important;
+}*/
+
+.dropdown-menu.dropdown-menu-primary {
+  background-color: #204c73;
+  border-color: #204c73;
+}
+
+.dropdown-menu.dropdown-menu-primary a {
+  color: white;
+}
+
+.dropdown-menu.dropdown-menu-primary .divider {
+  background-color: rgba(255, 255, 255, 0.4);
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+.alert-default {
+  background-color: #f3f3f3;
+  border: solid 1px #e0e0e0;
+}
+
+/*-------------------------------------------------------------------*/
+/* Components */
+/*-------------------------------------------------------------------*/
+
+.btn-royal {
+  color: #fff;
+  background: -webkit-gradient(
+    linear,
+    left top,
+    left bottom,
+    color-stop(0.05, #ac60d0),
+    color-stop(1, #9c41c7)
+  );
+  background: -moz-linear-gradient(top, #ac60d0 5%, #9c41c7 100%);
+  background: -webkit-linear-gradient(top, #ac60d0 5%, #9c41c7 100%);
+  background: -o-linear-gradient(top, #ac60d0 5%, #9c41c7 100%);
+  background: -ms-linear-gradient(top, #ac60d0 5%, #9c41c7 100%);
+  background: linear-gradient(to bottom, #ac60d0 5%, #9c41c7 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='@royal-color', endColorstr='darken(@royal-color, 5%)', GradientType=0);
+  background-color: #ac60d0;
+  border: 1px solid #9e44c8;
+}
+
+/*ejUploadBox button input Bootstrap Dropdown Menu*/
+.bootstrap-dropdown-menu.e-uploadbox.e-widget .e-selectpart.e-select:hover,
+.bootstrap-dropdown-menu.e-uploadbox.e-disable .e-select:hover {
+  background: #4d7db3;
+}
+
+.bootstrap-dropdown-menu.e-uploadbox.e-widget .e-selectpart.e-select:hover .e-inputbtn.e-btn {
+  color: white;
+}
+
+.bootstrap-dropdown-menu.e-uploadbox.e-widget.e-disable
+  .e-selectpart.e-select:hover
+  .e-inputbtn.e-btn {
+  color: #000;
+}
+
+/*-------------------------------------------------------------------*/
+/* Header */
+/*-------------------------------------------------------------------*/
+@media (min-width: 767px) {
+  .header-full {
+    background-image: none;
+    background-color: #fdfdfd;
+  }
+}
+
+/*-------------------------------------------------------------------*/
+/* Home Full */
+/*-------------------------------------------------------------------*/
+.wrap-primary {
+  background-color: rgba(0, 4, 15, 0.62) !important;
+  padding: 40px 0;
+}
+
+/* ---------------------------------------------------- */
+/* User Profile */
+/* ---------------------------------------------------- */
+
+.dark-div {
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+/*.profile-header h2 {
+    color: rgb(251, 251, 251);
+}*/
+
+/*-------------------------------------------------------------------*/
+/* 섬네일 아이템 스타일 */
+/*-------------------------------------------------------------------*/
+
+.panel.panel-default.thumbnail-container {
+  background-color: #f8f8f8;
+}
+
+.panel.panel-default.thumbnail-container .overlay-duration {
+  position: absolute;
+  right: 0px;
+  top: 0px;
+  margin: 5px;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+  font-size: x-small;
+  font-weight: normal;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+}
+
+.panel.panel-default.thumbnail-container .overlay-sharingtype {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  margin: 5px;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  font-size: small;
+  font-weight: normal;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+}
+
+.panel.panel-default.thumbnail-container .overlay-button.change-thumbnail {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 6px 10px;
+  color: white;
+}
+
+.content .thumbnail-root .thumbnail,
+.bookmark .thumbnail-root .thumbnail {
+  background-color: #f8f8f8;
+}
+
+.content .thumbnail-root .thumbnail:hover,
+.bookmark .thumbnail-root .thumbnail:hover {
+  /*background-color: #EEEEEE;*/
+}
+
+.content .thumbnail-root .thumbnail img,
+.bookmark .thumbnail-root .thumbnail img {
+  background-color: white;
+  border-color: lightgray;
+}
+
+.content .thumbnail-root .thumbnail > img:hover,
+.bookmark .thumbnail-root .thumbnail > img:hover {
+  border-color: #4d7db3;
+}
+
+.content .thumbnail-root .thumbnail .caption,
+.bookmark .thumbnail-root .thumbnail .caption {
+}
+
+.content .thumbnail-root .thumbnail-info .user-name i,
+.content .thumbnail-root .thumbnail-info .user-name span {
+  color: #aeafb1;
+}
+
+.bookmark .thumbnail-root .thumbnail-info .user-name i,
+.bookmark .thumbnail-root .thumbnail-info .user-name span {
+  color: #aeafb1;
+}
+
+.content .thumbnail-root .thumbnail-info .content-date i,
+.content .thumbnail-root .thumbnail-info .content-date span {
+  color: #aeafb1;
+}
+
+.bookmark .thumbnail-root .thumbnail-info .content-date i,
+.bookmark .thumbnail-root .thumbnail-info .content-date span {
+  color: #aeafb1;
+}
+
+.thumbnail-box .thumbnail .overlay-content-type {
+  position: absolute;
+  right: 0px;
+  bottom: 0px;
+  margin: 4px;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+  font-size: xx-small;
+  font-weight: normal;
+  background-color: #4d7db3;
+  opacity: 1;
+  color: white;
+  border-radius: 2px;
+}
+
+.thumbnail-box .thumbnail .overlay-caption-icon {
+  position: absolute;
+  right: 0px;
+  bottom: 16px;
+  margin: 4px;
+  padding-left: 1px;
+  padding-right: 1px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  font-size: 18px;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: white;
+}
+
+.thumbnail-box .thumbnail .overlay-duration {
+  position: absolute;
+  right: 0px;
+  top: 0px;
+  margin: 4px;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+  font-size: xx-small;
+  font-weight: normal;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: white;
+}
+
+.thumbnail-box .thumbnail .overlay-sharingtype {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  margin: 4px;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+  font-size: small;
+  font-weight: normal;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: white;
+}
+
+.thumbnail-box .thumbnail .overlay-viewcount {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  margin: 4px;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+  font-size: xx-small;
+  font-weight: normal;
+  background-color: #8d95a2;
+  opacity: 1;
+  color: white;
+  border-radius: 2px;
+}
+
+/* ---------------------------------------------------- */
+/* Common */
+/* ---------------------------------------------------- */
+
+.btn-social.sm .xi {
+  margin: 0;
+}
+
+.btn-social .xi {
+  margin: 0 10px 0 0;
+  font-size: 18px;
+}
+
+.btn-social.kakao {
+  color: #f7df03;
+  border-color: #f7df03;
+}
+.btn-social.kakao:hover,
+.btn-social.kakao.solid {
+  color: #fff;
+  background-color: #f7df03;
+}
+/*fontawesome과 glyph 크기가 다르므로 폰트 크기도 다르게 해야 한다.*/
+.btn-social.kakao i {
+  margin: -4px 4px -4px 0;
+  vertical-align: middle;
+  color: #000;
+  font-size: 24px;
+}
+
+.btn-social.code {
+  color: #f0ad4e;
+  border-color: #f0ad4e;
+}
+.btn-social.code:hover,
+.btn-social.code.solid {
+  color: #fff;
+  background-color: #f0ad4e;
+}
+
+/* ---------------------------------------------------- */
+/* Footer */
+/* ---------------------------------------------------- */
+
+/*#footer {
+  background-color: #4270A3;
+  color: #f8f8f8;
+}*/
+
+#footer a {
+  color: #f8f8f8;
+}
+
+#footer a:hover {
+  color: lightgreen;
+}
+
+/* ---------------------------------------------------- */
+/* Gallery */
+/* ---------------------------------------------------- */
+
+.ec-filters-menu h3 {
+  color: #4d7db3;
+}
+
+.ec-filters-menu h4 {
+  color: #4d7db3;
+}
+
+.ec-filters-menu.tag-list h3 {
+  color: #4d7db3;
+}
+
+.portfolio-menu.category-menu h4 > a {
+  color: #333;
+}
+
+.portfolio-menu.category-menu h4 > i {
+  color: #999;
+}
+
+.portfolio-menu.category-menu h4 {
+  border-left: solid 3px #333;
+  font-size: 1em;
+  color: #333;
+  background-color: #f9f9f9;
+}
+
+.profile-header.content-gallery.type-3 .main-title {
+  color: #4d7db3;
+  text-shadow: none;
+}
+
+/*Cover Effects*/
+.profile-header.content-gallery.type-1 .default-cover-effect {
+  background-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+.profile-header.content-gallery.type-2 .default-cover-effect {
+  background-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+.profile-header.content-gallery.type-3 .default-cover-effect {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.profile-header.content-gallery.type-4 .default-cover-effect {
+  background-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+.profile-header.content-gallery.type-5 .default-cover-effect {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.profile-header.content-gallery.type-4 .default-profile-image-effect {
+  border: solid 10px rgba(255, 255, 255, 0.5);
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.5);
+}
+
+.less-dark-cover-effect {
+  background-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+.dark-cover-effect {
+  background-color: rgba(0, 0, 0, 0.35) !important;
+}
+
+.darker-cover-effect {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.dot-cover-effect {
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAE0lEQVQIW2NkYGD4D8SMjEACDAAOKQEDKKNmJgAAAABJRU5ErkJggg==)
+    repeat;
+}
+
+.no-cover-effect {
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
+.less-light-cover-effect {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.light-cover-effect {
+  background-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.card-shadow {
+  box-shadow:
+    0 4px 8px 0 rgba(0, 0, 0, 0.2),
+    0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+.transparent-border-box {
+  border: solid 10px rgba(255, 255, 255, 0.5);
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.5);
+}
+
+/*Type1*/
+/* ---------------------------------------------------- */
+.profile-header.content-gallery.type-1 .btn-edit-setting {
+  color: white;
+  font-size: 0.45em;
+  vertical-align: super;
+  margin-left: -5px;
+  margin-right: -15px;
+}
+
+/*Type2*/
+/* ---------------------------------------------------- */
+.profile-header.content-gallery.type-2 .social-icons .icon-ar.icon-ar-inverse {
+  color: white;
+  border-color: white;
+  border-width: 1.5px;
+}
+
+.profile-header.content-gallery.type-2 .social-icons > div {
+  display: inline-block;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+.profile-header.content-gallery.type-2 .btn-edit-setting {
+  color: white;
+  font-size: 0.45em;
+  vertical-align: super;
+  margin-left: -5px;
+  margin-right: -15px;
+}
+
+/*Type3*/
+/* ---------------------------------------------------- */
+.profile-header.content-gallery.type-3 .social-icons > div {
+  display: inline-block;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
+.profile-header.content-gallery.type-3 h2 {
+  text-shadow: none;
+  color: #3bb854;
+}
+
+.profile-header.content-gallery.type-3 .profile-image {
+  margin-top: 40px;
+  margin-bottom: 40px;
+}
+
+.profile-header.content-gallery.type-3 .header-full-icons {
+  text-shadow: none;
+}
+
+.profile-header.content-gallery.type-3 .subtitle-2 {
+  text-shadow: none;
+  color: #6f6f6f;
+}
+
+.profile-header.content-gallery.type-3 .btn-edit-setting {
+  font-size: 0.45em;
+  vertical-align: super;
+  margin-left: -5px;
+  margin-right: -15px;
+}
+
+/*Type4*/
+/* ---------------------------------------------------- */
+.profile-header.type-4 h1 {
+  color: rgb(255, 255, 255);
+  text-shadow: none;
+}
+
+.profile-header.type-4 .head-subtitle {
+  color: #cdff76;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+  font-size: 1.7em;
+}
+
+.profile-header.type-4 .subtitle-2 {
+  color: rgb(255, 255, 255);
+}
+
+.profile-header.content-gallery.type-4 .social-icons > a {
+  display: inline-block;
+  margin-left: 6px;
+  margin-right: 6px;
+}
+
+.profile-header.content-gallery.type-4 .social-icons .icon-ar {
+  color: white;
+}
+
+.profile-header.content-gallery.type-4 .social-icons .icon-ar.icon-ar-inverse {
+  color: white;
+  border-color: white;
+  border-width: 1.5px;
+}
+
+.profile-header.content-gallery.type-4 .btn-edit-setting {
+  color: white;
+  font-size: 0.45em;
+  vertical-align: super;
+  margin-left: -5px;
+  margin-right: -15px;
+}
+
+/*User Gallery Setting Page*/
+/* ---------------------------------------------------- */
+.inline-uploadfile-button .e-uploadbox.e-widget .e-inputbtn.e-btn {
+  background-color: #4d7db3;
+  color: white;
+}
+
+.inline-uploadfile-button .e-uploadbox.e-widget .e-selectpart.e-select:hover .e-inputbtn {
+  color: white !important;
+}
+
+.inline-uploadfile-button .e-selectpart.e-select.e-box.e-corner {
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------- */
+/* Post 페이지 */
+/* ---------------------------------------------------- */
+
+/*Post Styles*/
+.post-header .wrap-primary {
+  background-color: rgba(0, 4, 15, 0.4) !important;
+}
+
+.site-post .post-header.type0 .post-header-root .container {
+  border-bottom-color: #4d7db3;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+}
+
+.site-post .post-header.type0 .post-header-root .bottom-line {
+  color: #4d7db3;
+}
+
+.site-post .post-header.type0 .post-title {
+  color: #3a4149 !important;
+}
+
+.site-post .post-header.type0 .post-subtitle {
+  color: #777676;
+}
+
+.site-post.large-post-list-item.post .panel-footer .site-post-published-state {
+  color: #4d7db3;
+  font-weight: bold;
+}
+
+/* ---------------------------------------------------- */
+/* Post list 페이지 */
+/* ---------------------------------------------------- */
+
+.site-post-thumbnail-root .thumbnail-info .user-name i,
+.site-post-thumbnail-root .thumbnail-info .user-name span {
+  color: #aeafb1;
+}
+
+.site-post-thumbnail-root .thumbnail-info .content-date i,
+.site-post-thumbnail-root .thumbnail-info .content-date span {
+  color: #aeafb1;
+}

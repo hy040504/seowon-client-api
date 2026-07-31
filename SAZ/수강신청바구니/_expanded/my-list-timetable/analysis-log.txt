@@ -1,0 +1,189 @@
+﻿interesting sessions 113
+
+=== ALL INTERESTING PATHS ===
+ 10 POST /report/report_server.jsp text/html;charset=UTF-8
+  6 POST /com/SsoCtr/findScomUnvfrSchdlInfo.do text/html;charset=UTF-8
+  6 POST /com/SsoCtr/findAppcsNotcList.do text/html;charset=UTF-8
+  4 POST /com/SsoCtr/findBaseInfo.do text/xml;charset=UTF-8
+  4 POST /com/SsoCtr/isLogin.do text/xml;charset=UTF-8
+  4 POST /com/SsoCtr/findAppcsSchdlList.do text/html;charset=UTF-8
+  4 GET /nx/contents/com/div/commonGridButton.xfdl.js application/javascript
+  4 POST /com/SsoCtr/findMyGLIOList.do text/html;charset=UTF-8
+  2 GET /nx/ 
+  2 GET /nx/nexacro17lib/component/CompBase/CompEventBase.js application/javascript
+  2 GET /nx/_resource_/_theme_/edu/theme.map.js application/javascript
+  2 GET /nx/_resource_/_initvalue_/kmu.xiv.js application/javascript
+  2 GET /nx/portal.xadl.js application/javascript
+  2 GET /nx/contents/frame/loginFrame.xfdl.js application/javascript
+  2 GET /nx/contents/frame/portalTabFrame.xfdl.js application/javascript
+  2 GET /nx/contents/frame/topFrame.xfdl.js application/javascript
+  2 GET /nx/contents/frame/rightFrame.xfdl.js application/javascript
+  2 GET /nx/lib/libInclude.xjs.js application/javascript
+  2 GET /nx/lib/libForm.xjs.js application/javascript
+  2 GET /nx/lib/libComm.xjs.js application/javascript
+  2 GET /nx/lib/libGrid.xjs.js application/javascript
+  2 GET /nx/lib/libDate.xjs.js application/javascript
+  2 GET /nx/lib/libCommPop.xjs.js application/javascript
+  2 GET /nx/lib/libCheck.xjs.js application/javascript
+  2 GET /nx/contents/sch/sapl/saplap/saplap0100.xfdl.js application/javascript
+  2 GET /nx/contents/sch/sapl/saplap/saplap0120.xfdl.js application/javascript
+  2 POST /com/SsoCtr/findStunoInfo.do text/html;charset=UTF-8
+  2 POST /com/SsoCtr/findAppcsLoginChk.do text/html;charset=UTF-8
+  2 GET /nx/contents/frame/topFrame2.xfdl.js application/javascript
+  2 POST /com/cmsv/MenuCtr/findMenu.do text/html;charset=UTF-8
+  2 GET /nx/contents/frame/portalFrame.xfdl.js application/javascript
+  2 GET /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js application/javascript
+  2 GET /nx/lib/libSch.xjs.js application/javascript
+  2 POST /com/cmsv/CodeCtr/findCodeComboList.do text/html;charset=UTF-8
+  2 POST /com/sapl/SaplapCtr/findEstblDeprtList.do text/html;charset=UTF-8
+  2 POST /com/sapl/SaplapCtr/findCltrDomnList.do text/html;charset=UTF-8
+  2 POST /com/sapl/SaplapCtr/findEstblSubjtGnrlList.do text/html;charset=UTF-8
+  2 POST /com/sapl/SaplapCtr/findEstblSubjtShpbsList.do text/html;charset=UTF-8
+  2 POST /report/callReport.jsp text/html;charset=UTF-8
+  2 GET /report/report_server.jsp image/png;charset=utf-8
+  1 GET /fc/latest text/plain
+  1 GET /nx/_resource_/_theme_/edu/theme_chrome.css text/css
+  1 GET /tinymce/viewer.html text/html; charset=UTF-8
+  1 POST /com/SsoCtr/findAppcsLogin.do text/html;charset=UTF-8
+  1 GET /com/SsoCtr/findSysdate.do text/xml;charset=UTF-8
+  1 GET /callReport.html text/html; charset=UTF-8
+  1 GET /complete/search text/javascript; charset=UTF-8
+
+wrote api-sessions.json 101
+
+=== RELEVANT JS ===
+013 /nx/portal.xadl.js bytes 18755
+016 /nx/contents/frame/portalTabFrame.xfdl.js bytes 10565
+021 /nx/lib/libComm.xjs.js bytes 362512
+024 /nx/lib/libCommPop.xjs.js bytes 9515
+043 /nx/contents/sch/sapl/saplap/saplap0100.xfdl.js bytes 38281
+054 /nx/contents/sch/sapl/saplap/saplap0120.xfdl.js bytes 34938
+077 /nx/contents/frame/portalFrame.xfdl.js bytes 14890
+082 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js bytes 81506
+083 /nx/lib/libSch.xjs.js bytes 46514
+109 /nx/portal.xadl.js bytes 18755
+112 /nx/contents/frame/portalTabFrame.xfdl.js bytes 10565
+117 /nx/lib/libComm.xjs.js bytes 362512
+119 /nx/lib/libCommPop.xjs.js bytes 9515
+123 /nx/contents/sch/sapl/saplap/saplap0100.xfdl.js bytes 38281
+129 /nx/contents/sch/sapl/saplap/saplap0120.xfdl.js bytes 34938
+138 /nx/contents/frame/portalFrame.xfdl.js bytes 14890
+140 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js bytes 81506
+141 /nx/lib/libSch.xjs.js bytes 46514
+
+=== TOP JS API HITS ===
+12 /nx/lib/libComm.xjs.js :: callReport
+10 /nx/contents/sch/sapl/saplap/saplap0100.xfdl.js :: findAppcsNotcList
+8 /nx/contents/sch/sapl/saplap/saplap0120.xfdl.js :: findAppcsNotcList
+6 /nx/contents/sch/sapl/saplap/saplap0100.xfdl.js :: findAppcsNotcList2
+6 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js :: saveHopeAppcsDtls
+6 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js :: HopeAppcsDtls
+4 /nx/contents/frame/topFrame.xfdl.js :: /com/SsoCtr/j_logout.do
+4 /nx/lib/libComm.xjs.js :: /com/cmsv/FileCtr/fileDefaultDownload.do
+4 /nx/lib/libComm.xjs.js :: /com/cmsv/FileCtr/findUploadImg.do
+4 /nx/lib/libComm.xjs.js :: findMyGLIOList
+4 /nx/lib/libComm.xjs.js :: callReport.html
+4 /nx/lib/libComm.xjs.js :: callReport(reportDataServerUrl,
+4 /nx/lib/libComm.xjs.js :: callReport.call(this,
+4 /nx/contents/frame/topFrame2.xfdl.js :: /com/SsoCtr/j_logout.do
+4 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js :: hopeAppcsCnt
+2 /nx/contents/frame/topFrame.xfdl.js :: /com/SsoCtr/checkMyLoginInfo.do
+2 /nx/lib/libComm.xjs.js :: /com/cmsv/CodeCtr/findBankAccountInfoCheck.do
+2 /nx/lib/libComm.xjs.js :: /com/cmsv/FileCtr/findMultiDownload.do
+2 /nx/lib/libComm.xjs.js :: /com/cmsv/FileCtr/findChkMultiDownload.do
+2 /nx/lib/libComm.xjs.js :: /com/MenuCtr/findMenuOne.do
+2 /nx/lib/libComm.xjs.js :: /com/SsoCtr/executeChangeLocale.do
+2 /nx/lib/libComm.xjs.js :: /com/cmsv/FileCtr/findApurSignInfo.do
+2 /nx/lib/libComm.xjs.js :: /com/csys/CsyspiCtr/findCheckWrtcnAgree.do
+2 /nx/lib/libComm.xjs.js :: /com/MesgCtr/saveSmsAuth.do
+2 /nx/lib/libComm.xjs.js :: /com/cmsv/MenuCtr/findMenu.do
+2 /nx/lib/libComm.xjs.js :: /com/cmsv/FileCtr/fileLobImgUpload.do
+2 /nx/lib/libComm.xjs.js :: /com/cmsv/FileCtr/fileOneUpload.do
+2 /nx/lib/libComm.xjs.js :: /com/cmsv/MenuCtr/findMenuByNotice.do
+2 /nx/lib/libComm.xjs.js :: /com/csys/CsysbsCtr/findBusnsSanctNo.do
+2 /nx/lib/libComm.xjs.js :: /com/csys/CsysbsCtr/findBusnsSanctStatus.do
+2 /nx/lib/libComm.xjs.js :: callReport.jsp
+2 /nx/lib/libComm.xjs.js :: callReport,
+2 /nx/lib/libComm.xjs.js :: callReport.call(targetObj,
+2 /nx/lib/libDate.xjs.js :: /com/SsoCtr/findSysdate.do
+2 /nx/contents/sch/sapl/saplap/saplap0100.xfdl.js :: findAppcsSchdlList
+2 /nx/contents/sch/sapl/saplap/saplap0120.xfdl.js :: findAppcsSchdlList
+2 /nx/contents/sch/sapl/saplap/saplap0120.xfdl.js :: findAppcsLoginChk
+2 /nx/contents/sch/sapl/saplap/saplap0120.xfdl.js :: findAppcsLogin
+2 /nx/contents/frame/topFrame2.xfdl.js :: /com/SsoCtr/checkMyLoginInfo.do
+2 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js :: findEstblDeprtList
+2 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js :: findEstblSubjtGnrlList
+2 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js :: findEstblSubjtShpbsList
+2 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js :: findSaplHopeAppcsChk
+2 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js :: saveHopeAppcsDtlsCancl
+2 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js :: callReport({
+2 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js :: callReport(params);
+2 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js :: HopeAppcsChk
+2 /nx/contents/sch/sapl/saplap/saplap0130.xfdl.js :: HopeAppcsDtlsCancl
+2 /nx/lib/libSch.xjs.js :: findEstblCorsePopList
+2 /nx/contents/com/div/commonGridButton.xfdl.js :: find_n
+
+=== callReport / report_server ===
+
+--- 153 GET /callReport.html 200
+REQ 
+RES head <!DOCTYPE html > <html> <head> <meta http-equiv="X-UA-Compatible" content="IE=Edge" /> <meta charset="UTF-8"> <title>?쒖썝??숆탳 ?듯빀?뺣낫?쒖뒪??/title> <script type="text/javascript"> function callReport(url, params){ var form = null, input = null; form = document.getElementById("report"); 
+
+--- 155 POST /report/callReport.jsp 200
+REQ reportParams=eyJzeXkiOiIyMDI2Iiwic210Q2QiOiIyMCIsInN0dW5vTGlzdCI6IjIwMjMxMTQyMCIsImdfbG9nTm8iOiIzNTM3NDUzNjMwMzE0MTMzNDM0NjM0MzA0MTM0Mzg0NjQ1MzAzNjMzMzYzNjM2MzQzMDQxMzA0MTMwMzc0NDM2IiwiZ191c2VyTm0iOiLsl7DsirntmIQiLCJnX3BlcnNObyI6IjIwMjMxMTQyMCIsImdfbG9naW5JcCI6IjEuMjQ2LjIzMy4yMDQiLCJnX2RlcHRObSI6Iuy7tO2TqO2EsOqzte2VmeqzvCIsImdfcmVwb3J0TG9nIjoi7Lu07ZOo7YSw6rO17ZWZ6rO8IOyXsOyKue2YhCAyMDI2LTA3LTMxIDE4OjU4OjAyIiwiZ19tZW51SWQiOiJNMTAwNzc5In0%3D&paramType=query&filePath=sch%2Fsapl%2Fsaplap%2Fsaplap044
+reportParams {"syy":"2026","smtCd":"20","stunoList":"202311420","g_logNo":"3537453630314133434634304134384645303633363636343041304130374436","g_userNm":"?곗듅??,"g_persNo":"202311420","g_loginIp":"1.246.233.204","g_deptNm":"而댄벂?곌났?숆낵","g_reportLog":"而댄벂?곌났?숆낵 ?곗듅??2026-07-31 18:58:02","g_menuId":"M100779"}
+filePath sch/sapl/saplap/saplap0440_prn03
+RES head  <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"> <html> <head> <title>Report</title> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta http-equiv="X-UA-Compatible" content="IE
+
+--- 156 POST /report/report_server.jsp 200
+REQ ClipType=pageCheck&ClipData=%7B%22reportkey%22%3A%22ce40c6afb21254d4292d2de15aa817c49%22%2C%22s_time%22%3A1785491881896%7D
+RES head {"id":2,"resValue":{"is_s":true,"status":true,"event":200,"count":0,"endReport":false}}
+
+--- 157 POST /report/report_server.jsp 200
+REQ ClipType=pageCheck&ClipData=%7B%22reportkey%22%3A%22ce40c6afb21254d4292d2de15aa817c49%22%2C%22s_time%22%3A1785491882619%7D
+RES head {"id":2,"resValue":{"is_s":true,"status":true,"event":200,"count":1,"endReport":true}}
+
+--- 158 POST /report/report_server.jsp 200
+REQ ClipType=DocumentPageView&ClipData=%7B%22reportkey%22%3A%22ce40c6afb21254d4292d2de15aa817c49%22%2C%22pageMethod%22%3A0%2C%22isMakeDocument%22%3Atrue%7D
+RES head {"id":11,"resValue":{"status":true,"event":200,"eformData":{},"checkImage":"iVBORw0KGgoAAAANSUhEUgAAAYYAAAGGCAYAAAB\/gCblAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAAHjanVN3WJP3Fj7f92UPVkLY8LGXbIEAIiOsCMgQWaIQkgBhhBASQMWFiApWFBURnEhVxILVCkidiOKgKLhnQYqIWotVXDjuH9yntX167+3t+9f
+
+--- 159 POST /report/report_server.jsp 200
+REQ ClipType=PageSizeInfo&ClipData=%7B%22reportkey%22%3A%22ce40c6afb21254d4292d2de15aa817c49%22%2C%22startIndex%22%3A1%2C%22endIndex%22%3A1%7D
+RES head {"id":15,"resValue":{"status":true,"event":200,"viewData":[[2970,2100]]}}
+
+--- 160 POST /report/report_server.jsp 200
+REQ ClipType=DocumentPageView&ClipData=%7B%22reportkey%22%3A%22ce40c6afb21254d4292d2de15aa817c49%22%2C%22pageMethod%22%3A0%2C%22isMakeDocument%22%3Atrue%7D
+RES head {"id":11,"resValue":{"status":true,"event":200,"eformData":{},"checkImage":"iVBORw0KGgoAAAANSUhEUgAAAYYAAAGGCAYAAAB\/gCblAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAAHjanVN3WJP3Fj7f92UPVkLY8LGXbIEAIiOsCMgQWaIQkgBhhBASQMWFiApWFBURnEhVxILVCkidiOKgKLhnQYqIWotVXDjuH9yntX167+3t+9f
+
+--- 161 GET /report/report_server.jsp 200
+REQ 
+RES head 占폩NG      IHDR   n   !   占?    sRGB 占쏙옙占?  gAMA  占쏙옙 占폸    pHYs  占? 占?占퐋占폻  占폠DAThC占폶yXMk占쏙옙|占퐍占십?占? Js占? 4(占폛e,D占폗s占폶占?占폛占쏙옙?&!"占쏙옙占쏙옙H占?占쏙옙占?占?占쏙옙8占쏙옙占쏙옙w_溝占퐓x怜占쏙옙占?占폦3222<<|占쏙옙E5占쏙옙占쏙옙R?占쏙옙占?Y%占폤占퐍跳 占쏙옙占쏙옙占?占쏙옙占?占쏙옙占폶1Lc占쏙옙*占쏙옙占?占?Iey[占쏙옙占?占퐆占쏙옙I/~V 占쏙옙戟占?占쏙옙K占싯귨옙占쏙옙占퐓Mb占폲占?占식쇽옙占?O占쏙옙 占?G占쌓곻옙C占쏙옙{占쏙옙占?占심?
+--- 163 POST /report/callReport.jsp 200
+REQ reportParams=eyJzeXkiOiIyMDI2Iiwic210Q2QiOiIyMCIsInN0dW5vTGlzdCI6IjIwMjMxMTQyMCIsImdfbG9nTm8iOiIzNTM3NDUzNjMwMzE0MTMzNDM0NjM0MzA0MTM0Mzg0NjQ1MzAzNjMzMzYzNjM2MzQzMDQxMzA0MTMwMzc0NDM2IiwiZ191c2VyTm0iOiLsl7DsirntmIQiLCJnX3BlcnNObyI6IjIwMjMxMTQyMCIsImdfbG9naW5JcCI6IjEuMjQ2LjIzMy4yMDQiLCJnX2RlcHRObSI6Iuy7tO2TqO2EsOqzte2VmeqzvCIsImdfcmVwb3J0TG9nIjoi7Lu07ZOo7YSw6rO17ZWZ6rO8IOyXsOyKue2YhCAyMDI2LTA3LTMxIDE4OjU4OjAyIiwiZ19tZW51SWQiOiJNMTAwNzc5In0%3D&paramType=query&filePath=sch%2Fsapl%2Fsaplap%2Fsaplap044
+reportParams {"syy":"2026","smtCd":"20","stunoList":"202311420","g_logNo":"3537453630314133434634304134384645303633363636343041304130374436","g_userNm":"?곗듅??,"g_persNo":"202311420","g_loginIp":"1.246.233.204","g_deptNm":"而댄벂?곌났?숆낵","g_reportLog":"而댄벂?곌났?숆낵 ?곗듅??2026-07-31 18:58:02","g_menuId":"M100779"}
+filePath sch/sapl/saplap/saplap0440_prn03
+RES head  <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"> <html> <head> <title>Report</title> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta http-equiv="X-UA-Compatible" content="IE
+
+--- 164 POST /report/report_server.jsp 200
+REQ ClipType=pageCheck&ClipData=%7B%22reportkey%22%3A%22c58353e52296d4145b00fb5153a2b3394%22%2C%22s_time%22%3A1785491896135%7D
+RES head {"id":2,"resValue":{"is_s":true,"status":true,"event":200,"count":0,"endReport":false}}
+
+--- 165 POST /report/report_server.jsp 200
+REQ ClipType=pageCheck&ClipData=%7B%22reportkey%22%3A%22c58353e52296d4145b00fb5153a2b3394%22%2C%22s_time%22%3A1785491896872%7D
+RES head {"id":2,"resValue":{"is_s":true,"status":true,"event":200,"count":1,"endReport":true}}
+
+--- 166 POST /report/report_server.jsp 200
+REQ ClipType=DocumentPageView&ClipData=%7B%22reportkey%22%3A%22c58353e52296d4145b00fb5153a2b3394%22%2C%22pageMethod%22%3A0%2C%22isMakeDocument%22%3Atrue%7D
+RES head {"id":11,"resValue":{"status":true,"event":200,"eformData":{},"checkImage":"iVBORw0KGgoAAAANSUhEUgAAAYYAAAGGCAYAAAB\/gCblAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAAHjanVN3WJP3Fj7f92UPVkLY8LGXbIEAIiOsCMgQWaIQkgBhhBASQMWFiApWFBURnEhVxILVCkidiOKgKLhnQYqIWotVXDjuH9yntX167+3t+9f
+
+--- 167 POST /report/report_server.jsp 200
+REQ ClipType=PageSizeInfo&ClipData=%7B%22reportkey%22%3A%22c58353e52296d4145b00fb5153a2b3394%22%2C%22startIndex%22%3A1%2C%22endIndex%22%3A1%7D
+RES head {"id":15,"resValue":{"status":true,"event":200,"viewData":[[2970,2100]]}}
+
+--- 168 POST /report/report_server.jsp 200
+REQ ClipType=DocumentPageView&ClipData=%7B%22reportkey%22%3A%22c58353e52296d4145b00fb5153a2b3394%22%2C%22pageMethod%22%3A0%2C%22isMakeDocument%22%3Atrue%7D
+RES head {"id":11,"resValue":{"status":true,"event":200,"eformData":{},"checkImage":"iVBORw0KGgoAAAANSUhEUgAAAYYAAAGGCAYAAAB\/gCblAAAACXBIWXMAAAsTAAALEwEAmpwYAAAKTWlDQ1BQaG90b3Nob3AgSUNDIHByb2ZpbGUAAHjanVN3WJP3Fj7f92UPVkLY8LGXbIEAIiOsCMgQWaIQkgBhhBASQMWFiApWFBURnEhVxILVCkidiOKgKLhnQYqIWotVXDjuH9yntX167+3t+9f
+
+--- 169 GET /report/report_server.jsp 200
+REQ 
+RES head 占폩NG      IHDR   n   !   占?    sRGB 占쏙옙占?  gAMA  占쏙옙 占폸    pHYs  占? 占?占퐋占폻  占폠DAThC占폶yXMk占쏙옙|占퐍占십?占? Js占? 4(占폛e,D占폗s占폶占?占폛占쏙옙?&!"占쏙옙占쏙옙H占?占쏙옙占?占?占쏙옙8占쏙옙占쏙옙w_溝占퐓x怜占쏙옙占?占폦3222<<|占쏙옙E5占쏙옙占쏙옙R?占쏙옙占?Y%占폤占퐍跳 占쏙옙占쏙옙占?占쏙옙占?占쏙옙占폶1Lc占쏙옙*占쏙옙占?占?Iey[占쏙옙占?占퐆占쏙옙I/~V 占쏙옙戟占?占쏙옙K占싯귨옙占쏙옙占퐓Mb占폲占?占식쇽옙占?O占쏙옙 占?G占쌓곻옙C占쏙옙{占쏙옙占?占심?
