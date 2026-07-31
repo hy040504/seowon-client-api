@@ -449,6 +449,7 @@ async function run() {
         `${color("9", ANSI.yellow)}. ${color("교과 과목 전체 성적(등급) 조회", ANSI.bold)}`
       );
       console.log(`${color("0", ANSI.yellow)}. ${color("종료", ANSI.bold)}`);
+      printInfo("수강희망바구니는 `npm run hope-basket:manager` (정식 수강신청 본신청 아님).");
 
       const menu = (await rl.question("\n메뉴 선택: ")).trim();
       if (menu === "0") break;

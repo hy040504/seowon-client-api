@@ -188,4 +188,94 @@ export {
   type SazHttpSession
 } from "./ecampus/saz.js";
 
+export {
+  createHopeBasketClient,
+  HopeBasketClient,
+  type HopeBasketClientOptions
+} from "./hope-basket/client.js";
+
+export {
+  composeSugangLoginResult,
+  createSugangAppcsScheduleListRequest,
+  createSugangBasketAddRequest,
+  createSugangBasketCancelRequest,
+  createSugangBasketCheckRequest,
+  createSugangCultureDomainListRequest,
+  createSugangDepartmentListRequest,
+  createSugangGeneralSubjectListRequest,
+  createSugangHomeRequest,
+  createSugangLoginCheckRequest,
+  createSugangLoginRequest,
+  createSugangSpecialtySubjectListRequest,
+  createSugangStudentInfoRequest,
+  createSugangTermCodeRequest,
+  createSugangTimetableDepartmentListRequest,
+  createSugangTimetableDetailListRequest,
+  DEFAULT_APPCS_KIND_CD,
+  DEFAULT_BASKET_CHECK_TARGET,
+  DEFAULT_BASKET_MENU_ID,
+  DEFAULT_BASKET_PGM_ID,
+  DEFAULT_NOTC_CL_CD,
+  DEFAULT_PORTAL_MENU_ID,
+  DEFAULT_PORTAL_PGM_ID,
+  DEFAULT_SUGANG_BASE_URL,
+  DEFAULT_UNVFR_STDR_DEPT_CD,
+  parseSugangAppcsScheduleListResponse,
+  parseSugangBasketMutationResponse,
+  parseSugangCultureDomainListResponse,
+  parseSugangDepartmentListResponse,
+  parseSugangLoginCheckResponse,
+  parseSugangLoginResponse,
+  parseSugangStudentInfoResponse,
+  parseSugangSubjectListResponse,
+  parseSugangTermCodeResponse,
+  parseSugangTimetableDepartmentListResponse,
+  parseSugangTimetableDetailListResponse,
+  stringifySugangSubjects,
+  SUGANG_PATHS,
+  type SugangAppcsSchedule,
+  type SugangBasketMutationOptions,
+  type SugangBasketMutationResult,
+  type SugangCultureDomain,
+  type SugangDepartment,
+  type SugangLoginCredentials,
+  type SugangLoginResult,
+  type SugangLoginScheduleCheck,
+  type SugangSazBasketSummary,
+  type SugangSessionInfo,
+  type SugangStudentInfo,
+  type SugangSubject,
+  type SugangSubjectSearchOptions,
+  type SugangSsvPostRequest,
+  type SugangTermCodeInfo,
+  type SugangTermContext,
+  type SugangTimetableDepartment,
+  type SugangTimetableDeptSearchOptions,
+  type SugangTimetableDetailSearchOptions,
+  type SugangTimetableSubject
+} from "./hope-basket/basket.js";
+
+export { parseSugangBasketFromSaz } from "./hope-basket/saz.js";
+
+export {
+  createSsvRequestTimeStr,
+  encodeSsvParams,
+  encodeSsvRequest,
+  findSsvDataset,
+  fromSsvCell,
+  parseSsv,
+  readNexacroXmlErrorCode,
+  readNexacroXmlParameter,
+  readSsvErrorCode,
+  SSV_EMPTY,
+  SSV_RS,
+  SSV_US,
+  toSsvCell,
+  type EncodeSsvDatasetOptions,
+  type SsvDataset,
+  type SsvDocument,
+  type SsvParams,
+  type SsvRow
+} from "./hope-basket/ssv.js";
+
 export type { SerializedCookieJar } from "tough-cookie";

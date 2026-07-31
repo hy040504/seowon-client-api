@@ -29,6 +29,8 @@
     "build": "node scripts/build-legacy-crypto.cjs && tsup src/index.ts --format esm,cjs --dts --clean --shims && node scripts/copy-legacy.cjs",
     "prompt:client": "node --no-deprecation --import ./scripts/register-ts-node.mjs --experimental-specifier-resolution=node prompt-client.js",
     "auto:manager": "node --no-deprecation --import ./scripts/register-ts-node.mjs --experimental-specifier-resolution=node auto-manager.ts",
+    "hope-basket:manager": "node --no-deprecation --import ./scripts/register-ts-node.mjs --experimental-specifier-resolution=node hope-basket-manager.ts",
+    "sugang:manager": "npm run hope-basket:manager",
     "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
     "format": "prettier --write .",
@@ -36,7 +38,7 @@
     "lint": "eslint .",
     "prepack": "npm run build",
     "pretest": "node scripts/build-legacy-crypto.cjs",
-    "test": "vitest run test/index.test.ts test/ecampus-login.test.ts test/ecampus-courses.test.ts test/ecampus-assignments.test.ts test/ecampus-materials.test.ts test/ecampus-notices.test.ts test/ecampus-cookie-persistence.test.ts test/ecampus-elearning.test.ts",
+    "test": "vitest run test/index.test.ts test/ecampus-login.test.ts test/ecampus-courses.test.ts test/ecampus-assignments.test.ts test/ecampus-materials.test.ts test/ecampus-notices.test.ts test/ecampus-cookie-persistence.test.ts test/ecampus-elearning.test.ts test/hope-basket.test.ts",
     "test:login": "node scripts/build-legacy-crypto.cjs && vitest run test/ecampus-login.integration.test.ts --reporter verbose",
     "typecheck": "tsc --noEmit"
   },

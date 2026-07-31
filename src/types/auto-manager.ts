@@ -2,7 +2,9 @@ import type {
   EcampusClassroomItem,
   EcampusCourseListItem,
   EcampusLessonItem,
-  EcampusScoreSummary
+  EcampusScoreSummary,
+  SugangBasketMutationResult,
+  SugangSubject
 } from "../index.js";
 
 /** 자동 학습 대기열 항목 */
@@ -31,4 +33,17 @@ export interface MaterialDownloadState {
   percent: number; // 다운로드 진행률(0-100)
   status: "pending" | "downloading" | "completed" | "failed"; // 다운로드 상태
   detail?: string; // 실패 사유 또는 저장 경로
+}
+
+/** 희망바구니 일괄 담기 결과 항목 */
+export interface BasketBatchAddItem {
+  subject: SugangSubject; // 담기 대상 과목
+  result: SugangBasketMutationResult; // 담기 API 결과
+}
+
+/** 희망바구니 일괄 취소 결과 항목 */
+export interface BasketBatchCancelItem {
+  subjtCd: string; // 과목 코드
+  corseDvclsNo: string; // 분반
+  result: SugangBasketMutationResult; // 취소 API 결과
 }

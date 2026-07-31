@@ -1,31 +1,49 @@
 # seowon-client-api
 
-서원대학교 e-campus(LMS) 화면 흐름과 HTTP 요청을 코드로 다루기 위한 비공식 TypeScript 클라이언트 및 CLI 도구 모음입니다.
+서원대학교 e-campus(LMS)와 수강희망바구니 화면 흐름·HTTP 요청을 코드로 다루기 위한 **비공식** TypeScript 클라이언트 및 CLI 모음입니다.
 
-로그인/쿠키 세션 유지, 과목 조회, 공지/강의자료/과제 조회, 이러닝 차시 분석, MP4 URL 추출, 영상 다운로드, 학습 기록 갱신, 성적 요약 조회, Fiddler SAZ 패킷 분석을 지원합니다.
+## 지원 범위
 
-> 이 프로젝트는 서원대학교 공식 SDK가 아닙니다. 계정 정보, 쿠키, 세션, LMS 캡처 데이터, 다운로드 파일은 민감 정보로 취급하고 공개 저장소에 올리지 마세요.
+| 영역 | 상태 | 비고 |
+| :--- | :--- | :--- |
+| e-campus 로그인/과목/강의실/이러닝/성적 | 지원 | `EcampusClient` |
+| 수강**희망바구니** (예비 담기) | 지원 | `HopeBasketClient` |
+| 정식 수강신청 (본신청 등록/정정) | **미지원** | 추후 별도 모듈 예정 |
+
+> 이 프로젝트는 서원대학교 공식 SDK가 아닙니다. 계정·쿠키·세션·LMS 캡처·다운로드 파일은 공개 저장소에 올리지 마세요.
 
 ## 주요 기능
 
-- e-campus 로그인용 `encryptData` 생성 및 쿠키 세션 저장/재사용
-- 교과/비교과 과목 목록과 그룹 조회
+### e-campus (`ecampus.seowon.ac.kr`)
+
+- 로그인용 `encryptData` 생성 및 쿠키 세션 저장/재사용
+- 교과/비교과 과목 목록·그룹 조회
 - 공지사항, 강의자료, 과제 목록 조회
-- 강의자료 상세 fragment 분석 및 첨부 파일 다운로드 URL 추출
+- 강의자료 첨부 파일 URL 추출 및 다운로드
 - 이러닝 주차/차시, 수강 기간, 출결 상태 파싱
-- 콘텐츠 페이지에서 MP4 주소 추출 및 스트리밍 다운로드
-- 단일 또는 복수 차시의 학습 기록 갱신 자동화
-- 현재 기간 내 미완료 이러닝 자동 탐색
-- 현재 제출 가능한 미제출 과제 목록과 과제 본문 조회
-- 성적 공개 여부, 설문 게이트, 항목별 점수, 총점, 등급 조회
-- Fiddler SAZ 패킷에서 classroom, elearning, score 응답 복원
+- MP4 URL 추출, 스트리밍 다운로드, 학습 기록 갱신
+- 성적 공개 여부, 설문 게이트, 항목별 점수/총점/등급 조회
+
+### 수강희망바구니 (`sugangh.seowon.ac.kr`)
+
+- 희망바구니 전용 로그인 (`appcsKindCd=100`)
+- 과목 검색 (전공계열/일반 목록)
+- 희망바구니 담기 / 취소
+- 관련 일정, 개설 학과, 교양 영역, 전공 시간표 조회
+- Fiddler SAZ에서 희망바구니 세션 복원
+
+**정식 수강신청(본신청) API는 포함하지 않습니다.**
+
+### 공통
+
+- Fiddler SAZ 패킷 분석 (classroom / elearning / score / hope-basket)
 - Puppeteer 기반 live traffic capture 보조 도구
 
 ## 요구 사항
 
 - Node.js `20+`
 - npm
-- Windows PowerShell 기준으로 개발 및 확인
+- Windows PowerShell 기준으로 개발·확인
 
 ## 빠른 시작
 
@@ -33,7 +51,7 @@
 npm install
 ```
 
-`.env.example`을 참고해 프로젝트 루트에 `.env`를 준비합니다.
+`.env.example`을 참고해 프로젝트 루트에 `.env`를 만듭니다.
 
 ```env
 SEOWON_ID=your_id
@@ -41,20 +59,28 @@ SEOWON_PASSWORD=your_password
 DOWNLOAD_HIGH_WATER_MARK=1024
 ```
 
-| 환경 변수                  | 설명                                  |
-| :------------------------- | :------------------------------------ |
-| `SEOWON_ID`                | 로그인 아이디 또는 학번               |
-| `SEOWON_PASSWORD`          | 로그인 비밀번호                       |
-| `DOWNLOAD_HIGH_WATER_MARK` | 다운로드 버퍼 크기(KB), 기본값 `1024` |
+| 환경 변수 | 설명 |
+| :--- | :--- |
+| `SEOWON_ID` | 로그인 아이디 또는 학번 |
+| `SEOWON_PASSWORD` | 로그인 비밀번호 |
+| `DOWNLOAD_HIGH_WATER_MARK` | 다운로드 버퍼 크기(KB), 기본 `1024` |
 
-로그인 성공 후 쿠키는 `.seowon-ecampus.cookies.json`에 저장됩니다. 이후 실행에서는 유효한 쿠키가 있으면 기존 세션을 재사용합니다.
+쿠키 파일:
+
+| 파일 | 용도 |
+| :--- | :--- |
+| `.seowon-ecampus.cookies.json` | e-campus 세션 |
+| `.seowon-hope-basket.cookies.json` | 희망바구니 세션 |
 
 ## CLI 도구
 
-| 도구            | 실행 명령               | 용도                                                  |
-| :-------------- | :---------------------- | :---------------------------------------------------- |
-| `prompt-client` | `npm run prompt:client` | API 응답과 파싱 결과를 기능별로 직접 확인             |
-| `auto-manager`  | `npm run auto:manager`  | 다운로드, 자동 시청, 과제/성적 조회 등 반복 작업 처리 |
+| 도구 | 실행 명령 | 용도 |
+| :--- | :--- | :--- |
+| `prompt-client` | `npm run prompt:client` | 기능별 API 응답/파싱 결과 확인 |
+| `auto-manager` | `npm run auto:manager` | e-campus 다운로드·자동 시청·과제·성적 반복 작업 |
+| `hope-basket-manager` | `npm run hope-basket:manager` | 수강희망바구니(예비 담기) 전용 CLI |
+
+`npm run sugang:manager`는 `hope-basket:manager`의 별칭입니다.
 
 ### prompt-client
 
@@ -62,20 +88,37 @@ DOWNLOAD_HIGH_WATER_MARK=1024
 npm run prompt:client
 ```
 
-지원 명령:
+**e-campus**
 
-- `login`: 로그인 및 쿠키 저장
-- `courses`: 전체 과목 목록 출력
-- `notices`: 선택 과목 공지사항 조회
-- `materials`: 선택 과목 강의자료 조회
-- `assignments`: 선택 과목 과제와 제출 상태 조회
-- `classroom-resources`: 공지/강의자료/과제 통합 조회
-- `elearning-lessons`: 선택 과목 이러닝 차시 목록 조회
-- `elearning-open`: 선택 차시의 시청 창 메타데이터 조회
-- `elearning-mp4`: 선택 차시의 MP4 주소 분석
-- `elearning-download`: 선택 차시 영상 다운로드
-- `elearning-watch`: 선택 차시 학습 세션 시작
-- `help`: 도움말 출력
+| 명령 | 설명 |
+| :--- | :--- |
+| `login` | 로그인 및 쿠키 저장 |
+| `courses` | 전체 과목 목록 |
+| `notices` | 선택 과목 공지 |
+| `materials` | 선택 과목 강의자료 |
+| `assignments` | 선택 과목 과제·제출 상태 |
+| `classroom-resources` | 공지/강의자료/과제 통합 |
+| `elearning-lessons` | 이러닝 차시 목록 |
+| `elearning-open` | 시청 창 메타데이터 |
+| `elearning-mp4` | MP4 URL 분석 |
+| `elearning-download` | 차시 영상 다운로드 |
+| `elearning-watch` | 학습 세션 시작 |
+
+**희망바구니 (본신청 아님)**
+
+| 명령 | 설명 |
+| :--- | :--- |
+| `hope-basket-login` | 희망바구니 로그인 |
+| `hope-basket-search` | 과목 검색 |
+| `hope-basket-add` | 바구니 담기 |
+| `hope-basket-cancel` | 바구니 취소 |
+| `hope-basket-schedules` | 관련 일정 |
+| `hope-basket-departments` | 개설 학과 |
+| `hope-basket-domains` | 교양 영역 |
+| `hope-basket-timetable` | 전공 시간표 |
+| `help` | 도움말 |
+
+구 별칭 `sugang-*` 도 동일 명령으로 연결됩니다.
 
 ### auto-manager
 
@@ -83,7 +126,7 @@ npm run prompt:client
 npm run auto:manager
 ```
 
-현재 메뉴:
+e-campus 전용입니다. 희망바구니는 포함하지 않습니다.
 
 ```text
 1. 로그인 / 로그인 정보 갱신
@@ -98,26 +141,46 @@ npm run auto:manager
 0. 종료
 ```
 
-여러 항목 선택은 쉼표 또는 범위로 입력할 수 있습니다.
+여러 항목 선택: `1,3,4` 또는 `1-5` 형식.
 
-```text
-번호들을 쉼표 또는 범위로 입력 (예: 1,2,3-5): 1,3,4
+다운로드 기본 경로:
+
+- 이러닝: `downloads/<과목명>/<차시명>.mp4`
+- 강의자료: `downloads/<과목명>/강의자료들/<강의자료명>/`
+
+메뉴 `2`, `3`, `5`의 이러닝·대기 문구와 메뉴 `4`, `6`, `7`의 과제 제목은 가능하면 `[n 주차]` 형식으로 표시합니다.
+
+### hope-basket-manager
+
+```bash
+npm run hope-basket:manager
 ```
 
-다운로드 기본 저장 경로:
+**수강희망바구니(예비 담기) 전용**입니다. 정식 수강신청 본신청은 포함하지 않습니다.
 
-- 이러닝 영상: `downloads/<과목명>/<차시명>.mp4`
-- 강의자료 첨부: `downloads/<과목명>/강의자료들/<강의자료명>/`
+```text
+1. 로그인 / 세션 갱신
+2. 과목 검색
+3. 희망바구니 검색 후 선택 담기
+4. 희망바구니 키워드 일괄 담기
+5. 희망바구니 취소
+6. 희망바구니 관련 일정 조회
+7. 개설 학과 / 교양 영역 조회
+8. 전공 강의시간표 조회
+0. 종료
+```
 
-메뉴 `2`, `3`, `5`의 이러닝 목록과 대기 문구는 차시가 속한 주차를 `[n 주차]` 형식으로 표시합니다. 메뉴 `4`, `6`, `7`의 과제 제목도 가능한 경우 주차 표기를 정규화합니다.
+네트워크 끊김(`ECONNRESET` 등) 시 자동 재시도하며, 로그인 단계별 진행 로그를 출력합니다.
 
-## 주요 라이브러리 API
+## 라이브러리 API
+
+### e-campus 클라이언트
 
 ```typescript
 import { createEcampusClient } from "seowon-client-api";
 
 const client = createEcampusClient({
-  cookieFilePath: "./cookies.json"
+  cookieFilePath: "./.seowon-ecampus.cookies.json"
 });
 
 await client.login({
@@ -129,7 +192,7 @@ const courses = await client.getCourseList();
 const groups = await client.getCourseGroups();
 ```
 
-### 강의실 리소스
+#### 강의실 리소스
 
 ```typescript
 const notices = await client.getNoticeList({ crsCreCd: "COURSE_CODE" });
@@ -146,7 +209,7 @@ const resources = await client.getClassroomResources({
 });
 ```
 
-### 이러닝
+#### 이러닝
 
 ```typescript
 const lessons = await client.getElearningLessonList({
@@ -161,7 +224,7 @@ if (result.success) {
 await client.downloadElearningMp4("COURSE_CODE", "LESSON_CONTENT_ID", "과목명", "차시명");
 ```
 
-### 성적
+#### 성적
 
 ```typescript
 const scoreAccess = await client.getScoreAccessInfo({
@@ -172,105 +235,167 @@ if (scoreAccess.canViewScore) {
   const scoreSummary = await client.getScoreSummary({
     crsCreCd: "COURSE_CODE"
   });
-
-  console.log(scoreSummary.items);
-  console.log(scoreSummary.total, scoreSummary.grade);
+  console.log(scoreSummary.items, scoreSummary.total, scoreSummary.grade);
 } else {
   console.log(scoreAccess.message);
 }
 ```
 
-성적 조회는 먼저 `scoreOpenJson`으로 공개 여부와 설문 게이트를 확인합니다. 실제 점수/등급은 성적 페이지 진입 후 hidden `stdNo`를 얻고 `/crs/scoreHome/viewStdScoreSumm` fragment에서 추출합니다.
+성적 조회는 `scoreOpenJson`으로 공개 여부·설문 게이트를 확인한 뒤, 성적 페이지의 hidden `stdNo`로 요약 fragment를 가져옵니다.
+
+### 희망바구니 클라이언트
+
+```typescript
+import { createHopeBasketClient } from "seowon-client-api";
+
+const basket = createHopeBasketClient({
+  cookieFilePath: "./.seowon-hope-basket.cookies.json"
+});
+
+await basket.login({
+  stuno: "your_student_no",
+  password: "your_password"
+});
+
+const subjects = await basket.searchSubjects({
+  keyword: "컴퓨터구조",
+  asignDeprtCd: basket.getStudentInfo()?.deptCd
+});
+
+await basket.addToBasket({
+  subjtCd: subjects[0].subjtCd,
+  corseDvclsNo: subjects[0].corseDvclsNo
+});
+
+await basket.cancelFromBasket({
+  subjtCd: subjects[0].subjtCd,
+  corseDvclsNo: subjects[0].corseDvclsNo
+});
+```
 
 ### SAZ 패킷 분석
 
 ```typescript
-import { parseEcampusScoreSummariesFromSaz, parseFiddlerSazSessions } from "seowon-client-api";
+import {
+  parseEcampusScoreSummariesFromSaz,
+  parseFiddlerSazSessions,
+  parseSugangBasketFromSaz
+} from "seowon-client-api";
 
 const sessions = parseFiddlerSazSessions(sazBuffer);
 const scoreSummaries = parseEcampusScoreSummariesFromSaz(sazBuffer);
+const basketSummary = parseSugangBasketFromSaz(sazBuffer);
 ```
 
-SAZ 파일 자체는 민감 캡처 데이터로 취급하며 기본적으로 Git에 포함하지 않습니다. 파서는 `src/ecampus/saz.ts`에서 관리합니다.
+SAZ·캡처 원본은 민감 데이터로 취급하며 기본적으로 Git에 넣지 않습니다.  
+e-campus 파서: `src/ecampus/saz.ts` · 희망바구니 파서: `src/hope-basket/saz.ts`
 
 ## 주요 공개 메서드
 
-| 메서드                     | 설명                                              |
-| :------------------------- | :------------------------------------------------ |
-| `login()`                  | 계정 정보로 로그인하고 쿠키 저장                  |
-| `ensureAuthenticated()`    | 사용 가능한 쿠키가 없으면 저장된 계정으로 로그인  |
-| `getCourseList()`          | 전체 과목 목록 조회                               |
-| `getCourseGroups()`        | 교과/비교과 과목 그룹 조회                        |
-| `getNoticeList()`          | 공지사항 조회                                     |
-| `getMaterialList()`        | 강의자료 조회, 상세 조회용 `request` 포함         |
-| `getMaterialAttachments()` | 강의자료 상세 fragment에서 첨부 파일 URL 추출     |
-| `getAssignmentList()`      | 개인별 과제 목록과 제출 상태 조회                 |
-| `getClassroomResources()`  | 공지/강의자료/과제 통합 조회                      |
-| `getScoreOpenInfo()`       | 성적 공개 시간과 공개 여부 조회                   |
-| `getScoreAccessInfo()`     | 성적 공개 조건과 설문 게이트 통합 판정            |
-| `getScore()`               | 성적 접근 가능 시 성적 페이지 HTML 조회           |
-| `getScorePageHtml()`       | 성적 페이지 HTML 반환                             |
-| `getScoreSummary()`        | 성적 요약 fragment에서 항목별 점수/총점/등급 조회 |
-| `getElearningLessonList()` | 이러닝 차시 목록 조회                             |
-| `openLessonWindow()`       | 차시 시청 창 메타데이터 조회                      |
-| `getElearningMp4Url()`     | 콘텐츠 페이지에서 MP4 주소 분석                   |
-| `downloadElearningMp4()`   | 영상 스트리밍 다운로드                            |
-| `addStudyRecord()`         | 단일 학습 기록 요청 전송                          |
-| `viewLessonStudyDetail()`  | 학습 이력 상세 정보 조회                          |
+### EcampusClient
+
+| 메서드 | 설명 |
+| :--- | :--- |
+| `login()` | 계정 로그인 및 쿠키 저장 |
+| `ensureAuthenticated()` | 유효 쿠키 없으면 재로그인 |
+| `getCourseList()` | 전체 과목 목록 |
+| `getCourseGroups()` | 교과/비교과 그룹 |
+| `getNoticeList()` | 공지사항 |
+| `getMaterialList()` | 강의자료 |
+| `getMaterialAttachments()` | 강의자료 첨부 URL |
+| `getAssignmentList()` | 과제·제출 상태 |
+| `getClassroomResources()` | 공지/자료/과제 통합 |
+| `getScoreOpenInfo()` | 성적 공개 여부 |
+| `getScoreAccessInfo()` | 공개 조건·설문 게이트 |
+| `getScore()` / `getScorePageHtml()` | 성적 페이지 |
+| `getScoreSummary()` | 항목별 점수/총점/등급 |
+| `getElearningLessonList()` | 이러닝 차시 |
+| `openLessonWindow()` | 시청 창 메타데이터 |
+| `getElearningMp4Url()` | MP4 주소 |
+| `downloadElearningMp4()` | 영상 다운로드 |
+| `addStudyRecord()` | 학습 기록 전송 |
+| `viewLessonStudyDetail()` | 학습 이력 상세 |
+
+### HopeBasketClient
+
+정식 수강신청 본신청 API는 없습니다.
+
+| 메서드 | 설명 |
+| :--- | :--- |
+| `login()` | 희망바구니 로그인·학생 정보 |
+| `syncTermContext()` | 학년도/학기 동기화 |
+| `getAppcsSchedules()` | 관련 일정 |
+| `getDepartments()` | 개설 학과 |
+| `getCultureDomains()` | 교양 영역 |
+| `searchSubjects()` | 과목 검색 |
+| `checkBasketItem()` | 담기 전 검증 |
+| `addToBasket()` | 바구니 담기 |
+| `cancelFromBasket()` | 바구니 취소 |
+| `getTimetableDepartments()` | 전공 시간표 학과 |
+| `getTimetableSubjects()` | 전공 시간표 분반 |
 
 ## 프로젝트 구조
 
 ```text
 src/
   index.ts                     패키지 공개 API
-  cli-ui.ts                    CLI 색상, 입력, 진행 표시
-  types/                       클라이언트/auto-manager 타입
-  ecampus/
-    login.ts                   EcampusClient, HTTP 요청 헬퍼
-    cookies.ts                 CookieJar 저장/복원/유효성 확인
-    crypto.ts                  로그인 encryptData 생성
+  cli-ui.ts                    CLI 색상·입력·도움말
+  types/                       CLI/auto-manager 공용 타입
+  ecampus/                     e-campus 연동
+    login.ts                   EcampusClient
+    cookies.ts                 CookieJar 저장/복원
+    crypto.ts                  로그인 encryptData
     courses.ts                 과목 목록 파싱
     classroom.ts               공지/자료/과제 HTML 파싱
-    elearning.ts               이러닝 파싱, 다운로드, 학습 세션
-    score.ts                   성적 공개/설문/요약 파싱
-    saz.ts                     Fiddler SAZ 세션 복원과 SAZ 기반 파서
+    elearning.ts               이러닝 파싱·다운로드·학습 세션
+    score.ts                   성적 공개/설문/요약
+    saz.ts                     SAZ 공통 세션 복원 + e-campus 파서
     types/                     기능별 타입
-    legacy/login-crypto.cjs    생성된 로그인 암호화 모듈
+    legacy/login-crypto.cjs    로그인 암호화 모듈
+  hope-basket/                 희망바구니 전용 (본신청 아님)
+    constants.ts               호스트·메뉴·경로 (appcsKindCd=100)
+    ssv.ts                     Nexacro SSV 코덱
+    basket.ts                  요청 생성·응답 파싱
+    saz.ts                     희망바구니 SAZ 복원
+    client.ts                  HopeBasketClient
+    types/                     희망바구니/SSV 타입
 scripts/
-  build-legacy-crypto.cjs      로컬 NICE 원본 스크립트 기반 암호화 모듈 재생성
-  copy-legacy.cjs              빌드 결과에 legacy 모듈 복사
-  register-ts-node.mjs         CLI TypeScript 실행 로더
-  analyze-saz.mjs              SAZ 분석 도구
-  capture-live.mjs             visible Chrome 기반 live traffic capture 도구
+  build-legacy-crypto.cjs
+  copy-legacy.cjs
+  register-ts-node.mjs
+  analyze-saz.mjs
+  capture-live.mjs
 prompt-client.js               개별 API 진단 CLI
-auto-manager.ts                반복 작업 CLI
+auto-manager.ts                e-campus 반복 작업 CLI
+hope-basket-manager.ts         희망바구니 CLI
 ```
 
 ## 개발 명령
 
-| 명령                    | 설명                                   |
-| :---------------------- | :------------------------------------- |
-| `npm run prompt:client` | 개별 API 진단 CLI 실행                 |
-| `npm run auto:manager`  | 반복 작업 CLI 실행                     |
-| `npm run analyze:saz`   | SAZ 패킷 분석                          |
-| `npm run capture:live`  | visible Chrome으로 LMS 요청/응답 캡처  |
-| `npm run typecheck`     | TypeScript 검사                        |
-| `npm run format:check`  | Prettier 검사                          |
-| `npm run lint`          | ESLint 검사                            |
-| `npm test`              | Vitest 실행                            |
-| `npm run build`         | legacy 암호화 모듈 준비 후 패키지 빌드 |
+| 명령 | 설명 |
+| :--- | :--- |
+| `npm run prompt:client` | e-campus·희망바구니 API 진단 CLI |
+| `npm run auto:manager` | e-campus 반복 작업 CLI |
+| `npm run hope-basket:manager` | 희망바구니 CLI |
+| `npm run analyze:saz` | SAZ 패킷 분석 |
+| `npm run capture:live` | Chrome live traffic capture |
+| `npm run typecheck` | TypeScript 검사 |
+| `npm run format:check` | Prettier 검사 |
+| `npm run lint` | ESLint 검사 |
+| `npm test` | Vitest 실행 |
+| `npm run build` | legacy 암호화 준비 후 패키지 빌드 |
 
 ## 코드 주석 규칙
 
-모든 함수는 한국어 JSDoc을 유지합니다. `@param`, `@returns`, 예외가 발생할 수 있는 경우 `@throws`를 작성하고, 일반 주석은 코드가 무엇을 하는지보다 왜 필요한지를 설명합니다.
-
-중복 설명은 주석으로 남기기보다 이름과 구조를 정리하는 쪽을 우선합니다. 서버 API 제약, LMS HTML 구조 의존성, 터미널 렌더링 보정처럼 맥락 없이는 이해하기 어려운 로직에만 짧은 한국어 주석을 둡니다.
+- 모든 함수에 한국어 JSDoc (`@param`, `@returns`, 필요 시 `@throws`)
+- 자명한 WHAT보다 **WHY**(의도·제약·비정상 로직) 위주
+- 서버 API 제약, HTML 구조 의존, 터미널 렌더링 보정 등만 짧게 남김
 
 ## 빌드와 로컬 원본 파일
 
 `npm run build`, `npm test`, `npm run prepack`, `npm run test:login`은 먼저 `scripts/build-legacy-crypto.cjs`를 실행합니다.
 
-이 스크립트는 Git에 포함하지 않는 로컬 NICE 원본 파일을 사용할 수 있습니다.
+로컬 NICE 원본(Git 미포함)이 있으면:
 
 ```text
 files/ecam/ecamjs/nice.nuguya.oivs.crypto.js
@@ -278,15 +403,16 @@ files/ecam/ecamjs/nice.nuguya.oivs.util.js
 files/ecam/ecamjs/nice.nuguya.oivs.msg.js
 ```
 
-원본 파일이 있으면 `src/ecampus/legacy/login-crypto.cjs`를 재생성합니다. 원본 파일이 없고 기존 생성물이 있으면 기존 생성물을 재사용합니다.
+원본이 있으면 `src/ecampus/legacy/login-crypto.cjs`를 재생성하고, 없으면 기존 생성물을 재사용합니다.
 
 ## 로컬 파일과 보안
 
-다음 파일과 폴더는 공개 저장소에 올리지 않습니다.
+공개 저장소에 올리지 않는 항목:
 
 ```text
 .env
 .seowon-ecampus.cookies.json
+.seowon-hope-basket.cookies.json
 .seowon-ecampus.session.json
 files/
 downloads/
@@ -295,23 +421,19 @@ test/
 *.mp4
 tmp-*.html
 captures/
-captures/live/
+.puppeteer-user-data/
 ```
 
-공개 저장소에 올리기 전 실제 계정 정보, 쿠키, 세션, LMS 캡처 데이터, 다운로드 파일이 포함되지 않았는지 반드시 확인하세요.
+푸시 전 계정·쿠키·세션·캡처·다운로드 포함 여부를 확인하세요.
 
-## 현재 검증 상태
+## 검증 메모
 
-2026-07-02 기준 최근 확인 명령:
+로컬에서 확인할 때:
 
 ```bash
 npm run typecheck
-npx prettier --check src auto-manager.ts prompt-client.js scripts/analyze-saz.mjs scripts/capture-live.mjs
-git diff --check
+npx vitest run test/hope-basket.test.ts
 ```
 
-추가로 함수 JSDoc 누락 스캔을 실행해 대상 소스의 named function/method 기준 누락 0건을 확인했습니다.
-
-`npm test` 전체 실행은 로컬 fixture가 없는 환경에서 일부 실패할 수 있습니다. 누락될 수 있는 fixture는 로그인 메인 HTML, 비교과/강의실 캡처, 일부 SAZ 원본 캡처 등 민감 데이터입니다.
-
-`npm run lint`는 현재 `.puppeteer-user-data` 등 생성 파일과 기존 진단 스크립트까지 검사해 실패할 수 있습니다. 린트 범위를 소스/테스트 대상으로 제한하는 설정 보완이 필요합니다.
+`npm test` 전체는 fixture(로그인 HTML, 강의실/이러닝 캡처 등)가 없는 환경에서 일부 실패할 수 있습니다.  
+`npm run lint`는 생성 디렉터리·진단 스크립트까지 포함되면 실패할 수 있어, 소스 범위 제한 보완이 필요할 수 있습니다.

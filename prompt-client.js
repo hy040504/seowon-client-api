@@ -24,6 +24,7 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEFAULT_COOKIE_FILE = path.resolve(__dirname, ".seowon-ecampus.cookies.json");
+const DEFAULT_SUGANG_COOKIE_FILE = path.resolve(__dirname, ".seowon-hope-basket.cookies.json");
 
 /**
  * 단일 기능 수행용 인터랙티브 CLI 클라이언트 (JS/ESM)
@@ -38,6 +39,7 @@ async function main() {
   printSection("\n--- 🎓 서원대 e-campus API 인터랙티브 클라이언트 ---");
 
   const client = api.createEcampusClient({ cookieFilePath: DEFAULT_COOKIE_FILE });
+  const basket = api.createHopeBasketClient({ cookieFilePath: DEFAULT_SUGANG_COOKIE_FILE });
   const options = {};
 
   try {
@@ -62,6 +64,149 @@ async function main() {
             printSuccess(`로그인 결과: ${result.type}`);
             if (result.type === "error") printErrorMessage(result.message);
             break;
+
+          case "hope-basket-login": {
+            await ensureHopeBasketLogin(basket, rl, true);
+            break;
+          }
+
+          case "hope-basket-search": {
+            await ensureHopeBasketLogin(basket, rl);
+            const keyword = await ask(rl, "검색어(과목명/코드)", "");
+            const asignDeprtCd = await ask(
+              rl,
+              "개설학과 코드(비우면 본인 학과)",
+              basket.getStudentInfo()?.deptCd || ""
+            );
+            const subjects = await basket.searchSubjects({
+              keyword,
+              asignDeprtCd: asignDeprtCd || undefined,
+              listType: "both"
+            });
+            printSuccess(`${subjects.length}건 검색`);
+            console.log(api.stringifySugangSubjects(subjects));
+            break;
+          }
+
+          case "hope-basket-add": {
+            await ensureHopeBasketLogin(basket, rl);
+            const keyword = await ask(rl, "담을 과목 검색어", "");
+            const subjects = await basket.searchSubjects({
+              keyword,
+              asignDeprtCd: basket.getStudentInfo()?.deptCd,
+              listType: "both"
+            });
+            if (!subjects.length) {
+              printWarning("검색 결과가 없습니다.");
+              break;
+            }
+            const subject = await pickFromList(
+              rl,
+              "담을 분반",
+              subjects,
+              (item) =>
+                `[${item.subjtCd}-${item.corseDvclsNo}] ${item.subjtNm} | ${item.estblDeprtNm} | ${item.timtbNm.replace(/\s+/g, " ")}`
+            );
+            const addResult = await basket.addToBasket({
+              subjtCd: subject.subjtCd,
+              corseDvclsNo: subject.corseDvclsNo
+            });
+            if (addResult.success) printSuccess(addResult.message);
+            else printErrorMessage(addResult.message);
+            prettyPrint({
+              success: addResult.success,
+              message: addResult.message,
+              errorCode: addResult.errorCode,
+              errorMsg: addResult.errorMsg,
+              subjtCd: addResult.subjtCd,
+              corseDvclsNo: addResult.corseDvclsNo
+            });
+            break;
+          }
+
+          case "hope-basket-cancel": {
+            const subjtCd = await ask(rl, "과목코드(subjtCd)", "");
+            const corseDvclsNo = await ask(rl, "분반(corseDvclsNo)", "");
+            const cancelResult = await basket.cancelFromBasket({ subjtCd, corseDvclsNo });
+            if (cancelResult.success) printSuccess(cancelResult.message);
+            else printErrorMessage(cancelResult.message);
+            prettyPrint({
+              success: cancelResult.success,
+              message: cancelResult.message,
+              errorCode: cancelResult.errorCode,
+              errorMsg: cancelResult.errorMsg,
+              subjtCd: cancelResult.subjtCd,
+              corseDvclsNo: cancelResult.corseDvclsNo
+            });
+            break;
+          }
+
+          case "hope-basket-schedules": {
+            await ensureHopeBasketLogin(basket, rl);
+            const schedules = await basket.getAppcsSchedules();
+            printSuccess(`${schedules.length}건`);
+            prettyPrint(
+              schedules.map((item) => ({
+                appcsSchdlCd: item.appcsSchdlCd,
+                appcsNm: item.appcsNm,
+                appcsSchdlNm: item.appcsSchdlNm,
+                endDate: item.endDate,
+                isActive: item.isActive,
+                aplyFlag: item.aplyFlag
+              }))
+            );
+            break;
+          }
+
+          case "hope-basket-departments": {
+            await ensureHopeBasketLogin(basket, rl);
+            const departments = await basket.getDepartments();
+            printSuccess(`${departments.length}건`);
+            prettyPrint(
+              departments.slice(0, 50).map((item) => ({
+                asignDeprtCd: item.asignDeprtCd,
+                deptNm: item.deptNm,
+                cmpsjDivCd: item.cmpsjDivCd
+              }))
+            );
+            if (departments.length > 50) printInfo(`... 외 ${departments.length - 50}건`);
+            break;
+          }
+
+          case "hope-basket-domains": {
+            await ensureHopeBasketLogin(basket, rl);
+            const domains = await basket.getCultureDomains();
+            printSuccess(`${domains.length}건`);
+            prettyPrint(domains.map((item) => ({ code: item.code, codeNm: item.codeNm })));
+            break;
+          }
+
+          case "hope-basket-timetable": {
+            await ensureHopeBasketLogin(basket, rl);
+            const departments = await basket.getTimetableDepartments();
+            const department = await pickFromList(
+              rl,
+              "학과",
+              departments,
+              (item) => `${item.deptNm} (${item.asignDeprtCd})`
+            );
+            const timetable = await basket.getTimetableSubjects({
+              asignDeprtCd: department.asignDeprtCd
+            });
+            printSuccess(`${timetable.length}건`);
+            prettyPrint(
+              timetable.map((item) => ({
+                subjtCd: item.subjtCd,
+                corseDvclsNo: item.corseDvclsNo,
+                subjtNm: item.subjtNm,
+                chrgInstrEmpnm: item.chrgInstrEmpnm,
+                cmpsjCdt: item.cmpsjCdt,
+                cmpsjDivNm: item.cmpsjDivNm,
+                timtbNm: item.timtbNm
+              }))
+            );
+            break;
+          }
 
           case "courses":
             prettyPrint(await client.getCourseList());
@@ -160,6 +305,58 @@ async function main() {
   } finally {
     rl.close();
     printInfo("프로그램을 종료합니다.");
+  }
+}
+
+/**
+ * 희망바구니 세션이 없으면 로그인을 유도한다.
+ * 정식 수강신청(본신청)이 아니라 예비 담기 세션이다.
+ * prompt-client는 API 응답 확인이 목적이므로 성공/실패 구조를 그대로 출력한다.
+ * @param {any} basket - HopeBasketClient 인스턴스
+ * @param {import("node:readline/promises").Interface} rl - 입력 인터페이스
+ * @param {boolean} [force=false] - true면 항상 재로그인
+ * @returns {Promise<void>} 로그인 확보 완료 시 resolve
+ */
+async function ensureHopeBasketLogin(basket, rl, force = false) {
+  if (!force && basket.getStudentInfo()?.stuno) return;
+
+  const stuno = await ask(rl, "학번", process.env.SEOWON_ID);
+  const password = await ask(rl, "비밀번호", process.env.SEOWON_PASSWORD);
+  const loginResult = await basket.login({ stuno, password });
+  if (loginResult.success) printSuccess(loginResult.message);
+  else printErrorMessage(loginResult.message);
+
+  prettyPrint({
+    success: loginResult.success,
+    term: basket.getTermContext(),
+    session: loginResult.session
+      ? {
+          userNm: loginResult.session.userNm,
+          deptNm: loginResult.session.deptNm,
+          persNo: loginResult.session.persNo
+        }
+      : undefined,
+    student: loginResult.student
+      ? {
+          stuno: loginResult.student.stuno,
+          stdntNm: loginResult.student.stdntNm,
+          deprtNm: loginResult.student.deprtNm,
+          hy: loginResult.student.hy,
+          syy: loginResult.student.syy,
+          smtCd: loginResult.student.smtCd,
+          minCdtNum: loginResult.student.minCdtNum,
+          maxCdtNum: loginResult.student.maxCdtNum
+        }
+      : undefined,
+    scheduleChecks: loginResult.scheduleChecks?.map((item) => ({
+      appcsSchdlCd: item.appcsSchdlCd,
+      allowed: item.allowed,
+      appcsSchdlSeqno: item.appcsSchdlSeqno
+    }))
+  });
+
+  if (!loginResult.success) {
+    throw new Error(loginResult.message || "희망바구니 로그인에 실패했습니다.");
   }
 }
 
