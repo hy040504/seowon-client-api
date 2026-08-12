@@ -301,3 +301,77 @@ export {
 } from "./hope-basket/ssv.js";
 
 export type { SerializedCookieJar } from "tough-cookie";
+
+// --- 수강신청 본신청 모듈 ---
+// 희망바구니(M100779)와 완전히 별개. menuId=M100780 / pgmId=P001619.
+// 등록: saveAppcsDtls.do (saveHopeAppcsDtls.do 아님)
+// 목록: findAppcsDtlsList.do (findEstblSubjtShpbsList.do 아님)
+
+export {
+  CourseRegistrationClient,
+  createCourseRegistrationClient,
+  type CourseRegistrationClientOptions
+} from "./course-registration/client.js";
+
+export {
+  CourseRegErrorType,
+  classifyCourseRegError,
+  classifyCourseRegNetworkError,
+  formatCourseRegError
+} from "./course-registration/errors.js";
+
+export {
+  COURSE_REG_BASE_URL,
+  COURSE_REG_CHECK_TARGET,
+  COURSE_REG_DEFAULT_COOKIE_FILE,
+  COURSE_REG_DEFAULT_DEPT_CD,
+  COURSE_REG_MENU_ID,
+  COURSE_REG_MENU_STR_ID,
+  COURSE_REG_NOTC_CL_CD,
+  COURSE_REG_PATHS,
+  COURSE_REG_PGM_ID,
+  COURSE_REG_PORTAL_MENU_ID,
+  COURSE_REG_PORTAL_PGM_ID
+} from "./course-registration/constants.js";
+
+export {
+  composeCourseRegLoginResult,
+  createCourseRegCancelRequest,
+  createCourseRegGLIORequest,
+  createCourseRegHomeRequest,
+  createCourseRegLoginCheckRequest,
+  createCourseRegLoginRequest,
+  createCourseRegMenuRequest,
+  createCourseRegMyListRequest,
+  createCourseRegRegisterRequest,
+  createCourseRegSearchRequest,
+  createCourseRegStudentInfoRequest,
+  createCourseRegSysdateRequest,
+  createCourseRegTermCodeRequest,
+  createCourseRegWarnCheckRequest,
+  createCourseRegWarnSaveRequest,
+  parseCourseRegLoginCheckResponse,
+  parseCourseRegLoginResponse,
+  parseCourseRegMutationResponse,
+  parseCourseRegMyListResponse,
+  parseCourseRegSearchResponse,
+  parseCourseRegStudentInfoResponse,
+  parseCourseRegSysdateResponse,
+  parseCourseRegTermCodeResponse,
+  stringifyCourseRegSubjects,
+  type CourseRegGetRequest,
+  type CourseRegLoginCredentials,
+  type CourseRegLoginResult,
+  type CourseRegMutationOptions,
+  type CourseRegMutationResult,
+  type CourseRegMyListOptions,
+  type CourseRegRegisteredSubject,
+  type CourseRegRetryRegisterOptions,
+  type CourseRegRetryRegisterResult,
+  type CourseRegSearchOptions,
+  type CourseRegSearchSubject,
+  type CourseRegSessionInfo,
+  type CourseRegSsvPostRequest,
+  type CourseRegTermCodeInfo,
+  type CourseRegTermContext
+} from "./course-registration/registration.js";

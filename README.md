@@ -1,14 +1,16 @@
 # seowon-client-api
 
-서원대학교 e-campus(LMS)와 수강희망바구니 화면 흐름·HTTP 요청을 코드로 다루기 위한 **비공식** TypeScript 클라이언트 및 CLI 모음입니다.
+서원대학교 e-campus(LMS), 수강**희망바구니**, 수강신청 **본신청** 화면 흐름·HTTP 요청을 코드로 다루기 위한 **비공식** TypeScript 클라이언트 및 CLI 모음입니다.
 
 ## 지원 범위
 
-| 영역                                    | 상태       | 비고                |
-| :-------------------------------------- | :--------- | :------------------ |
-| e-campus 로그인/과목/강의실/이러닝/성적 | 지원       | `EcampusClient`     |
-| 수강**희망바구니** (예비 담기)          | 지원       | `HopeBasketClient`  |
-| 정식 수강신청 (본신청 등록/정정)        | **미지원** | 추후 별도 모듈 예정 |
+| 영역                                    | 상태 | 비고 |
+| :-------------------------------------- | :--- | :--- |
+| e-campus 로그인/과목/강의실/이러닝/성적 | 지원 | `EcampusClient` |
+| 수강**희망바구니** (예비 담기)          | 지원 | `HopeBasketClient` (`src/hope-basket/`) |
+| 정식 수강신청 (**본신청** 등록/취소)    | 지원 | `CourseRegistrationClient` (`src/course-registration/`) |
+
+> **희망바구니 ≠ 본신청.** 같은 서버(`sugangh.seowon.ac.kr`)를 쓰지만 menuId·API 경로·쿠키 파일이 다릅니다. 두 클라이언트를 혼용하지 마세요.
 
 > 이 프로젝트는 서원대학교 공식 SDK가 아닙니다. 계정·쿠키·세션·LMS 캡처·다운로드 파일은 공개 저장소에 올리지 마세요.
 
@@ -36,12 +38,34 @@
 - 관련 일정, 개설 학과, 교양 영역, 학과별 개설 시간표 조회
 - Fiddler SAZ에서 희망바구니 세션 복원
 
-**정식 수강신청(본신청) API는 포함하지 않습니다.**
+정식 수강신청(본신청)은 아래 **별도 모듈**을 사용하세요. 희망바구니 경로에 본신청 API를 섞지 않습니다.
+
+### 수강신청 본신청 (`sugangh.seowon.ac.kr`, menuId=`M100780`)
+
+실제 수강 등록을 확정하는 **본신청** 전용 모듈입니다. (`src/course-registration/`)
+
+| 항목 | 희망바구니 | 본신청 |
+| :--- | :--- | :--- |
+| menuId / pgmId | `M100779` / `P001609` | **`M100780` / `P001619`** |
+| 등록 | `saveHopeAppcsDtls.do` | **`saveAppcsDtls.do`** |
+| 취소 | `saveHopeAppcsDtlsCancl.do` | **`saveAppcsDtlsCancl.do`** |
+| 내 목록 | `findEstblSubjtShpbsList.do` | **`findAppcsDtlsList.do`** |
+| 로그인 | `appcsKindCd=100` | **appcsKindCd 미전송** |
+| 쿠키 파일 | `.seowon-hope-basket.cookies.json` | **`.seowon-sugang.cookies.json`** |
+
+- 본신청 로그인 (서버 과부하 시 `flag=0` 허위 실패 자동 재시도)
+- 개설 교과목 검색 (`findEstblSubjtGnrlList`, menuId=`M100780`)
+- 내 수강신청 목록 (`findAppcsDtlsList` → Dataset `dsSapl231`)
+- 수강신청 등록 / 취소 (`saveAppcsDtls` / `saveAppcsDtlsCancl`)
+- 등록 전 경고 장학생 체크 (`findWarnStdrInqryCscnt` → `saveWarnStdrInqrtCscnt`)
+- 정원 초과 과목 **연속 재시도** (`registerCourseWithRetry`)
+- 네트워크 오류(`ECONNRESET` / timeout) 지수 백오프 재시도
 
 ### 공통
 
 - Fiddler SAZ 패킷 분석 (classroom / elearning / score / hope-basket)
 - Puppeteer 기반 live traffic capture 보조 도구
+- Nexacro SSV 코덱 공유 (`src/hope-basket/ssv.ts` — 본신청도 동일 프로토콜)
 
 ## 요구 사항
 
@@ -71,22 +95,25 @@ DOWNLOAD_HIGH_WATER_MARK=1024
 
 쿠키 파일:
 
-| 파일                               | 용도            |
-| :--------------------------------- | :-------------- |
-| `.seowon-ecampus.cookies.json`     | e-campus 세션   |
-| `.seowon-hope-basket.cookies.json` | 희망바구니 세션 |
+| 파일                               | 용도                 |
+| :--------------------------------- | :------------------- |
+| `.seowon-ecampus.cookies.json`     | e-campus 세션        |
+| `.seowon-hope-basket.cookies.json` | 희망바구니 세션      |
+| `.seowon-sugang.cookies.json`      | **본신청** 세션 (별도) |
 
 ## CLI 도구
 
-| 도구                  | 실행 명령                     | 용도                                            |
-| :-------------------- | :---------------------------- | :---------------------------------------------- |
-| `prompt-client`       | `npm run prompt:client`       | 기능별 API 응답/파싱 결과 확인                  |
-| `auto-manager`        | `npm run auto:manager`        | e-campus 다운로드·자동 시청·과제·성적 반복 작업 |
-| `hope-basket-manager` | `npm run hope-basket:manager` | 수강희망바구니(예비 담기) 전용 CLI              |
-| `db-generator`        | `npm run generate:db`         | 전체 개설 과목 수집 및 JSON 저장                |
-| `db-viewer`           | `npm run view:db`             | 생성된 과목 DB 검색 및 페이지네이션 뷰어        |
+| 도구                  | 실행 명령                          | 용도                                            |
+| :-------------------- | :--------------------------------- | :---------------------------------------------- |
+| `prompt-client`       | `npm run prompt:client`            | 기능별 API 응답/파싱 결과 확인                  |
+| `auto-manager`        | `npm run auto:manager`             | e-campus 다운로드·자동 시청·과제·성적 반복 작업 |
+| `hope-basket-manager` | `npm run hope-basket:manager`      | 수강희망바구니(예비 담기) 전용 CLI              |
+| `course-registration-manager` | `npm run sugang:registration` | **수강신청 본신청** 전용 CLI                    |
+| `db-generator`        | `npm run generate:db`              | 전체 개설 과목 수집 및 JSON 저장                |
+| `db-viewer`           | `npm run view:db`                  | 생성된 과목 DB 검색 및 페이지네이션 뷰어        |
 
-`npm run sugang:manager`는 `hope-basket:manager`의 별칭입니다.
+`npm run sugang:manager`는 `hope-basket:manager`의 별칭입니다.  
+`npm run course-reg:manager`는 `sugang:registration`의 별칭입니다.
 
 ### prompt-client
 
@@ -187,6 +214,32 @@ npm run hope-basket:manager
 - **맞춤형 시간표 정보 제공**: 시간표 이미지 상단에 학번, 학과, 학년, 수강 학기 정보를 표시하며, 각 강의 블록 내부에 학점 정보를 시각적으로 배치(강의 시간에 따라 유동적 배치)합니다.
 - **이해하기 쉬운 용어와 정보**: 내부 서버 코드(예: 07)를 2학년 등 사람이 읽기 쉬운 형태로 자동 변환해 보여주며, 난해한 사내 용어(`timtbNm`, `ClipReport`)를 쉬운 한국어로 풀어 설명합니다.
 - **과목 검색 시 수업 속성(e러닝 등) 동시 표기**: 과목 검색 및 바구니 담기 메뉴(2, 3번) 이용 시, 학과별 시간표 API를 백그라운드에서 교차 조회해 해당 과목이 '이러닝', '플립러닝', '상대평가' 등의 특수 수업 속성을 가지는지 화면에 함께 표시합니다.
+
+### course-registration-manager (본신청)
+
+```bash
+npm run sugang:registration
+# 또는
+npm run course-reg:manager
+```
+
+**수강신청 본신청 전용**입니다. 희망바구니(예비 담기)는 포함하지 않습니다.  
+서버: `https://sugangh.seowon.ac.kr` · menuId=`M100780` · 쿠키: `.seowon-sugang.cookies.json`
+
+```text
+1. 로그인 / 세션 갱신
+2. 개설 강의 검색
+3. 수강신청 (검색 → 선택 → 등록)
+4. 수강신청 취소
+5. 내 수강신청 목록 조회
+6. 연속 재시도 모드 (정원 초과 과목 반복 신청)
+0. 종료
+```
+
+- 메뉴 6: 정원 초과 시 지정 간격(기본 500ms)으로 반복 신청, 성공 시 중단, `Ctrl+C`로 종료
+- 로그인 `flag=0`(과부하 허위 실패) 및 네트워크 오류 자동 재시도
+- `.env`의 `SEOWON_ID` / `SEOWON_PASSWORD`로 자동 로그인
+
 ## 라이브러리 API
 
 ### e-campus 클라이언트
@@ -301,6 +354,81 @@ await basket.cancelFromBasket({
 });
 ```
 
+### 수강신청 본신청 클라이언트
+
+```typescript
+import { createCourseRegistrationClient } from "seowon-client-api";
+
+// 본신청 전용 — 희망바구니 쿠키/클라이언트와 분리
+const courseReg = createCourseRegistrationClient({
+  cookieFilePath: "./.seowon-sugang.cookies.json"
+});
+
+await courseReg.login({
+  stuno: "your_student_no",
+  password: "your_password"
+});
+
+// 개설 검색 (menuId=M100780)
+const subjects = await courseReg.searchSubjects({
+  keyword: "운영체제",
+  asignDeprtCd: courseReg.getStudentInfo()?.deptCd
+});
+
+// 실제 수강신청 등록 (saveAppcsDtls.do)
+const result = await courseReg.registerCourse({
+  subjtCd: subjects[0].subjtCd,
+  corseDvclsNo: subjects[0].corseDvclsNo,
+  cmpsjDivCd: subjects[0].cmpsjDivCd,
+  skipAuxRequests: true // 자동화 시 GLIO/sysdate 생략 가능
+});
+console.log(result.success, result.message, result.errorType);
+
+// 내 수강신청 목록 (findAppcsDtlsList.do — 희망바구니 ShpbsList 아님)
+const registered = await courseReg.getMyRegisteredList();
+
+// 취소
+await courseReg.cancelCourse({
+  subjtCd: registered[0].subjtCd,
+  corseDvclsNo: registered[0].corseDvclsNo,
+  cmpsjDivCd: registered[0].cmpsjDivCd
+});
+
+// 정원 초과 과목 연속 재시도
+const retry = await courseReg.registerCourseWithRetry({
+  subjtCd: "736012",
+  corseDvclsNo: "01",
+  intervalMs: 500,
+  maxAttempts: 0, // 0 = 무한 (shouldStop / 성공 시 중단)
+  skipAuxRequests: true
+});
+```
+
+#### 두 시스템 동시 사용 (올바른 패턴)
+
+```typescript
+import {
+  createHopeBasketClient,
+  createCourseRegistrationClient
+} from "seowon-client-api";
+
+const hopeBasket = createHopeBasketClient({
+  cookieFilePath: ".seowon-hope-basket.cookies.json"
+});
+const courseReg = createCourseRegistrationClient({
+  cookieFilePath: ".seowon-sugang.cookies.json"
+});
+
+await hopeBasket.login({ stuno: "...", password: "..." });
+await courseReg.login({ stuno: "...", password: "..." });
+
+// 예비 담기 → saveHopeAppcsDtls (M100779)
+await hopeBasket.addToBasket({ subjtCd: "736082", corseDvclsNo: "01" });
+
+// 실제 등록 → saveAppcsDtls (M100780)
+await courseReg.registerCourse({ subjtCd: "736082", corseDvclsNo: "01" });
+```
+
 #### 학년 매칭 필터 (`SCUR0150` 공통코드)
 
 학생의 학년(`student.hy`, 예: `"2"`)과 과목의 이수학년구분코드(`cmpsjHyDivCd`, 예: `"07"`) 간의 실제 서원대 수강신청 공통코드 매핑 규칙을 적용하여 필터링합니다:
@@ -357,7 +485,7 @@ e-campus 파서: `src/ecampus/saz.ts` · 희망바구니 파서: `src/hope-baske
 
 ### HopeBasketClient
 
-정식 수강신청 본신청 API는 없습니다.
+희망바구니(예비 담기) 전용입니다. 본신청 등록/취소 API는 없습니다 → `CourseRegistrationClient` 사용.
 
 | 메서드                               | 설명                               |
 | :----------------------------------- | :--------------------------------- |
@@ -379,6 +507,23 @@ e-campus 파서: `src/ecampus/saz.ts` · 희망바구니 파서: `src/hope-baske
 | `getTimetableDepartments()`          | 학과별 개설 시간표 학과            |
 | `getTimetableSubjects()`             | 학과별 개설 시간표 분반            |
 
+### CourseRegistrationClient
+
+수강신청 **본신청** 전용입니다. 희망바구니 API는 없습니다 → `HopeBasketClient` 사용.
+
+| 메서드                     | 설명 |
+| :------------------------- | :--- |
+| `login()`                  | 본신청 로그인 (appcsKindCd 없음, flag=0 재시도) |
+| `ensureLoggedIn()`         | 세션 만료 시 자동 재로그인 |
+| `syncTermContext()`        | 학년도/학기 동기화 |
+| `searchSubjects()`         | 개설 교과목 검색 (GnrlList, M100780) |
+| `getMyRegisteredList()`    | 내 수강신청 목록 (`findAppcsDtlsList`) |
+| `registerCourse()`         | 수강신청 등록 (`saveAppcsDtls`, 경고체크 포함) |
+| `cancelCourse()`           | 수강신청 취소 (`saveAppcsDtlsCancl`) |
+| `registerCourseWithRetry()`| 정원 초과 등 연속 재시도 등록 |
+
+관련 에러 유틸: `CourseRegErrorType`, `classifyCourseRegError`, `formatCourseRegError`
+
 ## 프로젝트 구조
 
 ```text
@@ -399,12 +544,18 @@ src/
     legacy/login-crypto.cjs    로그인 암호화 모듈
   hope-basket/                 희망바구니 전용 (본신청 아님)
     constants.ts               호스트·메뉴·경로 (appcsKindCd=100)
-    ssv.ts                     Nexacro SSV 코덱
+    ssv.ts                     Nexacro SSV 코덱 (본신청도 재사용)
     basket.ts                  요청 생성·응답 파싱
     timetable.ts               timtbNm 파싱·간이 시간표
     saz.ts                     희망바구니 SAZ 복원
     client.ts                  HopeBasketClient
     types/                     희망바구니/SSV 타입
+  course-registration/         수강신청 본신청 전용 (M100780)
+    constants.ts               menuId/pgmId·saveAppcsDtls 등 경로
+    errors.ts                  CourseRegErrorType·분류/포맷
+    registration.ts            create*/parse* 순수 함수
+    client.ts                  CourseRegistrationClient
+    types/registration.ts      CourseReg* 타입
 scripts/
   build-legacy-crypto.cjs
   copy-legacy.cjs
@@ -418,24 +569,28 @@ db-generator/
 prompt-client.js               개별 API 진단 CLI
 auto-manager.ts                e-campus 반복 작업 CLI
 hope-basket-manager.ts         희망바구니 CLI
+course-registration-manager.ts 수강신청 본신청 CLI
 ```
 
 ## 개발 명령
 
-| 명령                          | 설명                              |
-| :---------------------------- | :-------------------------------- |
-| `npm run prompt:client`       | e-campus·희망바구니 API 진단 CLI  |
-| `npm run auto:manager`        | e-campus 반복 작업 CLI            |
-| `npm run hope-basket:manager` | 희망바구니 CLI                    |
-| `npm run generate:db`         | 전체 개설 과목 수집 → JSON DB     |
-| `npm run view:db`             | 생성된 과목 DB 검색/필터 뷰어     |
-| `npm run analyze:saz`         | SAZ 패킷 분석                     |
-| `npm run capture:live`        | Chrome live traffic capture       |
-| `npm run typecheck`           | TypeScript 검사                   |
-| `npm run format:check`        | Prettier 검사                     |
-| `npm run lint`                | ESLint 검사                       |
-| `npm test`                    | Vitest 실행                       |
-| `npm run build`               | legacy 암호화 준비 후 패키지 빌드 |
+| 명령                            | 설명                                      |
+| :------------------------------ | :---------------------------------------- |
+| `npm run prompt:client`         | e-campus·희망바구니 API 진단 CLI          |
+| `npm run auto:manager`          | e-campus 반복 작업 CLI                    |
+| `npm run hope-basket:manager`   | 희망바구니 CLI                            |
+| `npm run sugang:registration`   | **수강신청 본신청** CLI                   |
+| `npm run course-reg:manager`    | `sugang:registration` 별칭                |
+| `npm run generate:db`           | 전체 개설 과목 수집 → JSON DB             |
+| `npm run view:db`               | 생성된 과목 DB 검색/필터 뷰어             |
+| `npm run analyze:saz`           | SAZ 패킷 분석                             |
+| `npm run capture:live`          | Chrome live traffic capture               |
+| `npm run typecheck`             | TypeScript 검사                           |
+| `npm run format:check`          | Prettier 검사                             |
+| `npm run lint`                  | ESLint 검사                               |
+| `npm test`                      | Vitest 실행 (단위, 본신청 단위 테스트 포함) |
+| `npm run test:course-reg:smoke` | 본신청 **라이브** 스모크 (로그인·검색·목록) |
+| `npm run build`                 | legacy 암호화 준비 후 패키지 빌드         |
 
 ## 코드 주석 규칙
 
@@ -465,10 +620,11 @@ files/ecam/ecamjs/nice.nuguya.oivs.msg.js
 .env
 .seowon-ecampus.cookies.json
 .seowon-hope-basket.cookies.json
+.seowon-sugang.cookies.json
+.seowon-sugang.cookies.smoke.json
 .seowon-ecampus.session.json
 files/
 downloads/
-test/
 *.saz
 *.mp4
 tmp-*.html
@@ -476,7 +632,8 @@ captures/
 .puppeteer-user-data/
 ```
 
-푸시 전 계정·쿠키·세션·캡처·다운로드 포함 여부를 확인하세요.
+푸시 전 계정·쿠키·세션·캡처·다운로드 포함 여부를 확인하세요.  
+`*.cookies.json` 은 `.gitignore`에 포함되어 있습니다.
 
 ## 검증 메모
 
@@ -485,6 +642,9 @@ captures/
 ```bash
 npm run typecheck
 npx vitest run test/hope-basket.test.ts
+npx vitest run test/course-registration.test.ts
+# 실제 서버 스모크 (.env 계정 필요, 등록/취소는 수행하지 않음)
+npm run test:course-reg:smoke
 ```
 
 `npm test` 전체는 fixture(로그인 HTML, 강의실/이러닝 캡처 등)가 없는 환경에서 일부 실패할 수 있습니다.  
