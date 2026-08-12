@@ -411,6 +411,10 @@ scripts/
   register-ts-node.mjs
   analyze-saz.mjs
   capture-live.mjs
+db-generator/
+  generate.ts                  전체 개설 과목 수집 → JSON DB
+  viewer.ts                    생성된 DB 검색/필터 뷰어
+  output/                      생성된 JSON DB 저장 디렉터리
 prompt-client.js               개별 API 진단 CLI
 auto-manager.ts                e-campus 반복 작업 CLI
 hope-basket-manager.ts         희망바구니 CLI
@@ -423,6 +427,8 @@ hope-basket-manager.ts         희망바구니 CLI
 | `npm run prompt:client`       | e-campus·희망바구니 API 진단 CLI  |
 | `npm run auto:manager`        | e-campus 반복 작업 CLI            |
 | `npm run hope-basket:manager` | 희망바구니 CLI                    |
+| `npm run generate:db`         | 전체 개설 과목 수집 → JSON DB     |
+| `npm run view:db`             | 생성된 과목 DB 검색/필터 뷰어     |
 | `npm run analyze:saz`         | SAZ 패킷 분석                     |
 | `npm run capture:live`        | Chrome live traffic capture       |
 | `npm run typecheck`           | TypeScript 검사                   |
