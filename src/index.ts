@@ -196,6 +196,7 @@ export {
   buildKoreanTimetableFileBaseName,
   composeSugangLoginResult,
   exportHopeBasketTimetableImage,
+  formatStudentTimetableSubtitle,
   createSugangAppcsScheduleListRequest,
   createSugangBasketAddRequest,
   createSugangBasketCancelRequest,
@@ -252,6 +253,7 @@ export {
   type SugangDepartment,
   type SugangHopeBasketTimetable,
   type SugangHopeBasketTimetableCell,
+  type SugangTimetableSubjectLike,
   type SugangLoginCredentials,
   type SugangLoginResult,
   type SugangLoginScheduleCheck,
@@ -358,11 +360,13 @@ export {
   stringifyCourseRegSubjects,
   type CourseRegGetRequest,
   type CourseRegLoginCredentials,
+  type CourseRegLoginOptions,
   type CourseRegLoginResult,
   type CourseRegMutationOptions,
   type CourseRegMutationResult,
   type CourseRegMyListOptions,
   type CourseRegRegisteredSubject,
+  type CourseRegRegisteredTimetable,
   type CourseRegRetryRegisterOptions,
   type CourseRegRetryRegisterResult,
   type CourseRegSearchOptions,
@@ -372,3 +376,31 @@ export {
   type CourseRegTermCodeInfo,
   type CourseRegTermContext
 } from "./course-registration/registration.js";
+
+// --- 로컬 개설 과목 카탈로그 (db-generator JSON) ---
+export {
+  COURSE_DB_ENV_PATH,
+  COURSE_DB_LATEST_POINTER,
+  COURSE_DB_OUTPUT_REL,
+  defaultCourseDbOutputDir,
+  formatCourseDbRef,
+  listCourseDbFiles,
+  loadCourseDbFile,
+  loadLatestCourseDb,
+  readCourseDbPointer,
+  resolveLatestCourseDb,
+  searchLocalCourses,
+  writeCourseDbPointer,
+  type CourseDbPointer,
+  type CourseDbRef,
+  type LoadCourseDbResult,
+  type LocalCourseRecord,
+  type ResolveCourseDbOptions
+} from "./course-catalog/local-db.js";
+
+export {
+  generateCourseDb,
+  HOPE_BASKET_COOKIE_FILE,
+  type GenerateCourseDbOptions,
+  type GenerateCourseDbResult
+} from "./course-catalog/generate-db.js";

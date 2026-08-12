@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildHopeBasketTimetable,
+  buildKoreanTimetableFileBaseName,
   classifyCourseRegError,
   CourseRegErrorType,
   COURSE_REG_MENU_ID,
@@ -11,6 +13,7 @@ import {
   createCourseRegRegisterRequest,
   createCourseRegSearchRequest,
   formatCourseRegError,
+  formatStudentTimetableSubtitle,
   parseCourseRegLoginResponse,
   parseCourseRegMutationResponse,
   parseCourseRegMyListResponse,
@@ -239,5 +242,86 @@ describe("course-registration error classification", () => {
       CourseRegErrorType.LOGIN_FAILED
     );
     expect(formatCourseRegError(CourseRegErrorType.CONNECTION_TIMEOUT)).toContain("과부하");
+  });
+});
+
+describe("registered course timetable (hope-basket renderer reuse)", () => {
+  it("builds a grid from registered-course-like subjects", () => {
+    const timetable = buildHopeBasketTimetable([
+      {
+        subjtCd: "736012",
+        subjtNm: "자료구조",
+        corseDvclsNo: "01",
+        timtbNm: "월 1,2 공학관101\n수 1,2 공학관101",
+        cmpsjCdt: "3",
+        chrgInstrEmpnm: "홍길동"
+      },
+      {
+        subjtCd: "008599",
+        subjtNm: "교양영어",
+        corseDvclsNo: "02",
+        timtbNm: "화 3,4 인문관201",
+        cmpsjCdt: "2",
+        chrgInstrEmpnm: "김교수"
+      }
+    ]);
+
+    expect(timetable.courseCount).toBe(2);
+    expect(timetable.totalCredits).toBe(5);
+    expect(timetable.conflicts).toHaveLength(0);
+    expect(timetable.unparsed).toHaveLength(0);
+    expect(timetable.cells.some((cell) => cell.day === "월" && cell.period === 1)).toBe(true);
+    expect(timetable.cells.some((cell) => cell.day === "화" && cell.period === 3)).toBe(true);
+    expect(timetable.cells.find((cell) => cell.day === "월" && cell.period === 1)?.subjects[0]).toMatchObject({
+      subjtNm: "자료구조",
+      place: "공학관101",
+      chrgInstrEmpnm: "홍길동"
+    });
+  });
+
+  it("flags weekday/period conflicts", () => {
+    const timetable = buildHopeBasketTimetable([
+      {
+        subjtCd: "111111",
+        subjtNm: "A",
+        corseDvclsNo: "01",
+        timtbNm: "금 5,6 강의실1",
+        cmpsjCdt: "3"
+      },
+      {
+        subjtCd: "222222",
+        subjtNm: "B",
+        corseDvclsNo: "01",
+        timtbNm: "금 6,7 강의실2",
+        cmpsjCdt: "3"
+      }
+    ]);
+
+    expect(timetable.conflicts.some((cell) => cell.day === "금" && cell.period === 6)).toBe(true);
+  });
+
+  it("uses a distinct file prefix for registered timetables", () => {
+    expect(buildKoreanTimetableFileBaseName("수강신청_시간표")).toMatch(
+      /^수강신청_시간표_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$/
+    );
+    expect(buildKoreanTimetableFileBaseName()).toMatch(/^희망바구니_시간표_/);
+  });
+
+  it("formats student subtitle for registered courses", () => {
+    const subtitle = formatStudentTimetableSubtitle(
+      {
+        stuno: "202300000",
+        deprtNm: "컴퓨터공학과",
+        hy: "3",
+        syy: "2026",
+        smtCd: "20"
+      },
+      { courseCount: 4, totalCredits: 12, conflicts: [] },
+      "수강신청"
+    );
+    expect(subtitle).toContain("202300000");
+    expect(subtitle).toContain("컴퓨터공학과");
+    expect(subtitle).toContain("2026학년도 2학기");
+    expect(subtitle).toContain("수강신청 4과목 · 12학점");
   });
 });

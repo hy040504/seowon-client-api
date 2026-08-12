@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### 본신청 확정 시간표 이미지
+
+- 희망바구니와 **같은** `timtbNm` → SVG/HTML/PNG 렌더러를 본신청에 재사용
+- 데이터는 `findAppcsDtlsList`(실제 수강신청 목록)만 사용. 희망바구니 담기 목록 아님
+- `CourseRegistrationClient`: `getMyRegisteredTimetable` / `exportMyRegisteredTimetableImage`
+- `npm run sugang:registration` 메뉴 7
+- 예약 매크로(`sugang:scheduled`) 종료 후 확정 목록이 있으면 저장 여부 확인
+
+### 예약 수강신청 CLI
+
+- `cli/scheduled-registration.ts` 추가 (`npm run sugang:scheduled`)
+  - 시·분·초 예약 대기 → 로그인 성공할 때까지 반복
+  - 과목 우선순위 큐 + 라운드로빈 신청 (정원 초과 등 재시도)
+  - 플랜 JSON 저장/로드 (`scheduled-registration.plan.json`, gitignore)
+  - 종료 시 성공/실패 요약 및 서버 내 신청 목록 표시
+- 매크로 경로 간소화: `login({ mode: "fast" })`, 신청 시 `skipWarnCheck`+`skipAuxRequests`
+  - 경고 장학생·일정확인·메뉴진입·GLIO/sysdate 생략, `saveAppcsDtls` 중심
+- 「지금 바로 시작」= 예약 시각 무시 즉시 실행(테스트용) 안내 문구 명확화
+- 과목 검색: 라이브 실패/0건 시 `db-generator` 로컬 JSON 자동 폴백 (`a` / 로컬만 `b`)
+- 모듈 기본 로그인·경고 장학생 경로는 유지 (간소화는 예약 스크립트에서만 opt-in)
+
+### 로컬 개설 과목 DB 자동 감지
+
+- `src/course-catalog/local-db.ts`: 날짜마다 바뀌는 파일명 해석
+  - `SEOWON_COURSE_DB` → `db-generator/output/latest.json` 포인터 → output 내 최신 mtime
+- `generate:db` 완료 시 `latest.json` 포인터를 함께 기록
+- `view:db` / 예약 검색이 같은 해석기를 사용
+- 수집 로직을 `generateCourseDb()` 로 공통화 — 예약 매크로 큐 메뉴 `g` 에서도 동일 생성
+
 ### 프로젝트 루트 파일 정리
 
 - CLI 진입점 → `cli/` (`auto-manager`, `hope-basket-manager`, `course-registration-manager`, `prompt-client`)

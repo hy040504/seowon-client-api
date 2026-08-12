@@ -1,7 +1,7 @@
 /**
  * 서원대 수강신청 매니저 (본신청 전용).
  *
- * 포함: 로그인, 과목 검색, 수강신청/취소, 내 신청 목록, 연속 재시도
+ * 포함: 로그인, 과목 검색, 수강신청/취소, 내 신청 목록, 연속 재시도, 확정 시간표 이미지
  * 미포함: 수강희망바구니(예비 담기) → cli/hope-basket-manager.ts 사용
  *
  * 서버: https://sugangh.seowon.ac.kr (menuId=M100780)
@@ -35,6 +35,7 @@ import {
   type CourseRegRegisteredSubject,
   type SugangSubject
 } from "../src/index.js";
+import { exportRegisteredTimetableFromClient } from "./registered-timetable.js";
 
 const DEFAULT_COURSE_REG_COOKIE_FILE = path.resolve(
   process.cwd(),
@@ -49,7 +50,7 @@ const DEFAULT_COURSE_REG_COOKIE_FILE = path.resolve(
 async function run(): Promise<void> {
   const rl = readline.createInterface({ input, output });
   printSection("\n--- 🎓 서원대 수강신청 매니저 (본신청 전용) ---");
-  printInfo("포함: 로그인, 과목 검색, 수강신청/취소, 내 신청 목록");
+  printInfo("포함: 로그인, 과목 검색, 수강신청/취소, 내 신청 목록, 확정 시간표 이미지");
   printInfo("미포함: 수강희망바구니(예비 담기) → cli/hope-basket-manager.ts 사용");
   printInfo("서버: https://sugangh.seowon.ac.kr (menuId=M100780)");
   printInfo(`쿠키 파일: ${DEFAULT_COURSE_REG_COOKIE_FILE}\n`);
@@ -78,6 +79,12 @@ async function run(): Promise<void> {
       console.log(
         `${color("6", ANSI.yellow)}. ${color("연속 재시도 모드 (정원 초과 과목 반복 신청)", ANSI.bold)}`
       );
+      console.log(
+        `${color("7", ANSI.yellow)}. ${color("내 수강신청 시간표 이미지 (HTML/PNG)", ANSI.bold)}`
+      );
+      console.log(
+        `${color("8", ANSI.yellow)}. ${color("안내: 예약 수강신청 → npm run sugang:scheduled", ANSI.gray)}`
+      );
       console.log(`${color("0", ANSI.yellow)}. ${color("종료", ANSI.bold)}`);
 
       const menu = (await rl.question("\n메뉴 선택: ")).trim();
@@ -102,6 +109,9 @@ async function run(): Promise<void> {
             break;
           case "6":
             await withCourseRegAuth(client, rl, () => retryRegisterMode(client, rl));
+            break;
+          case "7":
+            await withCourseRegAuth(client, rl, () => exportRegisteredTimetableFromClient(client));
             break;
           default:
             printErrorMessage("올바른 메뉴를 선택하세요.");

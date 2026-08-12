@@ -1,9 +1,9 @@
 /**
- * 희망바구니 간이 시간표 유틸.
+ * 간이 시간표 유틸 (희망바구니·본신청 확정 목록 공용).
  *
  * 서버 합산 시간표는 ClipReport(callReport.jsp) 이미지뿐이라,
- * 내 바구니 목록의 timtbNm 문자열을 파싱해 요일×교시 그리드를 구성한다.
- * 메뉴 6 이미지 출력은 AI 생성이 아니라 SVG/PNG 데이터 렌더다.
+ * 과목 목록의 timtbNm 문자열을 파싱해 요일×교시 그리드를 구성한다.
+ * 이미지 출력은 AI 생성이 아니라 SVG/PNG 데이터 렌더다.
  */
 
 import fs from "node:fs";
@@ -14,7 +14,8 @@ import { pathToFileURL } from "node:url";
 import type {
   SugangHopeBasketTimetable,
   SugangHopeBasketTimetableCell,
-  SugangSubject,
+  SugangStudentInfo,
+  SugangTimetableSubjectLike,
   SugangTimtbSlot,
   SugangWeekdayCode
 } from "./types/basket.js";
@@ -139,13 +140,16 @@ export function parseTimtbNm(timtbNm: string): SugangTimtbSlot[] {
 }
 
 /**
- * 내 희망바구니 과목 목록으로 간이 시간표를 구성한다
- * @param {SugangSubject[]} subjects - 바구니 과목 목록
- * @returns {SugangHopeBasketTimetable} 슬롯/셀/충돌/학점 합 집계
+ * 과목 목록의 timtbNm 으로 간이 시간표를 구성한다
+ * (희망바구니·본신청 확정 목록 모두 사용 가능)
+ * @param {T[]} subjects - timtbNm 을 가진 과목 목록
+ * @returns {SugangHopeBasketTimetable<T>} 슬롯/셀/충돌/학점 합 집계
  */
-export function buildHopeBasketTimetable(subjects: SugangSubject[]): SugangHopeBasketTimetable {
-  const slots: Array<SugangTimtbSlot & { subject: SugangSubject }> = [];
-  const unparsed: Array<{ subject: SugangSubject; timtbNm: string }> = [];
+export function buildHopeBasketTimetable<T extends SugangTimetableSubjectLike>(
+  subjects: T[]
+): SugangHopeBasketTimetable<T> {
+  const slots: Array<SugangTimtbSlot & { subject: T }> = [];
+  const unparsed: Array<{ subject: T; timtbNm: string }> = [];
   let totalCredits = 0;
 
   for (const subject of subjects) {
@@ -209,8 +213,8 @@ export function buildHopeBasketTimetable(subjects: SugangSubject[]): SugangHopeB
  * @param {{ maxPeriod?: number; weekdays?: SugangWeekdayCode[] }} [options] - 표시 옵션
  * @returns {string} 콘솔 출력용 그리드
  */
-export function formatHopeBasketTimetableGrid(
-  timetable: SugangHopeBasketTimetable,
+export function formatHopeBasketTimetableGrid<T extends SugangTimetableSubjectLike>(
+  timetable: SugangHopeBasketTimetable<T>,
   options: {
     maxPeriod?: number;
     weekdays?: SugangWeekdayCode[];
@@ -292,8 +296,8 @@ export function formatHopeBasketTimetableGrid(
  * @param {{ title?: string; subtitle?: string; maxPeriod?: number; weekdays?: SugangWeekdayCode[] }} [options] - 렌더 옵션
  * @returns {string} SVG 문서 문자열
  */
-export function renderHopeBasketTimetableSvg(
-  timetable: SugangHopeBasketTimetable,
+export function renderHopeBasketTimetableSvg<T extends SugangTimetableSubjectLike>(
+  timetable: SugangHopeBasketTimetable<T>,
   options: {
     title?: string;
     subtitle?: string;
@@ -496,11 +500,12 @@ export function renderHopeBasketTimetableSvg(
  * @param {{ outputDir?: string; fileBaseName?: string; title?: string; tryPng?: boolean }} [options] - 저장 옵션
  * @returns {Promise<{ htmlPath: string; pngPath?: string }>} 생성된 파일 경로
  */
-export async function exportHopeBasketTimetableImage(
-  timetable: SugangHopeBasketTimetable,
+export async function exportHopeBasketTimetableImage<T extends SugangTimetableSubjectLike>(
+  timetable: SugangHopeBasketTimetable<T>,
   options: {
     outputDir?: string;
     fileBaseName?: string;
+    fileNamePrefix?: string;
     title?: string;
     subtitle?: string;
     tryPng?: boolean;
@@ -509,7 +514,8 @@ export async function exportHopeBasketTimetableImage(
   const outputDir = path.resolve(options.outputDir ?? process.cwd());
   await fsPromises.mkdir(outputDir, { recursive: true });
 
-  const base = options.fileBaseName ?? buildKoreanTimetableFileBaseName();
+  const base =
+    options.fileBaseName ?? buildKoreanTimetableFileBaseName(options.fileNamePrefix);
   const htmlPath = path.join(outputDir, `${base}.html`);
   const pngPathCandidate = path.join(outputDir, `${base}.png`);
 
@@ -547,16 +553,53 @@ export async function exportHopeBasketTimetableImage(
 /**
  * 한국어 시간표 파일 기본 이름(확장자 제외)을 만든다
  * 예: 희망바구니_시간표_2026-07-31_20-15-30
+ * @param {string} [prefix="희망바구니_시간표"] - 파일명 접두어
  * @returns {string} 파일 기본 이름
  */
-export function buildKoreanTimetableFileBaseName(): string {
+export function buildKoreanTimetableFileBaseName(prefix = "희망바구니_시간표"): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   const stamp =
     [now.getFullYear(), pad(now.getMonth() + 1), pad(now.getDate())].join("-") +
     "_" +
     [pad(now.getHours()), pad(now.getMinutes()), pad(now.getSeconds())].join("-");
-  return `희망바구니_시간표_${stamp}`;
+  return `${prefix}_${stamp}`;
+}
+
+const SMT_DISPLAY_NAME: Record<string, string> = {
+  "10": "1",
+  "11": "여름",
+  "20": "2",
+  "21": "겨울"
+};
+
+/**
+ * 시간표 이미지 부제(학번·학과·학기 + 과목/학점 집계)를 만든다
+ * @param {Pick<SugangStudentInfo, "stuno" | "deprtNm" | "hy" | "syy" | "smtCd">} [student] - 학생 정보
+ * @param {{ courseCount: number; totalCredits: number; conflicts: unknown[] }} timetable - 집계
+ * @param {string} [countLabel="신청"] - 과목 수 앞 라벨
+ * @returns {string} 부제 문자열
+ */
+export function formatStudentTimetableSubtitle(
+  student:
+    | Pick<SugangStudentInfo, "stuno" | "deprtNm" | "hy" | "syy" | "smtCd">
+    | undefined,
+  timetable: {
+    courseCount: number;
+    totalCredits: number;
+    conflicts: unknown[];
+  },
+  countLabel = "신청"
+): string {
+  const stats =
+    `${countLabel} ${timetable.courseCount}과목 · ${timetable.totalCredits}학점` +
+    (timetable.conflicts.length ? ` · 충돌 ${timetable.conflicts.length}건` : "");
+  if (!student) return stats;
+  const smtName = SMT_DISPLAY_NAME[student.smtCd] || student.smtCd;
+  const grade = student.hy ? `${student.hy}학년` : "";
+  return `${student.stuno} · ${student.deprtNm || ""} ${grade} · ${student.syy}학년도 ${smtName}학기 | ${stats}`
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const FONT_FAMILY = '"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR","Segoe UI",sans-serif';

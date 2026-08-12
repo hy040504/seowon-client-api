@@ -1,6 +1,10 @@
 import type { AxiosInstance } from "axios";
 import type { SsvDocument, SsvParams, SsvRow } from "../../hope-basket/ssv.js";
-import type { SugangStudentInfo, SugangSubject } from "../../hope-basket/types/basket.js";
+import type {
+  SugangHopeBasketTimetable,
+  SugangStudentInfo,
+  SugangSubject
+} from "../../hope-basket/types/basket.js";
 import type { CourseRegErrorType } from "../errors.js";
 
 /**
@@ -35,6 +39,18 @@ export interface CourseRegLoginCredentials {
   stuno: string; // 학번 (SSV 파라미터: stuno)
   password: string; // 비밀번호 (SSV 파라미터: password)
   notcClCd?: string; // 로그인 공지 구분 (기본 L)
+}
+
+/**
+ * 로그인 동작 옵션 (예약/매크로용 간소화 지원).
+ *
+ * - `full`(기본): 브라우저와 유사 — 학생정보 + 일정체크 + 메뉴 진입
+ * - `fast`: 신청에 필요한 최소 단계만
+ *   세션 → 학년도/학기 → findAppcsLogin → findStunoInfo(신청 SSV 문맥)
+ *   생략: findAppcsLoginChk(일정 확인), findMenu(메뉴 진입)
+ */
+export interface CourseRegLoginOptions {
+  mode?: "full" | "fast";
 }
 
 /** 수강신청 로그인 결과 */
@@ -130,6 +146,7 @@ export interface CourseRegMutationOptions extends Partial<CourseRegTermContext> 
   /**
    * true면 등록 전 경고장학생 체크(findWarnStdrInqryCscnt→saveWarnStdrInqrtCscnt) 생략.
    * 기본 false — 패킷에서 매 신청 전 선행됨.
+   * (예약 매크로 스크립트 등에서만 명시적으로 true)
    */
   skipWarnCheck?: boolean;
   /**
@@ -220,6 +237,9 @@ export interface CourseRegRegisteredSubject {
   glioDeptCd: string; // GLIO 학과 코드
   raw: SsvRow; // 원본 행
 }
+
+/** 본신청 확정 과목으로 그린 간이 시간표 */
+export type CourseRegRegisteredTimetable = SugangHopeBasketTimetable<CourseRegRegisteredSubject>;
 
 /** 연속 재시도 모드 옵션 */
 export interface CourseRegRetryRegisterOptions extends CourseRegMutationOptions {

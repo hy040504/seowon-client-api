@@ -1,0 +1,22 @@
+{
+  "targetTime": "09:00:00",
+  "targetDate": "2026-08-20",
+  "loginIntervalMs": 300,
+  "registerIntervalMs": 200,
+  "maxAttemptsPerCourse": 0,
+  "courses": [
+    {
+      "priority": 1,
+      "subjtCd": "008599",
+      "corseDvclsNo": "01",
+      "subjtNm": "예시과목A",
+      "cmpsjDivCd": ""
+    },
+    {
+      "priority": 2,
+      "subjtCd": "736012",
+      "corseDvclsNo": "01",
+      "subjtNm": "예시과목B"
+    }
+  ]
+}

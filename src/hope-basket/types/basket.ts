@@ -222,6 +222,19 @@ export interface SugangSubject {
   raw: SsvRow; // 원본 행
 }
 
+/**
+ * 간이 시간표 구성에 필요한 최소 과목 필드.
+ * 희망바구니(SugangSubject)와 본신청 확정 목록(CourseRegRegisteredSubject)이 모두 만족한다.
+ */
+export interface SugangTimetableSubjectLike {
+  subjtCd: string; // 과목 코드
+  subjtNm: string; // 과목명
+  corseDvclsNo: string; // 분반
+  timtbNm: string; // 시간표 문자열
+  cmpsjCdt: string; // 학점
+  chrgInstrEmpnm?: string; // 담당 교원명
+}
+
 /** 시간표 문자열(timtbNm)의 요일 코드 */
 export type SugangWeekdayCode = "월" | "화" | "수" | "목" | "금" | "토" | "일";
 
@@ -252,15 +265,17 @@ export interface SugangHopeBasketTimetableCell {
   hasConflict: boolean; // 같은 칸에 2과목 이상
 }
 
-/** 희망바구니 간이 시간표 집계 결과 */
-export interface SugangHopeBasketTimetable {
-  subjects: SugangSubject[]; // 원본 바구니 목록
-  slots: Array<SugangTimtbSlot & { subject: SugangSubject }>; // 펼친 교시 슬롯
+/** 간이 시간표 집계 결과 (희망바구니·본신청 확정 목록 공용) */
+export interface SugangHopeBasketTimetable<
+  T extends SugangTimetableSubjectLike = SugangSubject
+> {
+  subjects: T[]; // 원본 과목 목록
+  slots: Array<SugangTimtbSlot & { subject: T }>; // 펼친 교시 슬롯
   cells: SugangHopeBasketTimetableCell[]; // 충돌 포함 셀 목록
   totalCredits: number; // 신청 학점 합
   courseCount: number; // 신청 과목 수
   conflicts: SugangHopeBasketTimetableCell[]; // 충돌 셀만
-  unparsed: Array<{ subject: SugangSubject; timtbNm: string }>; // timtbNm 파싱 실패 항목
+  unparsed: Array<{ subject: T; timtbNm: string }>; // timtbNm 파싱 실패 항목
 }
 
 /** 바구니 담기/취소 옵션 */

@@ -13,12 +13,14 @@ import {
   printWarning,
   printErrorMessage,
   ask,
-  pickFromList
+  pickFromList,
+  openLocalFile
 } from "../src/cli-ui.js";
 import {
   createHopeBasketClient,
   exportHopeBasketTimetableImage,
   formatHopeBasketTimetableGrid,
+  formatStudentTimetableSubtitle,
   isCookieJarUsable,
   stringifySugangSubjects,
   mapCourseYearToNumericGrade,
@@ -595,14 +597,7 @@ async function viewMyHopeBasketTimetable(basket: HopeBasketClient): Promise<void
   const student = basket.getStudentInfo();
   
   const title = student?.stdntNm ? `${student.stdntNm} 수강희망바구니 시간표` : "수강희망바구니 시간표";
-  const statsSubtitle = `신청 ${timetable.courseCount}과목 · ${timetable.totalCredits}학점` + (timetable.conflicts.length ? ` · 충돌 ${timetable.conflicts.length}건` : "");
-  
-  let subtitle = statsSubtitle;
-  if (student) {
-    const smtMap: Record<string, string> = { "10": "1", "11": "여름", "20": "2", "21": "겨울" };
-    const smtName = smtMap[student.smtCd] || student.smtCd;
-    subtitle = `${student.stuno} · ${student.deprtNm || ""} ${student.hy}학년 · ${student.syy}학년도 ${smtName}학기 | ${statsSubtitle}`;
-  }
+  const subtitle = formatStudentTimetableSubtitle(student, timetable, "신청");
 
   const files = await exportHopeBasketTimetableImage(timetable, {
     outputDir,
@@ -633,34 +628,6 @@ async function viewMyHopeBasketTimetable(basket: HopeBasketClient): Promise<void
     printWarning(`자동 열기 실패: ${err?.message || err}`);
     printInfo(`직접 열어보세요: ${openTarget}`);
   }
-}
-
-/**
- * OS 기본 앱으로 로컬 파일을 연다
- * @param {string} filePath - 파일 절대/상대 경로
- * @returns {Promise<void>} 프로세스 기동 시 resolve
- */
-async function openLocalFile(filePath: string): Promise<void> {
-  const { exec } = await import("node:child_process");
-  const target = path.resolve(filePath);
-
-  return new Promise<void>((resolve) => {
-    let command;
-    if (process.platform === "win32") {
-      command = `explorer.exe "${target}"`;
-    } else if (process.platform === "darwin") {
-      command = `open "${target}"`;
-    } else {
-      command = `xdg-open "${target}"`;
-    }
-
-    exec(command, () => {
-      // 성공/실패 여부와 무관하게 무시 (오류로 앱이 종료되지 않게 함)
-    });
-
-    // 뷰어 실행 즉시 다음으로 넘어가도록 300ms 후 자동 resolve
-    setTimeout(() => resolve(), 300);
-  });
 }
 
 /**

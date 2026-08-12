@@ -24,6 +24,8 @@ tmp-*.html
 captures/
 captures/live/
 research/saz/
+scheduled-registration.plan.json
+*.plan.json
 Microsoft/
 # 대형 과목 DB 스냅샷 (루트 레거시 경로 포함)
 all-courses.json

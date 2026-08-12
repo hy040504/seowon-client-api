@@ -22,6 +22,14 @@ import {
   loadCookieJarFromFile,
   saveCookieJarToFile
 } from "../ecampus/cookies.js";
+import {
+  buildHopeBasketTimetable,
+  buildKoreanTimetableFileBaseName,
+  exportHopeBasketTimetableImage,
+  formatHopeBasketTimetableGrid,
+  formatStudentTimetableSubtitle,
+  renderHopeBasketTimetableSvg
+} from "../hope-basket/timetable.js";
 import type { SugangStudentInfo, SugangSubject } from "../hope-basket/types/basket.js";
 import {
   COMMON_AJAX_HEADERS,
@@ -60,11 +68,13 @@ import {
   parseCourseRegSysdateResponse,
   parseCourseRegTermCodeResponse,
   type CourseRegLoginCredentials,
+  type CourseRegLoginOptions,
   type CourseRegLoginResult,
   type CourseRegMutationOptions,
   type CourseRegMutationResult,
   type CourseRegMyListOptions,
   type CourseRegRegisteredSubject,
+  type CourseRegRegisteredTimetable,
   type CourseRegRetryRegisterOptions,
   type CourseRegRetryRegisterResult,
   type CourseRegSearchOptions,
@@ -95,7 +105,7 @@ const RETRYABLE_CODES = new Set([
  * 수강신청 본신청 전용 클라이언트.
  *
  * 범위:
- * - 포함: 로그인, 수강신청 등록/취소, 내 신청 목록 조회, 개설 과목 검색
+ * - 포함: 로그인, 수강신청 등록/취소, 내 신청 목록 조회, 개설 과목 검색, 확정 시간표 이미지
  * - 미포함: 수강희망바구니(예비 담기) → HopeBasketClient 를 사용할 것
  *
  * 서버: sugangh.seowon.ac.kr (희망바구니와 동일 서버)
@@ -275,15 +285,20 @@ export class CourseRegistrationClient {
    * 서버 과부하로 flag=0이 반환될 경우 loginMaxRetries 만큼 자동 재시도한다.
    * 정식 수강희망바구니 로그인이 아니다.
    * @param {CourseRegLoginCredentials} [credentials] - 학번/비밀번호 (미지정 시 저장 계정)
+   * @param {CourseRegLoginOptions} [options] - full/fast 모드 등
    * @returns {Promise<CourseRegLoginResult>} 로그인 결과
    * @throws {Error} 계정 정보 부재
    */
-  async login(credentials?: CourseRegLoginCredentials): Promise<CourseRegLoginResult> {
+  async login(
+    credentials?: CourseRegLoginCredentials,
+    options: CourseRegLoginOptions = {}
+  ): Promise<CourseRegLoginResult> {
     const creds = credentials ?? this.credentials;
     if (!creds?.stuno || !creds?.password) {
       throw new Error("학번과 비밀번호가 필요합니다.");
     }
     this.credentials = creds;
+    const fast = options.mode === "fast";
 
     await this.ensureSessionCookie(true);
 
@@ -298,10 +313,15 @@ export class CourseRegistrationClient {
     let lastResult: CourseRegLoginResult | undefined;
 
     for (let attempt = 1; attempt <= this.loginMaxRetries; attempt++) {
+      // 기본(full) 경로는 기존 메시지·단계 유지. fast 는 스크립트가 명시할 때만.
       this.emitProgress(
         attempt === 1
-          ? "수강신청 본신청 로그인 요청 중..."
-          : `로그인 재시도 ${attempt}/${this.loginMaxRetries} (서버 과부하 허위 실패 대응)...`
+          ? fast
+            ? "로그인 요청..."
+            : "수강신청 본신청 로그인 요청 중..."
+          : fast
+            ? `로그인 재시도 ${attempt}/${this.loginMaxRetries}...`
+            : `로그인 재시도 ${attempt}/${this.loginMaxRetries} (서버 과부하 허위 실패 대응)...`
       );
 
       const loginRequest = createCourseRegLoginRequest(creds, this.term, {
@@ -330,7 +350,7 @@ export class CourseRegistrationClient {
         return loginPartial;
       }
 
-      // 성공 → 학생 정보·일정 체크
+      // 성공 → 학생 정보 (신청 SSV 문맥용). full/fast 공통.
       this.emitProgress("학생 정보 조회 중...");
       const studentRequest = createCourseRegStudentInfoRequest(creds, this.term, {
         baseUrl: this.baseUrl
@@ -353,22 +373,25 @@ export class CourseRegistrationClient {
       }
 
       let loginCheckBody: string | undefined;
-      if (this.student) {
-        this.emitProgress("신청 가능 일정 확인 중...");
-        const checkRequest = createCourseRegLoginCheckRequest(creds, this.student, this.term, {
-          baseUrl: this.baseUrl
-        });
-        loginCheckBody = await this.postSsv(checkRequest);
-      }
+      // full(기본): 일정 확인 + 메뉴 진입. fast: 스크립트 전용 간소화 시에만 생략.
+      if (!fast) {
+        if (this.student) {
+          this.emitProgress("신청 가능 일정 확인 중...");
+          const checkRequest = createCourseRegLoginCheckRequest(creds, this.student, this.term, {
+            baseUrl: this.baseUrl
+          });
+          loginCheckBody = await this.postSsv(checkRequest);
+        }
 
-      // 수강신청 메뉴 진입 (패킷: findMenu strMenuId=M100780)
-      try {
-        this.emitProgress("수강신청 메뉴 진입 중 (M100780)...");
-        const menuRequest = createCourseRegMenuRequest(undefined, { baseUrl: this.baseUrl });
-        await this.postSsv(menuRequest);
-      } catch {
-        // 메뉴 조회 실패는 치명적이지 않음
-        this.emitProgress("메뉴 진입 요청 실패 (계속 진행)");
+        // 수강신청 메뉴 진입 (패킷: findMenu strMenuId=M100780)
+        try {
+          this.emitProgress("수강신청 메뉴 진입 중 (M100780)...");
+          const menuRequest = createCourseRegMenuRequest(undefined, { baseUrl: this.baseUrl });
+          await this.postSsv(menuRequest);
+        } catch {
+          // 메뉴 조회 실패는 치명적이지 않음
+          this.emitProgress("메뉴 진입 요청 실패 (계속 진행)");
+        }
       }
 
       const result = composeCourseRegLoginResult({
@@ -436,6 +459,82 @@ export class CourseRegistrationClient {
     const request = createCourseRegMyListRequest(query, this.baseUrl);
     const body = await this.postSsv(request);
     return dedupeRegistered(parseCourseRegMyListResponse(body));
+  }
+
+  /**
+   * 내 수강신청(확정) 목록으로 간이 시간표를 구성한다.
+   * 희망바구니 목록이 아니라 findAppcsDtlsList 결과만 사용한다.
+   * @param {CourseRegMyListOptions} [options={}] - 목록 조회 옵션
+   * @returns {Promise<CourseRegRegisteredTimetable>} 확정 과목 시간표 집계
+   */
+  async getMyRegisteredTimetable(
+    options: CourseRegMyListOptions = {}
+  ): Promise<CourseRegRegisteredTimetable> {
+    const subjects = await this.getMyRegisteredList(options);
+    const enriched = await this.enrichRegisteredSubjectsWithInstructor(subjects);
+    return buildHopeBasketTimetable(enriched);
+  }
+
+  /**
+   * 확정 수강 시간표를 콘솔용 ASCII 그리드로 반환한다
+   * @param {CourseRegMyListOptions} [options={}] - 목록 조회 옵션
+   * @returns {Promise<string>} ASCII 시간표 그리드
+   */
+  async formatMyRegisteredTimetable(options: CourseRegMyListOptions = {}): Promise<string> {
+    const timetable = await this.getMyRegisteredTimetable(options);
+    return formatHopeBasketTimetableGrid(timetable);
+  }
+
+  /**
+   * 확정 수강 시간표를 HTML/PNG 로 저장한다.
+   * 렌더는 희망바구니와 동일한 SVG 격자이며, 데이터만 본신청 목록이다.
+   * @param {CourseRegMyListOptions & { outputDir?: string; fileBaseName?: string; title?: string; subtitle?: string; tryPng?: boolean }} [options]
+   * @returns {Promise<{ timetable: CourseRegRegisteredTimetable; htmlPath: string; pngPath?: string }>}
+   */
+  async exportMyRegisteredTimetableImage(
+    options: CourseRegMyListOptions & {
+      outputDir?: string;
+      fileBaseName?: string;
+      title?: string;
+      subtitle?: string;
+      tryPng?: boolean;
+    } = {}
+  ): Promise<{
+    timetable: CourseRegRegisteredTimetable;
+    htmlPath: string;
+    pngPath?: string;
+  }> {
+    const timetable = await this.getMyRegisteredTimetable(options);
+    const student = this.student;
+    const files = await exportHopeBasketTimetableImage(timetable, {
+      outputDir: options.outputDir,
+      fileBaseName:
+        options.fileBaseName ?? buildKoreanTimetableFileBaseName("수강신청_시간표"),
+      title:
+        options.title ??
+        (student?.stdntNm ? `${student.stdntNm} 수강신청 시간표` : "수강신청 시간표"),
+      subtitle: options.subtitle ?? formatStudentTimetableSubtitle(student, timetable, "수강신청"),
+      tryPng: options.tryPng
+    });
+    return { timetable, ...files };
+  }
+
+  /**
+   * 확정 수강 시간표 SVG 문자열을 반환한다
+   * @param {CourseRegMyListOptions & { title?: string; subtitle?: string }} [options]
+   * @returns {Promise<string>} SVG 문서
+   */
+  async renderMyRegisteredTimetableSvg(
+    options: CourseRegMyListOptions & { title?: string; subtitle?: string } = {}
+  ): Promise<string> {
+    const timetable = await this.getMyRegisteredTimetable(options);
+    const student = this.student;
+    return renderHopeBasketTimetableSvg(timetable, {
+      title:
+        options.title ??
+        (student?.stdntNm ? `${student.stdntNm} 수강신청 시간표` : "수강신청 시간표"),
+      subtitle: options.subtitle ?? formatStudentTimetableSubtitle(student, timetable, "수강신청")
+    });
   }
 
   /**
@@ -528,7 +627,7 @@ export class CourseRegistrationClient {
 
       attempts += 1;
       try {
-        // 재시도 루프에서는 보조 요청 생략으로 속도 확보
+        // 재시도 루프 기본: GLIO/sysdate 생략 (기존). 경고 장학생은 호출측이 명시할 때만 생략.
         lastResult = await this.registerCourse({
           ...options,
           skipAuxRequests: options.skipAuxRequests ?? true
@@ -741,6 +840,57 @@ export class CourseRegistrationClient {
       }
     }
     throw normalizeNetworkError(lastError);
+  }
+
+  /**
+   * 확정 목록에 담당 교수명이 비어 있으면 개설 검색으로 보강한다
+   * @param {CourseRegRegisteredSubject[]} subjects - 원본 신청 목록
+   * @returns {Promise<CourseRegRegisteredSubject[]>} 교수명이 채워진 목록
+   * @private
+   */
+  private async enrichRegisteredSubjectsWithInstructor(
+    subjects: CourseRegRegisteredSubject[]
+  ): Promise<CourseRegRegisteredSubject[]> {
+    if (!subjects.length) return subjects;
+
+    const needCodes = [
+      ...new Set(
+        subjects
+          .filter((item) => !item.chrgInstrEmpnm?.trim() && item.subjtCd)
+          .map((item) => item.subjtCd)
+      )
+    ];
+    if (!needCodes.length) return subjects;
+
+    const byCode = new Map<string, SugangSubject[]>();
+    for (const code of needCodes) {
+      try {
+        this.emitProgress(`교수명 보강 중: ${code}`);
+        const found = await this.searchSubjects({
+          keyword: code,
+          subjtCd: code
+        });
+        byCode.set(
+          code,
+          found.filter((item) => item.subjtCd === code && item.chrgInstrEmpnm)
+        );
+      } catch {
+        byCode.set(code, []);
+      }
+    }
+
+    return subjects.map((subject) => {
+      if (subject.chrgInstrEmpnm?.trim()) return subject;
+      const candidates = byCode.get(subject.subjtCd) ?? [];
+      const match =
+        candidates.find((item) => item.corseDvclsNo === subject.corseDvclsNo) || candidates[0];
+      if (!match?.chrgInstrEmpnm) return subject;
+      return {
+        ...subject,
+        chrgInstrEmpnm: match.chrgInstrEmpnm,
+        chrgInstrEmpno: match.chrgInstrEmpno || subject.chrgInstrEmpno
+      };
+    });
   }
 
   /**

@@ -14,5 +14,5 @@
     "skipLibCheck": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["src", "test", "examples", "cli"]
+  "include": ["src", "test", "examples", "cli", "db-generator"]
 }

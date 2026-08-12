@@ -18,31 +18,42 @@
 
 ## 최근 변경 요약
 
+상세 이력은 [`CHANGELOG.md`](./CHANGELOG.md) Unreleased 항목과 같습니다.
+
+### 예약 수강신청 CLI
+
+- `cli/scheduled-registration.ts` (`npm run sugang:scheduled`)
+- 예약 시각 대기 → 로그인 성공할 때까지 → 우선순위 라운드로빈 신청
+- 매크로 경로만 간소화: `login({ mode: "fast" })`, 신청 시 `skipWarnCheck` + `skipAuxRequests`
+- 모듈 기본값(full 로그인·경고 장학생 체크)은 그대로. 간소화는 예약 스크립트에서만 opt-in
+- 플랜 JSON 저장/로드. 실제 플랜(`*.plan.json`)은 gitignore, 예시는 `scheduled-registration.plan.example.json`
+
+### 로컬 개설 과목 DB
+
+- `src/course-catalog/`: 날짜마다 바뀌는 DB 파일명 자동 감지
+  - `SEOWON_COURSE_DB` → `db-generator/output/latest.json` → output 내 최신 mtime
+- `npm run generate:db` 와 예약 큐 메뉴 `g` 가 같은 `generateCourseDb()` 사용
+- 예약 검색 `a`: 라이브 실패/0건이면 로컬 DB 폴백. `b`: 로컬만 검색
+
+### 본신청 확정 시간표 이미지
+
+- 희망바구니와 **같은** `timtbNm` → HTML/PNG 렌더러
+- 데이터는 실제 수강신청 목록(`findAppcsDtlsList`)만 사용. 희망바구니 담기 목록 아님
+- 본신청 매니저 메뉴 7, 예약 매크로 종료 후 저장 여부 확인
+- `getMyRegisteredTimetable()` / `exportMyRegisteredTimetableImage()`
+
 ### 수강신청 본신청 모듈
 
-- `src/course-registration/` 신규: 정식 수강신청(등록/취소/내 목록/연속 재시도)
-- 공개 API: `CourseRegistrationClient` / `createCourseRegistrationClient`
+- `src/course-registration/`: 등록/취소/내 목록/연속 재시도
 - CLI: `npm run sugang:registration` (`course-reg:manager` 별칭)
-- 서버 구분: menuId `M100780` / pgmId `P001619`, 쿠키 `.seowon-sugang.cookies.json`
+- menuId `M100780` / pgmId `P001619`, 쿠키 `.seowon-sugang.cookies.json`
 - 단위 테스트 + 라이브 스모크(`npm run test:course-reg:smoke`, 등록/취소 미수행)
 
-### 코드 최적화
+### 코드 최적화·루트 정리
 
-- `src/utils.ts` 공통화: `normalizeBaseUrl`, `escapeRegExp`, `COMMON_AJAX_HEADERS`, `errorMessage`
-- 쿠키 저장 비동기화(`saveCookieJarToFile` → Promise) 및 `createDebouncedCookieSaver`
-- 타입 강화(`any` → `unknown`), 희망바구니 검색 `subjtNm` 컬럼 보정
-- 미사용 `ts-node` 제거, 실행은 `tsx` 유지
-
-### 프로젝트 루트 정리
-
-| 이전 (루트 혼재) | 이후 |
-| :--------------- | :--- |
-| `*-manager.ts`, `prompt-client.js` | `cli/` |
-| 구현 프롬프트·개선 메모·피드백 노트 | `docs/prompts/`, `docs/notes/`, `docs/feedback/` |
-| `SAZ/` 패킷 원본 | `research/saz/` (gitignore, 로컬 전용) |
-| 대형 `all-courses*.json` | `data/` (gitignore) |
-
-CLI는 `npm run …` 으로 실행하면 경로를 외울 필요 없습니다. 쿠키 파일 기본 위치는 계속 **프로젝트 루트**입니다.
+- `src/utils.ts` 공통화, 쿠키 비동기 저장, `any` → `unknown`
+- CLI는 `cli/`, 프롬프트·메모는 `docs/`, SAZ는 `research/saz/` (gitignore)
+- 대형 과목 JSON은 `data/` (gitignore). 쿠키 파일 기본 위치는 **프로젝트 루트**
 
 ## 주요 기능
 
@@ -86,10 +97,29 @@ CLI는 `npm run …` 으로 실행하면 경로를 외울 필요 없습니다. �
 - 본신청 로그인 (서버 과부하 시 `flag=0` 허위 실패 자동 재시도)
 - 개설 교과목 검색 (`findEstblSubjtGnrlList`, menuId=`M100780`)
 - 내 수강신청 목록 (`findAppcsDtlsList` → Dataset `dsSapl231`)
+- 확정 수강 시간표 이미지 (HTML/PNG, 희망바구니와 동일 렌더러 · 데이터는 본신청 목록)
 - 수강신청 등록 / 취소 (`saveAppcsDtls` / `saveAppcsDtlsCancl`)
 - 등록 전 경고 장학생 체크 (`findWarnStdrInqryCscnt` → `saveWarnStdrInqrtCscnt`)
 - 정원 초과 과목 **연속 재시도** (`registerCourseWithRetry`)
 - 네트워크 오류(`ECONNRESET` / timeout) 지수 백오프 재시도
+- 로그인 `mode: "full"`(기본, 브라우저와 유사) / `"fast"`(예약 매크로 전용 opt-in)
+
+### 로컬 개설 과목 DB (`db-generator` + `src/course-catalog/`)
+
+희망바구니 검색으로 학기 전체 개설 목록을 JSON으로 모아 두고, 본신청 오픈 전·라이브 검색 실패 시 플랜 구성에 씁니다. 정원·실시간 잔여 좌석은 없습니다.
+
+```bash
+npm run generate:db    # 수집 + latest.json 포인터 기록
+npm run view:db        # 검색/필터 뷰어 (파일명 자동 감지)
+```
+
+예약 매크로 과목 큐에서도 `g` 로 같은 수집을 돌릴 수 있습니다.
+
+파일명에 날짜가 들어가도 아래 순서로 최신 파일을 고릅니다.
+
+1. 환경변수 `SEOWON_COURSE_DB` (경로 강제)
+2. `db-generator/output/latest.json` 포인터
+3. `output/` 안에서 카탈로그 JSON 중 mtime 이 가장 최근인 파일
 
 ### 공통
 
@@ -123,6 +153,7 @@ DOWNLOAD_HIGH_WATER_MARK=1024
 | `SEOWON_ID`                | 로그인 아이디 또는 학번             |
 | `SEOWON_PASSWORD`          | 로그인 비밀번호                     |
 | `DOWNLOAD_HIGH_WATER_MARK` | 다운로드 버퍼 크기(KB), 기본 `1024` |
+| `SEOWON_COURSE_DB`         | (선택) 로컬 개설 과목 JSON 경로. 없으면 `latest.json` 또는 최신 mtime |
 
 쿠키 파일:
 
@@ -142,6 +173,7 @@ DOWNLOAD_HIGH_WATER_MARK=1024
 | `auto-manager` | `cli/auto-manager.ts` | `npm run auto:manager` | e-campus 다운로드·자동 시청·과제·성적 반복 작업 |
 | `hope-basket-manager` | `cli/hope-basket-manager.ts` | `npm run hope-basket:manager` | 수강희망바구니(예비 담기) 전용 CLI |
 | `course-registration-manager` | `cli/course-registration-manager.ts` | `npm run sugang:registration` | **수강신청 본신청** 전용 CLI |
+| `scheduled-registration` | `cli/scheduled-registration.ts` | `npm run sugang:scheduled` | **예약** 수강신청 (시각·우선순위 큐) |
 | `db-generator` | `db-generator/generate.ts` | `npm run generate:db` | 전체 개설 과목 수집 및 JSON 저장 |
 | `db-viewer` | `db-generator/viewer.ts` | `npm run view:db` | 생성된 과목 DB 검색 및 페이지네이션 뷰어 |
 
@@ -266,12 +298,57 @@ npm run course-reg:manager
 4. 수강신청 취소
 5. 내 수강신청 목록 조회
 6. 연속 재시도 모드 (정원 초과 과목 반복 신청)
+7. 내 수강신청 시간표 이미지 (HTML/PNG)
 0. 종료
 ```
 
 - 메뉴 6: 정원 초과 시 지정 간격(기본 500ms)으로 반복 신청, 성공 시 중단, `Ctrl+C`로 종료
+- 메뉴 7: **실제 수강신청된 과목**(`findAppcsDtlsList`)으로 시간표 HTML/PNG 저장. 희망바구니 담기 목록이 아님. 생성 후 OS 기본 뷰어로 연다.
 - 로그인 `flag=0`(과부하 허위 실패) 및 네트워크 오류 자동 재시도
 - `.env`의 `SEOWON_ID` / `SEOWON_PASSWORD`로 자동 로그인
+
+### scheduled-registration (예약 수강신청)
+
+```bash
+npm run sugang:scheduled
+# 또는
+npm run course-reg:scheduled
+```
+
+지정 시각에 맞춰 **로그인 성공할 때까지** 시도한 뒤, 미리 담아 둔 과목을 **우선순위 라운드로빈**으로 신청합니다.  
+실행 경로는 **매크로에 가깝게 최소화**합니다 (`login mode=fast`, `skipWarnCheck` + `skipAuxRequests`).
+
+```text
+1. 예약 시각(시:분:초) · 날짜(선택) 설정
+2. 과목 큐 구성 (라이브 검색 `a` → 실패 시 로컬 DB 폴백 / 로컬만 `b` / DB 생성 `g` / 코드 직접 입력)
+3. 플랜 JSON 저장·불러오기 가능 (scheduled-registration.plan.json)
+4. 「지금 바로 시작」= y → 예약 시각 무시하고 즉시 실행 (테스트용)
+   「지금 바로 시작」= n → 설정한 시각까지 대기 후 실행
+5. 로그인(fast) 루프 → 과목별 돌아가며 saveAppcsDtls 만 전송
+6. 종료 시 성공/실패 요약 + 서버 내 신청 목록 + (선택) 확정 시간표 이미지 저장
+```
+
+| 설정 | 기본 | 설명 |
+| :--- | :--- | :--- |
+| 로그인 재시도 간격 | 300ms | 서버 오픈 직전 과부하 대응 |
+| 과목 신청 간격 | 200ms | 라운드로빈 과목 간 대기 |
+| 과목당 최대 시도 | 0(무한) | 0이면 Ctrl+C 전까지 계속 |
+
+**fast 로그인에 포함**: 세션(`/nx/`) · 학년도/학기 · `findAppcsLogin` · `findStunoInfo`(신청 문맥)  
+**fast에서 생략**: 신청 가능 일정 확인 · 메뉴 진입(`findMenu`)
+
+**신청 시 포함**: `saveAppcsDtls` (실제 등록)  
+**신청 시 생략**: 경고 장학생 조회/저장 · GLIO · sysdate  
+(브라우저 UI 패킷에는 선행되지만, 등록 성패는 `saveAppcsDtls` 응답이 기준)
+
+- **재시도**: 정원 초과, 네트워크/타임아웃, 미분류 서버 오류
+- **즉시 확정 실패(해당 과목만 중단)**: 학점 초과, 시간표 충돌, 신청 기간 아님, 학과 제한
+- **성공 처리**: 등록 성공 또는 이미 신청된 과목
+- 실제 플랜 파일은 gitignore (`*.plan.json`) — 공개 저장소에 올리지 마세요
+- 필드 예시는 `scheduled-registration.plan.example.json`
+- **로컬 DB 폴백**: `db-generator/output` 의 JSON (파일명이 날짜마다 달라도 `latest.json` 또는 최신 mtime으로 자동 감지)
+  - `npm run generate:db` 또는 큐 메뉴 `g` 후, 라이브 목록이 없어도 검색 가능
+  - 경로 강제: 환경변수 `SEOWON_COURSE_DB`
 
 ## 라이브러리 API
 
@@ -401,6 +478,7 @@ await courseReg.login({
   stuno: "your_student_no",
   password: "your_password"
 });
+// 예약 매크로만 두 번째 인자로 { mode: "fast" } 를 넘긴다. 기본은 full.
 
 // 개설 검색 (menuId=M100780)
 const subjects = await courseReg.searchSubjects({
@@ -419,6 +497,12 @@ console.log(result.success, result.message, result.errorType);
 
 // 내 수강신청 목록 (findAppcsDtlsList.do — 희망바구니 ShpbsList 아님)
 const registered = await courseReg.getMyRegisteredList();
+
+// 확정 과목으로 시간표 HTML/PNG (희망바구니 담기 목록 아님)
+const timetableFiles = await courseReg.exportMyRegisteredTimetableImage({
+  outputDir: "./output"
+});
+console.log(timetableFiles.htmlPath, timetableFiles.pngPath);
 
 // 취소
 await courseReg.cancelCourse({
@@ -547,12 +631,16 @@ e-campus 파서: `src/ecampus/saz.ts` · 희망바구니 파서: `src/hope-baske
 
 | 메서드                     | 설명 |
 | :------------------------- | :--- |
-| `login()`                  | 본신청 로그인 (appcsKindCd 없음, flag=0 재시도) |
+| `login()`                  | 본신청 로그인 (appcsKindCd 없음, flag=0 재시도). `mode: "fast"` 는 opt-in |
 | `ensureLoggedIn()`         | 세션 만료 시 자동 재로그인 |
 | `syncTermContext()`        | 학년도/학기 동기화 |
 | `searchSubjects()`         | 개설 교과목 검색 (GnrlList, M100780) |
 | `getMyRegisteredList()`    | 내 수강신청 목록 (`findAppcsDtlsList`) |
-| `registerCourse()`         | 수강신청 등록 (`saveAppcsDtls`, 경고체크 포함) |
+| `getMyRegisteredTimetable()` | 확정 목록으로 간이 시간표 집계 (`timtbNm` 파싱) |
+| `formatMyRegisteredTimetable()` | 확정 시간표 ASCII 그리드 |
+| `exportMyRegisteredTimetableImage()` | 확정 시간표 HTML/PNG 저장 (희망바구니와 동일 렌더러) |
+| `renderMyRegisteredTimetableSvg()` | 확정 시간표 SVG 마크업 |
+| `registerCourse()`         | 수강신청 등록 (`saveAppcsDtls`, 기본은 경고체크 포함. `skipWarnCheck` 는 opt-in) |
 | `cancelCourse()`           | 수강신청 취소 (`saveAppcsDtlsCancl`) |
 | `registerCourseWithRetry()`| 정원 초과 등 연속 재시도 등록 |
 
@@ -591,20 +679,26 @@ src/
     registration.ts            create*/parse* 순수 함수
     client.ts                  CourseRegistrationClient
     types/registration.ts      CourseReg* 타입
+  course-catalog/              로컬 개설 과목 JSON 감지·검색·수집
+    local-db.ts                파일명 자동 감지·검색
+    generate-db.ts             generateCourseDb() (generate:db / 매크로 g 공용)
 cli/
   prompt-client.js             개별 API 진단 CLI
   auto-manager.ts              e-campus 반복 작업 CLI
   hope-basket-manager.ts       희망바구니 CLI
   course-registration-manager.ts 수강신청 본신청 CLI
+  scheduled-registration.ts    예약 수강신청 (시각·우선순위 큐)
+  registered-timetable.ts      본신청 확정 시간표 저장/뷰어 공용
 scripts/
   build-legacy-crypto.cjs
   copy-legacy.cjs
   analyze-saz.mjs
   capture-live.mjs
 db-generator/
-  generate.ts                  전체 개설 과목 수집 → JSON DB
+  generate.ts                  generateCourseDb() 래퍼
   viewer.ts                    생성된 DB 검색/필터 뷰어
-  output/                      생성된 JSON DB 저장 디렉터리
+  output/                      JSON DB + latest.json 포인터
+scheduled-registration.plan.example.json   예약 플랜 필드 예시 (실제 플랜은 gitignore)
 docs/
   architecture.md              구조 메모
   api-responses/               샘플 응답
@@ -627,8 +721,10 @@ output/                        시간표 HTML/PNG 등 생성물 (gitignore)
 | `npm run hope-basket:manager`   | 희망바구니 CLI                            |
 | `npm run sugang:registration`   | **수강신청 본신청** CLI                   |
 | `npm run course-reg:manager`    | `sugang:registration` 별칭                |
-| `npm run generate:db`           | 전체 개설 과목 수집 → JSON DB             |
-| `npm run view:db`               | 생성된 과목 DB 검색/필터 뷰어             |
+| `npm run sugang:scheduled`      | **예약** 수강신청 (시각·우선순위 큐)      |
+| `npm run course-reg:scheduled`  | `sugang:scheduled` 별칭                   |
+| `npm run generate:db`           | 전체 개설 과목 수집 → JSON + `latest.json` 포인터 |
+| `npm run view:db`               | 생성된 과목 DB 검색/필터 뷰어 (파일명 자동 감지) |
 | `npm run analyze:saz`           | SAZ 패킷 분석                             |
 | `npm run capture:live`          | Chrome live traffic capture               |
 | `npm run typecheck`             | TypeScript 검사                           |
@@ -680,6 +776,7 @@ data/all-courses-enriched.json
 tmp-*.html
 captures/
 output/
+*.plan.json
 .puppeteer-user-data/
 ```
 
@@ -696,7 +793,8 @@ output/
 | `scripts/` | 빌드·SAZ 분석·live capture 보조 스크립트 |
 | `docs/` | 아키텍처·샘플 응답·프롬프트·피드백 메모 |
 | `research/` | 로컬 역공학 자료 (`saz/` 등, 민감·gitignore) |
-| `db-generator/` | 전체 개설 과목 DB 수집/뷰어 |
+| `db-generator/` | 전체 개설 과목 DB 수집/뷰어 (`output/latest.json` 포인터) |
+| `src/course-catalog/` | 로컬 과목 DB 파일명 자동 감지·검색 |
 | `data/` | 대형 과목 DB 스냅샷 (gitignore) |
 | `examples/` | 사용 예시 |
 | `dist/` | 빌드 산출물 |
@@ -709,6 +807,7 @@ output/
 npm run typecheck
 npx vitest run test/hope-basket.test.ts
 npx vitest run test/course-registration.test.ts
+npx vitest run test/course-catalog-local-db.test.ts
 # 실제 서버 스모크 (.env 계정 필요, 등록/취소는 수행하지 않음)
 npm run test:course-reg:smoke
 ```

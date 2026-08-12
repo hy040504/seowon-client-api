@@ -33,6 +33,8 @@
     "sugang:manager": "npm run hope-basket:manager",
     "sugang:registration": "tsx cli/course-registration-manager.ts",
     "course-reg:manager": "tsx cli/course-registration-manager.ts",
+    "sugang:scheduled": "tsx cli/scheduled-registration.ts",
+    "course-reg:scheduled": "tsx cli/scheduled-registration.ts",
     "generate:db": "tsx db-generator/generate.ts",
     "view:db": "tsx db-generator/viewer.ts",
     "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
@@ -42,7 +44,7 @@
     "lint": "eslint .",
     "prepack": "npm run build",
     "pretest": "node scripts/build-legacy-crypto.cjs",
-    "test": "vitest run test/index.test.ts test/ecampus-login.test.ts test/ecampus-courses.test.ts test/ecampus-assignments.test.ts test/ecampus-materials.test.ts test/ecampus-notices.test.ts test/ecampus-cookie-persistence.test.ts test/ecampus-elearning.test.ts test/hope-basket.test.ts test/course-registration.test.ts",
+    "test": "vitest run test/index.test.ts test/ecampus-login.test.ts test/ecampus-courses.test.ts test/ecampus-assignments.test.ts test/ecampus-materials.test.ts test/ecampus-notices.test.ts test/ecampus-cookie-persistence.test.ts test/ecampus-elearning.test.ts test/hope-basket.test.ts test/course-registration.test.ts test/course-catalog-local-db.test.ts",
     "test:login": "node scripts/build-legacy-crypto.cjs && vitest run test/ecampus-login.integration.test.ts --reporter verbose",
     "test:course-reg:smoke": "vitest run test/course-registration.smoke.test.ts --reporter verbose",
     "typecheck": "tsc --noEmit"

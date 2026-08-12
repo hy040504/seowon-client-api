@@ -1,3 +1,5 @@
+import { exec } from "node:child_process";
+import path from "node:path";
 import readline from "node:readline/promises";
 
 /**
@@ -321,4 +323,26 @@ export function getProgressBar(current: number, total: number, width: number = 3
   const percentText = (percent * 100).toFixed(1).padStart(5) + "%";
 
   return `|${color(bar, ANSI.cyan)}| ${color(percentText, ANSI.bold)}`;
+}
+
+/**
+ * OS 기본 앱으로 로컬 파일을 연다 (이미지 뷰어/브라우저)
+ * @param {string} filePath - 파일 절대/상대 경로
+ * @returns {Promise<void>} 프로세스 기동 후 resolve
+ */
+export async function openLocalFile(filePath: string): Promise<void> {
+  const target = path.resolve(filePath);
+  const command =
+    process.platform === "win32"
+      ? `explorer.exe "${target}"`
+      : process.platform === "darwin"
+        ? `open "${target}"`
+        : `xdg-open "${target}"`;
+
+  return new Promise<void>((resolve) => {
+    exec(command, () => {
+      // 뷰어 실행 실패여도 CLI 를 멈추지 않는다
+    });
+    setTimeout(() => resolve(), 300);
+  });
 }
