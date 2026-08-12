@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { CookieJar, type SerializedCookieJar } from "tough-cookie";
 
 /**
@@ -19,16 +20,71 @@ export function loadCookieJarFromFile(filePath: string): CookieJar | undefined {
 
 /**
  * 현재 메모리에 유지 중인 세션 쿠키를 파일로 영구 저장한다.
+ * 동기 writeFileSync 대신 비동기 writeFile을 사용해 이벤트 루프 블로킹을 줄인다.
  * @param {string} filePath - 저장할 파일 경로
  * @param {CookieJar} cookieJar - 직렬화할 쿠키 저장소
- * @returns {void} 반환값 없음
+ * @returns {Promise<void>} 저장 완료 시 resolve
  */
-export function saveCookieJarToFile(filePath: string, cookieJar: CookieJar): void {
+export async function saveCookieJarToFile(filePath: string, cookieJar: CookieJar): Promise<void> {
   const serialized = cookieJar.serializeSync();
   if (!serialized) return;
 
   // 디버깅 편의성을 위해 들여쓰기가 적용된 JSON 포맷으로 기록
-  writeFileSync(filePath, JSON.stringify(serialized, null, 2), "utf8");
+  await writeFile(filePath, JSON.stringify(serialized, null, 2), "utf8");
+}
+
+/**
+ * 쿠키 파일 저장을 디바운스한다.
+ * 연속 API 호출마다 디스크 쓰기가 쌓이지 않도록 지연 후 1회 저장한다.
+ * 로그인 직후 등 확정이 필요하면 `flush()`를 호출한다.
+ * @param debounceMs - 지연 시간(ms), 기본 500
+ */
+export function createDebouncedCookieSaver(debounceMs = 500): {
+  schedule: (filePath: string, cookieJar: CookieJar) => void;
+  flush: (filePath?: string, cookieJar?: CookieJar) => Promise<void>;
+} {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let pending: { filePath: string; cookieJar: CookieJar } | null = null;
+  let chain: Promise<void> = Promise.resolve();
+
+  const runSave = (filePath: string, cookieJar: CookieJar): void => {
+    chain = chain
+      .then(() => saveCookieJarToFile(filePath, cookieJar))
+      .catch(() => {
+        // 디스크 오류는 세션 사용을 막지 않는다. 다음 저장에서 재시도한다.
+      });
+  };
+
+  return {
+    schedule(filePath: string, cookieJar: CookieJar): void {
+      pending = { filePath, cookieJar };
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        const snap = pending;
+        pending = null;
+        if (snap) runSave(snap.filePath, snap.cookieJar);
+      }, debounceMs);
+    },
+
+    async flush(filePath?: string, cookieJar?: CookieJar): Promise<void> {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      const target =
+        filePath && cookieJar
+          ? { filePath, cookieJar }
+          : pending
+            ? { ...pending }
+            : null;
+      pending = null;
+      if (target) {
+        chain = chain.then(() => saveCookieJarToFile(target.filePath, target.cookieJar));
+      }
+      await chain;
+    }
+  };
 }
 
 /**

@@ -80,12 +80,5 @@ export function parseFunctionArguments(source: string): string[] {
   return args;
 }
 
-/**
- * 문자열 내의 정규식 특수문자를 이스케이프한다.
- * 사용자 입력값을 정규식 패턴으로 사용할 때 의도치 않은 매칭을 방지하기 위해 필수적이다.
- * @param {string} value - 이스케이프할 문자열
- * @returns {string} 정규식 리터럴로 안전하게 사용 가능한 문자열
- */
-export function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+/** @see {@link escapeRegExp} — 공통 구현은 src/utils.ts */
+export { escapeRegExp } from "../utils.js";

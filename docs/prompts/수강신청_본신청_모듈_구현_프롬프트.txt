@@ -1,0 +1,1115 @@
+# 서원대학교 수강신청 본신청 모듈 구현 요청
+# (SAZ 패킷 파일 직접 분석 기반 — 실제 HTTP 데이터로 구체화된 버전)
+
+================================================================================
+## ★ 최우선 필독: 수강희망바구니 vs 수강신청 본신청 — 절대 혼용 금지
+================================================================================
+
+이 두 시스템은 완전히 별개의 기능이다. 코드 작성 중 어느 한쪽의 개념·경로·타입을
+다른 쪽에 혼용하면 실제 수강신청이 오작동하므로 아래 기준을 항상 지킨다.
+
+### 기능 정의
+
+  [수강희망바구니] = 이미 구현됨 → src/hope-basket/ + hope-basket-manager.ts
+    - 수강신청 전에 미리 담아두는 '예비 바구니'
+    - appcsKindCd = 100
+    - menuId = M100779 / pgmId = P001609
+    - 한국어로: 희망바구니, 예비 담기, 수강희망바구니
+    - 이 모듈에는 절대 손대지 않는다.
+
+  [수강신청 본신청] = 이번에 새로 구현 → src/course-registration/ + course-registration-manager.ts
+    - 실제로 수강 등록을 확정하는 '진짜 수강신청'
+    - appcsKindCd 파라미터 없음 (본신청에는 미사용)
+    - menuId = M100780 / pgmId = P001619
+    - 한국어로: 수강신청, 본신청, 실제 수강신청
+    - 이 모듈만 새로 만든다.
+
+### 엔드포인트 구분표 (혼용 절대 금지)
+
+  기능           | 희망바구니 경로 (건드리지 않음)           | 본신청 경로 (새로 구현)
+  -------------|----------------------------------------|----------------------------------------
+  담기/등록       | saveHopeAppcsDtls.do                   | saveAppcsDtls.do
+  취소           | saveHopeAppcsDtlsCancl.do              | saveAppcsDtlsCancl.do
+  내 목록 조회    | findEstblSubjtShpbsList.do             | findAppcsDtlsList.do
+  검증(체크)      | findSaplHopeAppcsChk.do (희망바구니용)  | findWarnStdrInqryCscnt.do (본신청용)
+  과목 검색       | findEstblSubjtGnrlList.do (M100779)    | findEstblSubjtGnrlList.do (M100780)
+
+  위 표의 희망바구니 경로는 새 모듈에서 절대 사용하지 않는다.
+  본신청 경로를 기존 희망바구니 코드에 추가하지도 않는다.
+
+### 타입 접두어 구분표
+
+  희망바구니 타입 (기존, 변경 금지)   | 본신청 타입 (신규 생성)
+  ----------------------------------|---------------------------
+  SugangSubject                     | CourseRegRegisteredSubject
+  SugangBasketMutationOptions       | CourseRegMutationOptions
+  SugangBasketMutationResult        | CourseRegMutationResult
+  SugangMyHopeBasketListOptions     | CourseRegMyListOptions
+  SugangLoginCredentials            | CourseRegLoginCredentials
+  SugangLoginResult                 | CourseRegLoginResult
+  HopeBasketClientOptions           | CourseRegistrationClientOptions
+  HopeBasketClient                  | CourseRegistrationClient
+
+  단, 두 시스템이 공유하는 타입은 기존 것을 그대로 재사용한다:
+    - SugangStudentInfo  (로그인 후 학생 정보 — 서버/구조 동일)
+    - SugangTermContext  (학년도/학기 문맥 — 구조 동일)
+    - SugangAppcsSchedule (수강 일정 — 공통 SSO API 사용)
+    - SsvDocument, SsvRow, SsvDataset (SSV 프로토콜 — 완전 동일)
+
+### 파일 소유권 구분
+
+  수정 금지 (희망바구니 소유):          새로 생성 (본신청 소유):
+  - src/hope-basket/                  - src/course-registration/
+  - hope-basket-manager.ts            - course-registration-manager.ts
+  - .seowon-hope-basket.cookies.json  - .seowon-sugang.cookies.json
+
+  src/index.ts → 하단에 새 export 블록 추가만 허용, 기존 export 수정 금지.
+
+================================================================================
+
+================================================================================
+## A. SAZ 패킷 분석 결과 요약 (구현의 근거)
+================================================================================
+
+분석 파일: SAZ\실제 수강신청\실제 수강신청 페이지 로그인 및 수강신청.saz
+         SAZ\실제 수강신청\수강신청 로그인 중 이유없이 비번 오류.saz
+
+---
+
+### ⚠️ 핵심 발견: 수강신청 본신청도 sugangh.seowon.ac.kr 서버를 사용한다
+
+기존 `src/hope-basket/`은 `sugangh.seowon.ac.kr`에서 menuId=M100779, pgmId=P001609을 씀.
+실제 수강신청(본신청)은 같은 서버(sugangh.seowon.ac.kr)에서 menuId=M100780, pgmId=P001619를 씀.
+즉, 서버는 동일하지만 메뉴 ID와 프로그램 ID가 다르고, 엔드포인트 경로가 다르다.
+
+| 항목           | 수강희망바구니 (기존)               | 수강신청 본신청 (신규)                |
+|--------------|----------------------------------|--------------------------------------|
+| 서버           | sugangh.seowon.ac.kr             | sugangh.seowon.ac.kr (동일)          |
+| 프로토콜        | Nexacro SSV                      | Nexacro SSV (동일)                   |
+| menuId        | M100779                          | M100780                              |
+| pgmId         | P001609                          | P001619                              |
+| 로그인          | findAppcsLogin.do?menuId=edu     | findAppcsLogin.do?menuId=edu (동일)  |
+| 메뉴 접근        | /nx/ (포털)                       | /nx/ (포털, 동일)                    |
+| 수강신청         | saveHopeAppcsDtls.do             | saveAppcsDtls.do ← 다름              |
+| 수강취소         | saveHopeAppcsDtlsCancl.do        | saveAppcsDtlsCancl.do ← 다름         |
+| 내 목록          | findEstblSubjtShpbsList.do       | findAppcsDtlsList.do ← 다름          |
+| 과목검색         | findEstblSubjtGnrlList.do        | findEstblSubjtGnrlList.do (동일)     |
+
+---
+
+### A-1. 실제 수강신청 SAZ 전체 흐름 (330 세션)
+
+#### Phase 1: 최초 접속 및 서버 과부하 오류 (세션 001~090)
+
+- 세션 001: `CONNECT sugangh.seowon.ac.kr:443` → 희망바구니 세션 중
+- 세션 066~076: `/nx/` 정적 리소스(JS/PNG) 로드 중 타임아웃 발생
+  - 응답: `[Fiddler] The connection to 'sugangh.seowon.ac.kr' failed.`
+  - 오류 코드: `Error: TimedOut (0x274c)`
+  - 오류 메시지: `System.Net.Sockets.SocketException 연결된 구성원으로부터 응답이 없어 연결하지 못했거나, 호스트로부터 응답이 없어 연결이 끊어졌습니다 211.230.232.1`
+  - 해석: 수강신청 시간대 서버 과부하로 TCP 연결 자체가 안 됨. TimedOut
+- 세션 087: `CONNECT sugangh.seowon.ac.kr:443` → 마찬가지로 TimedOut
+- 세션 088~090: 재접속 성공
+
+#### Phase 2: 로그인 시도 및 실패 반복 (세션 091~097)
+
+- 세션 091: `POST /com/SsoCtr/findAppcsLogin.do?menuId=edu&pgmId=edu`
+  - _RowType_: U (Update — 기존 세션에 덮어씌우는 의미)
+  - 응답: `dsFlag.flag=0` (로그인 실패)
+  - `dsSession.userNm=undefined` (사용자 정보 없음)
+  - 이유: 서버 과부하로 인증 모듈 오작동 (비번 오류 없이 단순 flag=0 반환)
+
+- 세션 093: `POST /com/SsoCtr/findAppcsLogin.do?menuId=edu&pgmId=edu`
+  - _RowType_: N (New)
+  - 응답: `dsFlag.flag=0` (또 실패)
+
+- 세션 097: `POST /com/SsoCtr/findAppcsLogin.do?menuId=edu&pgmId=edu`
+  - _RowType_: N
+  - 응답: `dsFlag.flag=0` (세 번째 실패)
+
+#### Phase 3: 최종 로그인 성공 및 수강신청 페이지 진입 (세션 100~165)
+
+- 세션 100~135: /nx/ 리소스 파일 로드 성공
+  - `theme.map.js`, `kmu.xiv.js`, `portal.xadl.js`, Nexacro XFDL 파일들
+
+- 세션 137: `POST /com/SsoCtr/findBaseInfo.do?menuId=edu&pgmId=edu`
+  - 기본 정보 조회
+
+- 세션 138: `POST /com/SsoCtr/isLogin.do?menuId=edu&pgmId=edu`
+  - 로그인 여부 확인
+
+- 세션 140: `POST /com/SsoCtr/findScomUnvfrSchdlInfo.do?menuId=edu&pgmId=edu`
+  - 요청 바디:
+    ```
+    flag=1
+    univunvfrSchdlCd=SAPL00010001
+    regDeptCd=20000
+    applcDeptCd=
+    applyCrseCd=
+    dgriCrseCd=
+    hy=
+    syy=
+    smtCd=
+    ```
+  - 응답: `dsUnvfc.reslt=202620` (학년도+학기 코드: 2026년 20=2학기)
+
+- 세션 141: `POST /com/SsoCtr/findAppcsSchdlList.do?menuId=edu&pgmId=edu`
+  - 신청 일정 목록 조회
+
+- 세션 142: `POST /com/SsoCtr/findAppcsNotcList.do?menuId=edu&pgmId=edu`
+  - 수강신청 공지사항 조회
+
+- 세션 147: `POST /com/SsoCtr/findAppcsLogin.do?menuId=edu&pgmId=edu` (다시 로그인)
+  - 응답: `dsFlag.flag=0` (또 실패)
+
+- 세션 155: `POST /com/SsoCtr/findAppcsLogin.do?menuId=edu&pgmId=edu` ✅ 로그인 최종 성공
+  - 응답: `dsFlag.flag=1` (성공)
+  - `dsSession.msg=success`, `dsSession.userNm=연승현(사용자이름)`
+  - 쿠키: `SESSIONID=a95d86a9-607e-46cc-829f-2716fecf19e9`
+
+- 세션 156: `POST /com/SsoCtr/findStunoInfo.do?menuId=edu&pgmId=edu` ✅
+  - 학생 정보 조회 성공
+
+- 세션 157: `POST /com/SsoCtr/findAppcsLoginChk.do?menuId=edu&pgmId=edu` ✅
+  - 로그인 가능 일정 체크 성공
+
+- 세션 159: `POST /com/cmsv/MenuCtr/findMenu.do?menuId=edu&pgmId=edu`
+  - 요청 바디: `strMenuId=M100780`
+  - 응답: 수강신청 메뉴 정보 반환 → 수강신청 화면으로 전환
+
+#### Phase 4: 수강신청 본신청 화면 (세션 163~)
+
+이후부터 모든 API 요청에서:
+- `menuId=M100780`
+- `pgmId=P001619`
+로 고정 변경됨
+
+#### Phase 5: 수강신청 반복 시도 (세션 209~330)
+
+각 수강신청 시도마다 아래 패턴으로 반복:
+
+```
+1. POST /com/sapl/SaplapCtr/findWarnStdrInqryCscnt.do?menuId=M100780&pgmId=P001619
+   → 경고 장학생 조회 횟수 확인
+   응답: SSV:UTF-8 | ErrorCode:int=0 | Dataset:dsWarnStdr (빈 데이터셋 = 경고장학생 아님)
+
+2. POST /com/sapl/SaplapCtr/saveWarnStdrInqrtCscnt.do?menuId=M100780&pgmId=P001619
+   → 경고 장학생 조회 횟수 저장
+   응답: SSV:UTF-8 | ErrorCode:int=0
+
+3. POST /com/SsoCtr/findMyGLIOList.do?menuId=M100780&pgmId=P001619
+   요청 바디: SSV:utf-8 | columnList=deptCd
+   응답: Dataset:DS_GLIO | deptCd=B10547 (학과코드)
+
+4. GET  /com/SsoCtr/findSysdate.do
+   응답: XML | <Parameter id="_sysdate">20260812100439</Parameter>
+
+5. POST /com/sapl/SaplapCtr/saveAppcsDtls.do?menuId=M100780&pgmId=P001619
+   ← 실제 수강신청 API
+```
+
+---
+
+### A-2. saveAppcsDtls (수강신청) 실제 요청/응답 스펙
+
+#### 요청 헤더
+```
+POST https://sugangh.seowon.ac.kr/com/sapl/SaplapCtr/saveAppcsDtls.do?menuId=M100780&pgmId=P001619 HTTP/1.1
+Host: sugangh.seowon.ac.kr
+Connection: keep-alive
+Content-Length: 413
+Cache-Control: no-cache, no-store
+Pragma: no-cache
+X-Requested-With: XMLHttpRequest
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+Accept: application/xml, text/xml, */*
+If-Modified-Since: Sat, 1 Jan 2000 00:00:00 GMT
+Content-Type: text/xml
+Origin: https://sugangh.seowon.ac.kr
+Referer: https://sugangh.seowon.ac.kr/nx/
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: ko,ko-KR;q=0.9,en-US;q=0.8,en;q=0.7
+Cookie: SESSIONID=a95d86a9-607e-46cc-829f-2716fecf19e9
+```
+
+#### 요청 바디 (SSV 형식)
+```
+SSV:utf-8
+requestTimeStr=1786496678990
+Dataset:dsParam
+_RowType_|syy:STRING(256)|smtCd:STRING(256)|stuno:STRING(256)|unvfrStdrDeptCd:STRING(256)|subjtCd:STRING(256)|corseDvclsNo:STRING(256)|ceckTrgetGbn:STRING(256)|hiPass:STRING(256)|ttcMapngNo:STRING(256)|gschSubjtYn:STRING(256)|stdntChngLmttYn:STRING(256)|bchdmCntcSubjtYn:STRING(256)|cmpsjDivCd:STRING(256)
+I|2026|20|202311420|20000|736012|01|H|0|(SSV_EMPTY)|(0)|(SSV_EMPTY)|(SSV_EMPTY)|01
+```
+
+파라미터 설명:
+- `syy`: 학년도 (예: 2026)
+- `smtCd`: 학기 코드 (20 = 2학기)
+- `stuno`: 학번
+- `unvfrStdrDeptCd`: 대학 기준 부서코드 (학부=20000)
+- `subjtCd`: 과목코드 (예: 736012 = 운영체제)
+- `corseDvclsNo`: 분반번호 (예: 01, KO 등)
+- `ceckTrgetGbn`: 검증 대상 구분 (H = 수강신청, 또는 빈값)
+- `hiPass`: hiPass 값 (0 또는 빈값)
+- `ttcMapngNo`: 시간표 매핑번호 (빈값 가능)
+- `gschSubjtYn`: 대학원 과목 여부 (0 또는 빈값)
+- `stdntChngLmttYn`: 학생 변경 제한 여부 (빈값 가능)
+- `bchdmCntcSubjtYn`: 학부-대학원 연계 과목 여부 (빈값 가능)
+- `cmpsjDivCd`: 이수 구분 코드 (01=전필, 02=전선, 03=교필, 04=교선 등)
+- `_RowType_`: I (Insert)
+
+#### 성공 응답
+```
+SSV:UTF-8
+ErrorCode:int=0
+```
+
+#### 실패 응답 예시들 (패킷에서 실제 확인)
+```
+SSV:UTF-8
+ErrorCode:int=-20001
+ErrorMsg:string=ＵＮＩＸ시스템실습 교과목은 총 신청 가능학점 초과이어서 신청할 수 없습니다.
+```
+```
+SSV:UTF-8
+ErrorCode:int=-20001
+ErrorMsg:string=금학기에 이미 신청한 교과목입니다..
+```
+
+---
+
+### A-3. saveAppcsDtlsCancl (수강취소) 실제 요청/응답 스펙
+
+#### 엔드포인트
+```
+POST https://sugangh.seowon.ac.kr/com/sapl/SaplapCtr/saveAppcsDtlsCancl.do?menuId=M100780&pgmId=P001619
+```
+
+#### 요청 바디 (saveAppcsDtls와 동일 파라미터 구조)
+```
+SSV:utf-8
+requestTimeStr=1786496758129
+Dataset:dsParam
+_RowType_|syy:STRING(256)|smtCd:STRING(256)|stuno:STRING(256)|unvfrStdrDeptCd:STRING(256)|subjtCd:STRING(256)|corseDvclsNo:STRING(256)|ceckTrgetGbn:STRING(256)|hiPass:STRING(256)|ttcMapngNo:STRING(256)|gschSubjtYn:STRING(256)|stdntChngLmttYn:STRING(256)|bchdmCntcSubjtYn:STRING(256)|cmpsjDivCd:STRING(256)
+I|2026|20|202311420|20000|008599|01|(SSV_EMPTY)|(SSV_EMPTY)|(빈문자열)|(SSV_EMPTY)|(SSV_EMPTY)|(SSV_EMPTY)|04
+```
+
+#### 성공 응답
+```
+SSV:UTF-8
+ErrorCode:int=0
+```
+
+---
+
+### A-4. findAppcsDtlsList (내 수강신청 목록) 실제 요청/응답 스펙
+
+#### 엔드포인트
+```
+POST https://sugangh.seowon.ac.kr/com/sapl/SaplapCtr/findAppcsDtlsList.do?menuId=M100780&pgmId=P001619
+```
+
+#### 요청 바디
+```
+SSV:utf-8
+requestTimeStr=1786496674999
+Dataset:dsParam
+_RowType_|syy:STRING(256)|smtCd:STRING(256)|unvfrStdrDeptCd:STRING(256)|cmpsjHyDivCd:STRING(256)|cmpsjDivCd:STRING(256)|serchDiv:STRING(256)|estblCrseDivCd:STRING(256)|stuno:STRING(256)|asignDeprtCd:STRING(256)|subjtCd:STRING(256)|corseDvclsNo:STRING(256)
+N|2026|20|20000|(SSV_EMPTY)|(SSV_EMPTY)|0|(SSV_EMPTY)|202311420|B10547|8599|(SSV_EMPTY)
+```
+
+#### 응답 (Dataset 이름: dsSapl231)
+```
+SSV:UTF-8
+ErrorCode:int=0
+Dataset:dsSapl231
+컬럼:
+  subjtNm, univNm, cntcMajorDplctCmpsjYn, unvfrStdrDeptCd, applyCrseCd, chrgInstrEmpno,
+  estblDeprtCd, corseDvclsNo, chrgInstrEmpnm, timtbNm, mjr3DplctCmpsjYn, syy,
+  ttcMapngNo, ttCmpsjCdt, mjr2DplctCmpsjYn, ttRatlcYn, cmpsjCdt,
+  lessnChoicAttrbItemVal121, glioDeptCd, lessnChoicAttrbItemVal125,
+  minorDplctCmpsjYn, smtCd, appcsLmttPcnt, subjtCd, univCd, asignDeprtNm,
+  chk, orgSubjtNm, estblCrseDivCd, estblDeprtNm, ratlcYn, ttSubjtCdCnt,
+  ttRatlcCnt, estblCrseDivNm, lessnChoicAttrbItemVal116, lessnChoicAttrbItemVal114,
+  lessnChoicAttrbItemVal115, cmpsjHyDivCd, dghtDivCd, stuno, cmpsjDivCd,
+  ttCltrChoicCmpsjCdt, appcsPcnt, rmvlcYn, lessnChoicAttrbItemVal119
+
+실제 데이터 행 예시:
+  빅데이터프로그래밍 | 휴머니티교양대학 | 0 | 20000 | 00 | 64032 | G6L01 | 01 | 주수경 |
+  화 2,3 전산실습실5 미래창조관지하3층05호실 | 0 | 2026 | | 7 | 0 | | 2 | 0 | B10547 | 0 |
+  0 | 20 | 30 | 008683 | G6L01 | 휴머니티교양대학 | 0 | 빅데이터프로그래밍 | 00 |
+  휴머니티교양대학 | | 3 | 0 | 학사 | 0 | 0 | 0 | 2 | 01 | 202311420 | 04 | 4 | 15 | 0 | 0
+```
+
+---
+
+### A-5. findEstblSubjtGnrlList (개설 과목 검색) 실제 스펙
+
+#### 엔드포인트
+```
+POST https://sugangh.seowon.ac.kr/com/sapl/SaplapCtr/findEstblSubjtGnrlList.do?menuId=M100780&pgmId=P001619
+```
+
+요청 구조는 `findAppcsDtlsList`와 동일한 dsParam 구조.
+응답 Dataset 이름: `dsSles131` (희망바구니의 `dsSles131`과 동일하나 컬럼이 더 많을 수 있음)
+
+---
+
+### A-6. 새로 발견된 엔드포인트 (희망바구니에 없음)
+
+| 경로 | 역할 |
+|------|------|
+| `/com/sapl/SaplapCtr/findWarnStdrInqryCscnt.do` | 경고 장학생 조회 횟수 확인 |
+| `/com/sapl/SaplapCtr/saveWarnStdrInqrtCscnt.do` | 경고 장학생 조회 횟수 저장 |
+| `/com/SsoCtr/findMyGLIOList.do`                 | 접속 정보 조회 (학과코드 등) |
+| `/com/SsoCtr/findBaseInfo.do`                   | 기본 정보 조회 |
+| `/com/SsoCtr/isLogin.do`                        | 로그인 여부 확인 |
+| `/com/SsoCtr/findAppcsNotcList.do`              | 수강신청 공지사항 조회 |
+| `/com/cmsv/MenuCtr/findMenu.do`                 | 메뉴 정보 조회 (strMenuId=M100780) |
+| `/callReport.html`                              | 공식 시간표 이미지(ClipReport) 페이지 |
+| `/report/callReport.jsp`                        | ClipReport JSP |
+| `/report/report_server.jsp`                     | ClipReport 서버 |
+
+---
+
+### A-7. 접속 오류 및 에러 코드 분류 (패킷 실증)
+
+| 현상 | 오류 내용 | ErrorCode | 대응 방법 |
+|------|-----------|-----------|-----------|
+| 서버 타임아웃 | TimedOut (0x274c), 연결 구성원 응답 없음 | TCP 레벨 오류 | 재시도 |
+| 로그인 flag=0 | dsFlag.flag=0, dsSession.userNm=undefined | SSV 내 플래그 | 재시도 |
+| 학점 초과 | "총 신청 가능학점 초과이어서 신청할 수 없습니다" | -20001 | 오류 반환 |
+| 이미 신청 | "금학기에 이미 신청한 교과목입니다." | -20001 | 오류 반환 |
+| 비밀번호 오류 파일 | findAppcsLogin 로그인 시도 → flag=0 (서버과부하 상황) | 0이지만 flag=0 | 재시도 |
+
+#### 비밀번호 오류 파일 상세 (수강신청 로그인 중 이유없이 비번 오류.saz)
+- 총 5세션, 그 중 서원대 API: 1세션 (세션 002)
+- 세션 002: `POST /com/SsoCtr/findAppcsLogin.do?menuId=edu&pgmId=edu`
+  - 요청: `stuno=202311420 | password=hy040504! | appcsKindCd=100`
+  - 응답: `ErrorCode:int=0 | dsFlag.flag=0` (ErrorCode는 0이지만 flag=0 = 로그인 실패)
+  - 해석: HTTP 레벨은 정상(200 OK)이지만 SSV 내 dsFlag.flag=0으로 로그인 거부
+  - 원인: 서버 과부하 시 인증 성공해야 할 자격증명임에도 flag=0 반환하는 서버 버그
+
+================================================================================
+## B. 구현 요청사항
+================================================================================
+
+### B-1. 모듈 경로: `src/course-registration/`
+
+기존 `src/hope-basket/` 모듈 구조를 참고하여, 동일한 패턴으로 신규 모듈을 구성한다.
+기존 파일은 절대 수정하지 않는다 (`src/index.ts` 하단에 export 추가만 허용).
+
+```
+src/course-registration/
+├── types/
+│   └── registration.ts   # 수강신청 본신청 전용 인터페이스/타입 정의
+├── constants.ts           # URL, 엔드포인트 경로, menuId/pgmId 상수
+├── client.ts              # CourseRegistrationClient 클래스
+├── registration.ts        # 요청 생성 함수(create*) 및 응답 파서(parse*)
+├── errors.ts              # 에러 코드 enum 및 분류 함수
+└── saz.ts                 # 본신청 SAZ 패킷 파서 (선택)
+```
+
+---
+
+### B-2. `constants.ts` — 실제 패킷 기반 정확한 상수
+
+```typescript
+/**
+ * 수강신청 본신청 모듈 상수.
+ * 이 모듈은 정식 수강신청(본신청, appcsKindCd 미적용)이며,
+ * 수강희망바구니(appcsKindCd=100)와 같은 sugangh.seowon.ac.kr 서버를 쓰지만
+ * menuId=M100780, pgmId=P001619를 사용하고 경로가 다르다.
+ */
+
+/** 수강신청 본신청 서버 (희망바구니와 동일 서버) */
+export const COURSE_REG_BASE_URL = "https://sugangh.seowon.ac.kr";
+
+/** 수강신청 본신청 메뉴 ID (희망바구니 M100779와 다름) */
+export const COURSE_REG_MENU_ID = "M100780";
+
+/** 수강신청 본신청 프로그램 ID (희망바구니 P001609와 다름) */
+export const COURSE_REG_PGM_ID = "P001619";
+
+/** 로그인/공통 메뉴 ID (희망바구니와 동일) */
+export const COURSE_REG_PORTAL_MENU_ID = "edu";
+
+/** 로그인/공통 프로그램 ID (희망바구니와 동일) */
+export const COURSE_REG_PORTAL_PGM_ID = "edu";
+
+/** 학부 기준 부서 코드 */
+export const COURSE_REG_DEFAULT_DEPT_CD = "20000";
+
+/** 수강신청 메뉴 코드 (findMenu에서 사용) */
+export const COURSE_REG_MENU_STR_ID = "M100780";
+
+/**
+ * 수강신청 본신청 API 경로 모음.
+ * 로그인/공통 경로는 희망바구니(src/hope-basket/constants.ts)와 동일하나,
+ * 수강신청 전용 경로(saveAppcsDtls 등)는 다르다.
+ */
+export const COURSE_REG_PATHS = {
+  /** Nexacro 포털 진입 (SESSIONID 확보) */
+  nxHome: "/nx/",
+
+  // --- 공통 SSO (희망바구니와 동일 경로) ---
+  /** 로그인 인증 */
+  findAppcsLogin: "/com/SsoCtr/findAppcsLogin.do",
+  /** 학생 기본 정보 조회 */
+  findStunoInfo: "/com/SsoCtr/findStunoInfo.do",
+  /** 로그인 일정 체크 */
+  findAppcsLoginChk: "/com/SsoCtr/findAppcsLoginChk.do",
+  /** 학년도/학기 코드 조회 */
+  findScomUnvfrSchdlInfo: "/com/SsoCtr/findScomUnvfrSchdlInfo.do",
+  /** 신청 일정 목록 */
+  findAppcsSchdlList: "/com/SsoCtr/findAppcsSchdlList.do",
+  /** 수강신청 공지사항 */
+  findAppcsNotcList: "/com/SsoCtr/findAppcsNotcList.do",
+  /** 기본 정보 조회 */
+  findBaseInfo: "/com/SsoCtr/findBaseInfo.do",
+  /** 로그인 여부 확인 */
+  isLogin: "/com/SsoCtr/isLogin.do",
+  /** 접속 정보 조회 (학과코드 등) */
+  findMyGLIOList: "/com/SsoCtr/findMyGLIOList.do",
+  /** 서버 현재 시각 */
+  findSysdate: "/com/SsoCtr/findSysdate.do",
+  /** 메뉴 정보 조회 */
+  findMenu: "/com/cmsv/MenuCtr/findMenu.do",
+
+  // --- 수강신청 전용 경로 (희망바구니와 다름) ---
+  /** 개설 과목 검색 (희망바구니와 동일 경로이나 menuId/pgmId가 다름) */
+  findEstblSubjtGnrlList: "/com/sapl/SaplapCtr/findEstblSubjtGnrlList.do",
+  /** 내 수강신청 목록 (희망바구니의 findEstblSubjtShpbsList와 다름) */
+  findAppcsDtlsList: "/com/sapl/SaplapCtr/findAppcsDtlsList.do",
+  /** 수강신청 등록 (희망바구니의 saveHopeAppcsDtls와 다름) */
+  saveAppcsDtls: "/com/sapl/SaplapCtr/saveAppcsDtls.do",
+  /** 수강신청 취소 (희망바구니의 saveHopeAppcsDtlsCancl와 다름) */
+  saveAppcsDtlsCancl: "/com/sapl/SaplapCtr/saveAppcsDtlsCancl.do",
+  /** 경고 장학생 조회 횟수 확인 (본신청 전용, 희망바구니에 없음) */
+  findWarnStdrInqryCscnt: "/com/sapl/SaplapCtr/findWarnStdrInqryCscnt.do",
+  /** 경고 장학생 조회 횟수 저장 (본신청 전용, 희망바구니에 없음) */
+  saveWarnStdrInqrtCscnt: "/com/sapl/SaplapCtr/saveWarnStdrInqrtCscnt.do",
+
+  // --- ClipReport 공식 시간표 이미지 경로 ---
+  /** ClipReport 시간표 이미지 페이지 */
+  callReportHtml: "/callReport.html",
+  callReportJsp: "/report/callReport.jsp",
+  reportServer: "/report/report_server.jsp",
+} as const;
+```
+
+---
+
+### B-3. `errors.ts` — 실제 패킷 기반 에러 정의
+
+패킷에서 확인된 에러들만 enum으로 정의. `ErrorCode`와 `ErrorMsg` 파싱 로직 구현.
+
+```typescript
+/**
+ * 수강신청 본신청 에러 유형.
+ * 패킷 분석에서 확인된 실제 서버 응답 패턴 기반.
+ *
+ * SSV 응답 레벨:
+ *  - ErrorCode:int=0 이면서 dsFlag.flag=0 → 로그인 실패 (서버 과부하 허위 오류 포함)
+ *  - ErrorCode:int=-20001 + ErrorMsg → 수강신청 처리 오류
+ *
+ * TCP/HTTP 레벨:
+ *  - TimedOut (0x274c) → 서버 연결 자체 불가 (과부하 시 발생)
+ */
+export enum CourseRegErrorType {
+  /** ErrorCode=0, flag=0: 로그인 실패 (서버 과부하로 허위 발생 가능) */
+  LOGIN_FAILED = "LOGIN_FAILED",
+  /** ErrorCode=-20001: 학점 초과 ("총 신청 가능학점 초과이어서 신청할 수 없습니다") */
+  CREDIT_LIMIT_EXCEEDED = "CREDIT_LIMIT_EXCEEDED",
+  /** ErrorCode=-20001: 이미 신청한 과목 ("금학기에 이미 신청한 교과목입니다.") */
+  ALREADY_REGISTERED = "ALREADY_REGISTERED",
+  /** ErrorCode=-20001: 정원 초과 (ErrorMsg에서 패턴 확인 필요) */
+  CAPACITY_EXCEEDED = "CAPACITY_EXCEEDED",
+  /** ErrorCode=-20001: 시간표 충돌 */
+  TIME_CONFLICT = "TIME_CONFLICT",
+  /** ErrorCode=-20001: 수강신청 기간 아님 */
+  NOT_IN_PERIOD = "NOT_IN_PERIOD",
+  /** ErrorCode=-20001: 학과 제한 */
+  DEPARTMENT_RESTRICTED = "DEPARTMENT_RESTRICTED",
+  /** TCP 레벨: TimedOut (0x274c) — 서버 과부하 시 연결 자체 불가 */
+  CONNECTION_TIMEOUT = "CONNECTION_TIMEOUT",
+  /** 네트워크: ECONNRESET */
+  CONNECTION_RESET = "CONNECTION_RESET",
+  /** 네트워크: ETIMEDOUT */
+  REQUEST_TIMEOUT = "REQUEST_TIMEOUT",
+  /** ErrorCode=-20001이지만 알 수 없는 ErrorMsg */
+  UNKNOWN_SERVER_ERROR = "UNKNOWN_SERVER_ERROR",
+  /** 분류 불가 */
+  UNKNOWN = "UNKNOWN",
+}
+
+/**
+ * SSV 응답 본문을 파싱하여 에러 유형을 분류한다.
+ * ErrorCode=0이고 flag=0인 경우 LOGIN_FAILED를 반환한다.
+ * @param errorCode - SSV ErrorCode 값 (0 = 성공, 음수 = 오류)
+ * @param errorMsg - SSV ErrorMsg 값 (오류 시 한글 메시지)
+ * @returns 분류된 CourseRegErrorType
+ */
+export function classifyCourseRegError(
+  errorCode: number,
+  errorMsg?: string
+): CourseRegErrorType {
+  if (errorCode === 0) return CourseRegErrorType.UNKNOWN; // 성공 (호출 측에서 처리)
+
+  const msg = errorMsg ?? "";
+  if (msg.includes("학점 초과") || msg.includes("신청 가능학점 초과")) {
+    return CourseRegErrorType.CREDIT_LIMIT_EXCEEDED;
+  }
+  if (msg.includes("이미 신청한 교과목") || msg.includes("이미 신청한")) {
+    return CourseRegErrorType.ALREADY_REGISTERED;
+  }
+  if (msg.includes("정원") && msg.includes("초과")) {
+    return CourseRegErrorType.CAPACITY_EXCEEDED;
+  }
+  if (msg.includes("시간") && (msg.includes("중복") || msg.includes("겹"))) {
+    return CourseRegErrorType.TIME_CONFLICT;
+  }
+  if (msg.includes("기간") || msg.includes("신청 시간이 아닙니다")) {
+    return CourseRegErrorType.NOT_IN_PERIOD;
+  }
+  if (msg.includes("학과") && (msg.includes("제한") || msg.includes("학생만"))) {
+    return CourseRegErrorType.DEPARTMENT_RESTRICTED;
+  }
+  return CourseRegErrorType.UNKNOWN_SERVER_ERROR;
+}
+
+/**
+ * 에러 유형에 대한 사용자 친화적 한글 메시지를 반환한다.
+ * @param errorType - 분류된 에러 유형
+ * @param serverMsg - 서버 원본 ErrorMsg (있을 경우 우선 표시)
+ * @returns 한글 에러 메시지
+ */
+export function formatCourseRegError(
+  errorType: CourseRegErrorType,
+  serverMsg?: string
+): string {
+  if (serverMsg) return serverMsg; // 서버 메시지 우선
+  switch (errorType) {
+    case CourseRegErrorType.LOGIN_FAILED:
+      return "로그인에 실패하였습니다. 서버 과부하 시 올바른 비밀번호도 거부될 수 있으니 재시도하세요.";
+    case CourseRegErrorType.CREDIT_LIMIT_EXCEEDED:
+      return "신청 가능 학점을 초과하였습니다.";
+    case CourseRegErrorType.ALREADY_REGISTERED:
+      return "이미 신청한 교과목입니다.";
+    case CourseRegErrorType.CAPACITY_EXCEEDED:
+      return "수강 정원이 초과되었습니다.";
+    case CourseRegErrorType.TIME_CONFLICT:
+      return "시간표가 중복됩니다.";
+    case CourseRegErrorType.NOT_IN_PERIOD:
+      return "수강신청 기간이 아닙니다.";
+    case CourseRegErrorType.DEPARTMENT_RESTRICTED:
+      return "해당 학과 학생만 신청 가능한 과목입니다.";
+    case CourseRegErrorType.CONNECTION_TIMEOUT:
+      return "서버 연결 시간이 초과되었습니다. 수강신청 시간대 서버 과부하일 수 있습니다.";
+    case CourseRegErrorType.CONNECTION_RESET:
+      return "서버 연결이 끊어졌습니다.";
+    case CourseRegErrorType.REQUEST_TIMEOUT:
+      return "서버 응답 시간이 초과되었습니다.";
+    default:
+      return "알 수 없는 오류가 발생하였습니다.";
+  }
+}
+```
+
+---
+
+### B-4. `types/registration.ts` — 타입 정의
+
+기존 `src/hope-basket/types/basket.ts` JSDoc 패턴 완전 준수.
+한국어 설명 + 영문 태그 + 모든 필드 `// 단행 한국어 주석` + `raw` 필드 보존.
+
+주요 인터페이스:
+
+```typescript
+/** 수강신청 본신청 클라이언트 생성 옵션 */
+export interface CourseRegistrationClientOptions {
+  baseUrl?: string;                        // 기본 URL (기본: https://sugangh.seowon.ac.kr)
+  cookieFilePath?: string;                 // 쿠키 저장 파일 경로 (기본: .seowon-sugang.cookies.json)
+  credentials?: CourseRegLoginCredentials; // 자동 재로그인 계정 정보
+  defaultSyy?: string;                     // 기본 학년도
+  defaultSmtCd?: string;                   // 기본 학기 코드
+  unvfrStdrDeptCd?: string;               // 대학 기준 부서 코드 (기본: 20000)
+  requestTimeoutMs?: number;               // 요청 타임아웃(ms) (기본: 30000)
+  maxRetries?: number;                     // 네트워크 오류 재시도 횟수 (기본: 3)
+  onProgress?: (message: string) => void;  // 진행 메시지 콜백
+}
+
+/** 수강신청 본신청 로그인 계정 정보 */
+export interface CourseRegLoginCredentials {
+  stuno: string;    // 학번 (SSV 파라미터: stuno)
+  password: string; // 비밀번호 (SSV 파라미터: password)
+}
+
+/** 수강신청 로그인 결과 */
+export interface CourseRegLoginResult {
+  success: boolean;   // 로그인 성공 여부 (dsFlag.flag=1이면 true)
+  flag: string;       // 서버 dsFlag.flag 원본값 (1=성공, 0=실패)
+  message: string;    // 사용자 표시 메시지
+  /**
+   * 서버 과부하로 인한 허위 로그인 실패 가능성 플래그.
+   * flag=0이어도 올바른 자격증명인 경우 재시도하면 성공할 수 있다.
+   * 패킷 분석에서 실제 확인된 현상이다.
+   */
+  mayBeFalseError: boolean;
+  session?: CourseRegSessionInfo;             // 로그인 성공 시 세션 정보
+  termCode?: string;                         // 학년도+학기 코드 (예: 202620)
+  raw: {
+    login?: SsvDocument;                     // findAppcsLogin 원본
+    student?: SsvDocument;                   // findStunoInfo 원본
+    loginCheck?: SsvDocument;               // findAppcsLoginChk 원본
+  };
+}
+
+/** 수강신청 세션 정보 (dsSession) */
+export interface CourseRegSessionInfo {
+  msg: string;          // 로그인 메시지 (success 등)
+  userNm: string;       // 사용자 이름
+  persNo: string;       // 개인번호 (학번)
+  encStr: string;       // 암호화 문자열
+  deptNm: string;       // 학과명
+  wasInfo: string;      // WAS 정보
+  initPswdYn: string;   // 초기 비밀번호 여부
+  needChangePwd: string; // 비밀번호 변경 필요 여부
+  raw: SsvRow;          // 원본 행
+}
+
+/** 수강신청 학년도/학기 문맥 */
+export interface CourseRegTermContext {
+  syy: string;             // 학년도
+  smtCd: string;           // 학기 코드
+  unvfrStdrDeptCd?: string; // 대학 기준 부서 코드
+  stuno?: string;          // 학번
+  asignDeprtCd?: string;   // 배정 학과 코드
+}
+
+/**
+ * 수강신청 등록/취소 파라미터.
+ * 패킷에서 확인된 dsParam 컬럼 구조 기반.
+ */
+export interface CourseRegMutationOptions extends Partial<CourseRegTermContext> {
+  subjtCd: string;           // 과목코드 (예: 736012)
+  corseDvclsNo: string;      // 분반번호 (예: 01, KO)
+  cmpsjDivCd?: string;       // 이수 구분 코드 (01=전필, 02=전선, 03=교필, 04=교선)
+  ceckTrgetGbn?: string;     // 검증 대상 구분 (H 또는 빈값)
+  hiPass?: string;           // hiPass 값 (0 또는 빈값)
+  ttcMapngNo?: string;       // 시간표 매핑번호 (없으면 SSV_EMPTY)
+  gschSubjtYn?: string;      // 대학원 과목 여부 (0 또는 SSV_EMPTY)
+  stdntChngLmttYn?: string;  // 학생 변경 제한 여부 (SSV_EMPTY)
+  bchdmCntcSubjtYn?: string; // 학부-대학원 연계 과목 여부 (SSV_EMPTY)
+}
+
+/** 수강신청/취소 결과 */
+export interface CourseRegMutationResult {
+  success: boolean;             // 성공 여부 (ErrorCode=0이면 true)
+  errorCode?: number;           // SSV ErrorCode (-20001 등)
+  errorMsg?: string;            // SSV ErrorMsg (한글 서버 메시지)
+  errorType?: CourseRegErrorType; // 분류된 에러 유형
+  message: string;              // 사용자 표시 메시지
+  action: "register" | "cancel"; // 수행 동작
+  subjtCd: string;              // 대상 과목 코드
+  corseDvclsNo: string;         // 대상 분반
+  raw: SsvDocument;             // 원본 SSV 응답
+}
+
+/** 내 수강신청 목록 조회 옵션 (findAppcsDtlsList dsParam 기반) */
+export interface CourseRegMyListOptions extends Partial<CourseRegTermContext> {
+  cmpsjHyDivCd?: string;    // 이수 학년 구분
+  cmpsjDivCd?: string;      // 이수 구분
+  serchDiv?: string;        // 검색 구분 (기본 0)
+  estblCrseDivCd?: string;  // 개설 과정 구분
+  subjtCd?: string;         // 과목코드 필터
+  corseDvclsNo?: string;    // 분반 필터
+}
+
+/**
+ * 수강신청된 과목 항목 (findAppcsDtlsList 응답, Dataset:dsSapl231 기반).
+ * findEstblSubjtGnrlList와 유사하나 appcsPcnt(신청인원) 등 추가 필드 있음.
+ */
+export interface CourseRegRegisteredSubject {
+  subjtCd: string;                 // 과목코드
+  subjtNm: string;                 // 과목명
+  orgSubjtNm: string;              // 원본 과목명
+  corseDvclsNo: string;            // 분반
+  estblDeprtCd: string;            // 개설 학과 코드
+  estblDeprtNm: string;            // 개설 학과명
+  asignDeprtNm: string;            // 배정 학과명
+  univCd: string;                  // 대학 코드
+  univNm: string;                  // 대학명
+  cmpsjCdt: string;                // 학점
+  cmpsjDivCd: string;              // 이수 구분 코드
+  estblCrseDivCd: string;          // 개설 과정 구분 코드
+  estblCrseDivNm: string;          // 개설 과정 구분명
+  cmpsjHyDivCd: string;            // 이수 학년 구분
+  dghtDivCd: string;               // 주야 구분
+  timtbNm: string;                 // 시간표 문자열
+  syy: string;                     // 학년도
+  smtCd: string;                   // 학기 코드
+  unvfrStdrDeptCd: string;         // 대학 기준 부서 코드
+  stuno: string;                   // 학번
+  chrgInstrEmpno: string;          // 담당 교원 사번
+  chrgInstrEmpnm: string;          // 담당 교원명
+  appcsLmttPcnt: string;           // 수강 제한 인원
+  appcsPcnt: string;               // 현재 신청 인원
+  ttCmpsjCdt: string;              // 총 신청 학점
+  applyCrseCd: string;             // 신청 과정 코드
+  chk: string;                     // 체크값
+  ttcMapngNo: string;              // 시간표 매핑번호
+  lessnChoicAttrbItemVal114: string; // 평가속성 114 (강의방식 등)
+  lessnChoicAttrbItemVal115: string; // 평가속성 115
+  lessnChoicAttrbItemVal116: string; // 평가속성 116
+  lessnChoicAttrbItemVal119: string; // 평가속성 119
+  lessnChoicAttrbItemVal121: string; // 평가속성 121
+  lessnChoicAttrbItemVal125: string; // 평가속성 125
+  raw: SsvRow;                     // 원본 행
+}
+```
+
+---
+
+### B-5. `registration.ts` — 요청 생성자 및 응답 파서
+
+기존 `src/hope-basket/basket.ts`의 패턴을 따른다.
+순수 함수(Pure Functions)로 구현. 부작용 없음.
+
+구현할 함수:
+
+```typescript
+// 요청 생성자 (create*Request)
+createCourseRegLoginRequest(credentials, options?)           // findAppcsLogin SSV 요청 생성
+createCourseRegStudentInfoRequest(term, stuno)               // findStunoInfo 요청 생성
+createCourseRegLoginCheckRequest(term, stuno)                // findAppcsLoginChk 요청 생성
+createCourseRegTermCodeRequest(options?)                     // findScomUnvfrSchdlInfo 요청 생성
+createCourseRegMenuRequest(menuId)                           // findMenu 요청 생성 (strMenuId=M100780)
+createCourseRegMyListRequest(options)                        // findAppcsDtlsList 요청 생성
+createCourseRegSearchRequest(options)                        // findEstblSubjtGnrlList 요청 생성
+createCourseRegRegisterRequest(options)                      // saveAppcsDtls 요청 생성
+createCourseRegCancelRequest(options)                        // saveAppcsDtlsCancl 요청 생성
+createCourseRegWarnCheckRequest(options)                     // findWarnStdrInqryCscnt 요청 생성
+createCourseRegWarnSaveRequest(options)                      // saveWarnStdrInqrtCscnt 요청 생성
+createCourseRegGLIORequest(columnList)                       // findMyGLIOList 요청 생성
+
+// 응답 파서 (parse*Response)
+parseCourseRegLoginResponse(doc)                // dsFlag.flag 확인 → CourseRegLoginResult
+parseCourseRegTermCodeResponse(doc)             // dsUnvfc.reslt 추출 (예: "202620")
+parseCourseRegMyListResponse(doc)               // dsSapl231 → CourseRegRegisteredSubject[]
+parseCourseRegSearchResponse(doc)               // dsSles131 → SugangSubject[] (희망바구니 타입 재사용)
+parseCourseRegMutationResponse(doc, action)     // ErrorCode 확인 → CourseRegMutationResult
+parseCourseRegSysdateResponse(xml)              // XML _sysdate 파라미터 추출
+composeCourseRegLoginResult(loginDoc, stunoDoc, loginChkDoc) // 로그인 결과 합성
+```
+
+---
+
+### B-6. `client.ts` — CourseRegistrationClient 클래스
+
+기존 `HopeBasketClient`와 구조 동일. SSV 코덱(`src/hope-basket/ssv.ts`)을 재사용한다.
+
+```typescript
+/**
+ * 수강신청 본신청 전용 클라이언트.
+ *
+ * 범위:
+ * - 포함: 로그인, 수강신청 등록/취소, 내 신청 목록 조회, 개설 과목 검색
+ * - 미포함: 수강희망바구니(예비 담기)는 HopeBasketClient를 사용할 것
+ *
+ * 서버: sugangh.seowon.ac.kr (희망바구니와 동일 서버)
+ * menuId=M100780, pgmId=P001619 (희망바구니 M100779/P001609와 다름)
+ *
+ * 수강신청 시간대 서버 과부하로 인해 아래 현상이 발생할 수 있으며 대응 로직이 포함됨:
+ * - TCP TimedOut (연결 자체 불가): 자동 재시도
+ * - findAppcsLogin flag=0 (허위 로그인 실패): 자동 재시도 (mayBeFalseError)
+ * - ECONNRESET: Connection: close 헤더 사용 + 재시도
+ */
+export class CourseRegistrationClient {
+  // --- 상태 ---
+  readonly baseUrl: string;
+  readonly cookieJar: CookieJar;
+  readonly http: AxiosInstance;
+  private readonly cookieFilePath?: string;
+  private readonly requestTimeoutMs: number;
+  private readonly maxRetries: number;
+  private onProgress?: (message: string) => void;
+  private credentials?: CourseRegLoginCredentials;
+  private term: CourseRegTermContext;
+  private student?: SugangStudentInfo;  // 기존 타입 재사용 (희망바구니와 동일 서버)
+
+  constructor(options?: CourseRegistrationClientOptions);
+
+  // --- 세션 관리 ---
+  /**
+   * 로그인을 수행한다.
+   * 서버 과부하로 flag=0이 반환될 경우 maxRetries만큼 자동 재시도한다.
+   */
+  login(credentials?: CourseRegLoginCredentials): Promise<CourseRegLoginResult>;
+
+  /** 현재 세션이 유효한지 확인하고, 만료 시 자동 재로그인한다 */
+  ensureLoggedIn(): Promise<void>;
+
+  // --- 수강신청 핵심 기능 ---
+  /**
+   * 개설 과목을 검색한다.
+   * findEstblSubjtGnrlList API를 사용하며 menuId=M100780을 전송한다.
+   */
+  searchSubjects(options: CourseRegSearchOptions): Promise<SugangSubject[]>;
+
+  /**
+   * 내 수강신청 목록을 조회한다.
+   * findAppcsDtlsList API 사용. 희망바구니의 findEstblSubjtShpbsList와 다른 경로.
+   */
+  getMyRegisteredList(options?: CourseRegMyListOptions): Promise<CourseRegRegisteredSubject[]>;
+
+  /**
+   * 수강신청을 등록한다 (saveAppcsDtls).
+   * 등록 전 경고 장학생 체크(findWarnStdrInqryCscnt + saveWarnStdrInqrtCscnt)를
+   * 수행한다 — 패킷에서 매 신청 전에 반드시 이 흐름이 관찰됨.
+   */
+  registerCourse(options: CourseRegMutationOptions): Promise<CourseRegMutationResult>;
+
+  /**
+   * 수강신청을 취소한다 (saveAppcsDtlsCancl).
+   */
+  cancelCourse(options: CourseRegMutationOptions): Promise<CourseRegMutationResult>;
+
+  // --- 내부 유틸 ---
+  private postWithRetry(path, body, queryParams): Promise<AxiosResponse>;
+  private normalizeNetworkError(error): Error;
+  private loadCookieJar(): CookieJar;
+  saveCookies(): Promise<void>;
+  getStudentInfo(): SugangStudentInfo | undefined;
+  setCredentials(credentials: CourseRegLoginCredentials): void;
+  getCredentials(): CourseRegLoginCredentials | undefined;
+}
+
+export function createCourseRegistrationClient(
+  options?: CourseRegistrationClientOptions
+): CourseRegistrationClient;
+```
+
+#### 수강신청 1회 흐름 (패킷 기반 필수 구현)
+
+패킷에서 확인된 실제 수강신청 1건 처리 순서:
+```
+1. findWarnStdrInqryCscnt (경고장학생 조회 횟수 확인)
+2. saveWarnStdrInqrtCscnt (경고장학생 조회 횟수 저장)
+3. findMyGLIOList (접속 정보 조회 - columnList=deptCd)
+4. findSysdate    (서버 시각 조회)
+5. saveAppcsDtls  (실제 수강신청 등록) ← 핵심
+6. findAppcsDtlsList (내 목록 새로고침)
+```
+
+위 흐름을 `registerCourse()` 메서드에서 순서대로 실행해야 한다.
+단, 자동화 목적이라면 3~4번(findMyGLIOList, findSysdate)은 생략 가능.
+1~2번(경고장학생 체크)은 서버 로직상 필요할 수 있으므로 포함하는 것이 안전.
+
+---
+
+### B-7. `src/index.ts` 업데이트 (하단에 추가만)
+
+```typescript
+// --- 수강신청 본신청 모듈 ---
+export {
+  CourseRegistrationClient,
+  createCourseRegistrationClient,
+  type CourseRegistrationClientOptions,
+} from "./course-registration/client.js";
+
+export {
+  CourseRegErrorType,
+  classifyCourseRegError,
+  formatCourseRegError,
+} from "./course-registration/errors.js";
+
+export {
+  COURSE_REG_BASE_URL,
+  COURSE_REG_MENU_ID,
+  COURSE_REG_PGM_ID,
+  COURSE_REG_PATHS,
+  COURSE_REG_DEFAULT_DEPT_CD,
+} from "./course-registration/constants.js";
+
+export {
+  createCourseRegLoginRequest,
+  parseCourseRegLoginResponse,
+  createCourseRegMyListRequest,
+  parseCourseRegMyListResponse,
+  createCourseRegRegisterRequest,
+  createCourseRegCancelRequest,
+  parseCourseRegMutationResponse,
+  createCourseRegSearchRequest,
+  parseCourseRegSearchResponse,
+  composeCourseRegLoginResult,
+  type CourseRegLoginCredentials,
+  type CourseRegLoginResult,
+  type CourseRegSessionInfo,
+  type CourseRegTermContext,
+  type CourseRegMutationOptions,
+  type CourseRegMutationResult,
+  type CourseRegMyListOptions,
+  type CourseRegRegisteredSubject,
+} from "./course-registration/registration.js";
+```
+
+---
+
+### B-8. `course-registration-manager.ts` — 루트 CLI 스크립트
+
+기존 `hope-basket-manager.ts` 구조를 참고하여 동일한 패턴으로 작성.
+
+```
+--- 🎓 서원대 수강신청 매니저 (본신청 전용) ---
+포함: 로그인, 과목 검색, 수강신청/취소, 내 신청 목록
+미포함: 수강희망바구니(예비 담기) → hope-basket-manager.ts 사용
+서버: https://sugangh.seowon.ac.kr (menuId=M100780)
+
+[수강신청 메뉴]
+1. 로그인 / 세션 갱신
+2. 개설 강의 검색
+3. 수강신청 (검색 → 선택 → 등록)
+4. 수강신청 취소
+5. 내 수강신청 목록 조회
+6. 연속 재시도 모드 (정원 초과 과목 반복 신청)
+0. 종료
+```
+
+메뉴 6 (연속 재시도):
+- 정원 초과(CAPACITY_EXCEEDED) 과목을 지정 간격(기본 500ms)으로 반복 신청
+- 성공 시 즉시 중단
+- 서버 타임아웃/연결 오류 시 자동 대기 후 재시도
+- Ctrl+C 입력 시 종료
+
+쿠키 파일: `.seowon-sugang.cookies.json` (프로젝트 루트, 이미 .gitignore 적용됨)
+
+`package.json` 스크립트 추가:
+```json
+{
+  "scripts": {
+    "sugang:registration": "tsx course-registration-manager.ts"
+  }
+}
+```
+
+---
+
+### B-9. 코딩 컨벤션 (기존 패턴 필수 준수)
+
+모든 패턴은 `src/hope-basket/` 모듈과 동일하게 맞춘다.
+
+1. **JSDoc**: 모든 export에 한국어 설명 + 영문 태그. WHY 위주.
+2. **인터페이스 필드**: 모든 필드에 `// 한국어 단행 주석`
+3. **타입 접두어**: `CourseReg` (기존 `Sugang` 타입과 충돌 방지)
+4. **raw 필드**: 모든 엔티티 인터페이스에 원본 `SsvRow`/`SsvDocument` 보존
+5. **순수 함수**: create*/parse* 함수는 부작용 없는 순수 함수
+6. **SSV 재사용**: `src/hope-basket/ssv.ts`의 `encodeSsvRequest`, `parseSsv`, `SSV_EMPTY` 등 import하여 사용
+7. **기존 타입 재사용**: `SugangStudentInfo`, `SugangLoginResult`, `SsvDocument`, `SsvRow` 등 희망바구니 타입은 그대로 재사용 가능
+8. **쿠키 재사용**: `src/ecampus/cookies.ts`의 `loadCookieJarFromFile`, `saveCookieJarToFile` 재사용
+9. **Connection: close**: ECONNRESET 방지를 위해 axios 기본 헤더로 설정
+10. **재시도**: `ECONNRESET`, `ETIMEDOUT`, `EPIPE`, `ECONNRESET`, `ERR_NETWORK` → 지수 백오프
+
+================================================================================
+## C. 주의사항
+================================================================================
+
+1. **기존 코드 수정 금지**: `src/hope-basket/`, `hope-basket-manager.ts`, `auto-manager.ts` 등 기존 파일 수정 불가.
+   `src/index.ts`는 하단에 새 export 블록 추가만 허용.
+
+2. **SSV 프로토콜 동일**: 수강신청 본신청도 SSV 프로토콜을 사용한다. `src/hope-basket/ssv.ts`를 import하여 재사용.
+
+3. **서버 동일, menuId 다름**: 서버(sugangh.seowon.ac.kr)는 희망바구니와 동일하나
+   모든 API 요청의 쿼리 파라미터는 `?menuId=M100780&pgmId=P001619`를 사용해야 한다.
+   로그인(findAppcsLogin) 등 공통 API는 `?menuId=edu&pgmId=edu`를 사용한다.
+
+4. **로그인 허위 실패 대응**: 서버 과부하 시 올바른 자격증명에도 `flag=0` 반환.
+   `CourseRegLoginResult.mayBeFalseError=true`로 표시하고 자동 재시도.
+
+5. **타입 이름 충돌**: `Sugang` 접두어(희망바구니)와 `CourseReg` 접두어(본신청)로 명확히 분리.
+
+6. **경고 장학생 체크 흐름**: 패킷에서 수강신청 매 시도 전에 findWarnStdrInqryCscnt→saveWarnStdrInqrtCscnt
+   순서가 반드시 선행됨. 이를 registerCourse() 내부에서 처리.
+
+================================================================================
+## D. 희망바구니 vs 본신청 혼용 금지 규칙 체크리스트
+================================================================================
+
+구현 완료 후 아래 항목을 하나씩 검토하여 위반이 없는지 확인한다.
+
+### D-1. 경로/엔드포인트
+  [ ] src/course-registration/constants.ts 에 saveHopeAppcsDtls.do 가 없는가
+  [ ] src/course-registration/constants.ts 에 saveHopeAppcsDtlsCancl.do 가 없는가
+  [ ] src/course-registration/constants.ts 에 findEstblSubjtShpbsList.do 가 없는가
+  [ ] src/course-registration/constants.ts 에 findSaplHopeAppcsChk.do 가 없는가
+  [ ] src/course-registration/ 어디에도 M100779 / P001609 가 없는가
+  [ ] src/hope-basket/ 어디에도 M100780 / P001619 가 없는가
+  [ ] src/hope-basket/ 어디에도 saveAppcsDtls.do / saveAppcsDtlsCancl.do 가 없는가
+
+### D-2. 타입
+  [ ] CourseRegistrationClient 가 HopeBasketClient 를 상속하거나 감싸지 않는가
+  [ ] CourseRegMutationOptions 에 희망바구니 전용 필드(appcsKindCd=100 등)가 없는가
+  [ ] CourseRegLoginCredentials 에 appcsKindCd 필드가 없는가
+      (본신청 로그인은 appcsKindCd 파라미터를 전송하지 않는다)
+  [ ] CourseRegRegisteredSubject 가 희망바구니의 SugangSubject sourceList 필드를
+      그대로 상속하지 않는가 (본신청 목록은 sourceList 개념이 다름)
+
+### D-3. 쿠키 파일
+  [ ] CourseRegistrationClient 의 기본 쿠키 파일이 .seowon-sugang.cookies.json 인가
+  [ ] HopeBasketClient 의 .seowon-hope-basket.cookies.json 과 혼용하지 않는가
+  [ ] 두 클라이언트를 동시에 사용할 때 쿠키 파일이 겹치지 않는가
+
+### D-4. CLI 스크립트
+  [ ] course-registration-manager.ts 가 HopeBasketClient 를 import하지 않는가
+  [ ] hope-basket-manager.ts 가 CourseRegistrationClient 를 import하지 않는가
+  [ ] 두 스크립트의 printSection 헤더 문구가 명확히 구분되는가
+      - 희망바구니: "🧺 서원대 수강희망바구니 매니저 (예비담기 전용)"
+      - 본신청:    "🎓 서원대 수강신청 매니저 (본신청 전용)"
+
+### D-5. 주석/JSDoc
+  [ ] src/course-registration/ 모든 파일 최상단 주석에
+      "본신청 전용" 또는 "수강희망바구니와 다름" 명시가 있는가
+  [ ] CourseRegistrationClient 클래스 JSDoc에
+      "미포함: 수강희망바구니(예비 담기) → HopeBasketClient 사용" 명시가 있는가
+  [ ] COURSE_REG_PATHS 상수 주석에
+      saveAppcsDtls.do 가 saveHopeAppcsDtls.do 와 다름을 명시했는가
+  [ ] findAppcsDtlsList.do 가 findEstblSubjtShpbsList.do 와 다름을 명시했는가
+
+### D-6. src/index.ts export 블록
+  [ ] 새로 추가한 export가 기존 hope-basket export 블록 사이에 끼어들지 않는가
+  [ ] 새 export 블록 위에 "--- 수강신청 본신청 모듈 ---" 구분 주석이 있는가
+  [ ] 기존 export (HopeBasketClient 등) 가 변경/삭제되지 않았는가
+
+================================================================================
+## E. 두 시스템 동시 사용 시 올바른 패턴 (예시)
+================================================================================
+
+아래는 두 클라이언트를 동시에 사용할 때 올바른 방식이다.
+이 패턴을 README 또는 JSDoc 예시로 활용할 수 있다.
+
+```typescript
+import { createHopeBasketClient }          from './src/index.js'; // 희망바구니
+import { createCourseRegistrationClient }  from './src/index.js'; // 본신청
+
+// 희망바구니 클라이언트 — 예비 담기 전용 (menuId=M100779)
+const hopeBasket = createHopeBasketClient({
+  cookieFilePath: '.seowon-hope-basket.cookies.json', // 희망바구니 쿠키
+});
+
+// 수강신청 본신청 클라이언트 — 실제 등록 전용 (menuId=M100780)
+const courseReg = createCourseRegistrationClient({
+  cookieFilePath: '.seowon-sugang.cookies.json',      // 본신청 쿠키 (다름!)
+});
+
+// 로그인은 각각 별도로 수행 (같은 서버이지만 세션/쿠키 파일이 다름)
+await hopeBasket.login({ stuno: '...', password: '...' });
+await courseReg.login({ stuno: '...', password: '...' });
+
+// 희망바구니: 예비 담기 → saveHopeAppcsDtls.do (M100779)
+await hopeBasket.addToBasket({ subjtCd: '736082', corseDvclsNo: '01' });
+
+// 수강신청: 실제 등록 → saveAppcsDtls.do (M100780)
+await courseReg.registerCourse({ subjtCd: '736082', corseDvclsNo: '01' });
+//                                ↑ 같은 과목이라도 각각 별개 API 호출
+```
+
+위 예시처럼 두 클라이언트는 완전히 독립적으로 동작한다.
+같은 세션이나 쿠키를 공유하지 않으며, 호출하는 API 경로도 다르다.

@@ -1,6 +1,14 @@
 import type { SeowonClient, SeowonClientOptions } from "./types/client.js";
+import { normalizeBaseUrl } from "./utils.js";
 
 export type { SeowonClient, SeowonClientOptions } from "./types/client.js";
+export {
+  COMMON_AJAX_HEADERS,
+  DEFAULT_BROWSER_USER_AGENT,
+  errorMessage,
+  escapeRegExp,
+  normalizeBaseUrl
+} from "./utils.js";
 
 /**
  * seowon-client-api 라이브러리 엔트리 포인트.
@@ -31,18 +39,6 @@ export function createSeowonClient(options: SeowonClientOptions = {}): SeowonCli
   };
 }
 
-/**
- * 도메인 끝에 슬래시 유무 등 URL 형식을 라이브러리 표준에 맞춰 정규화한다.
- * @param {string} baseUrl - 정규화할 원본 URL
- * @returns {string} 끝에 슬래시가 보장된 URL 문자열
- * @private
- */
-function normalizeBaseUrl(baseUrl: string): string {
-  const url = new URL(baseUrl);
-  url.pathname = url.pathname.replace(/\/?$/, "/");
-  return url.toString();
-}
-
 // --- 핵심 비즈니스 로직 모듈 통합 수출 (Public API Surface) ---
 
 export {
@@ -62,6 +58,7 @@ export {
 } from "./ecampus/login.js";
 
 export {
+  createDebouncedCookieSaver,
   isCookieJarUsable,
   isSerializedCookieJarUsable,
   loadCookieJarFromFile,

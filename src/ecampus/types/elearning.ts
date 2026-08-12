@@ -133,7 +133,7 @@ export interface ElearningMp4UrlResult {
     contentUrl?: string; // 분석 대상 URL
     contentKind?: string; // 콘텐츠 유형
     htmlSnippets?: string[]; // HTML 일부
-    [key: string]: any; // 추가 디버그 필드
+    [key: string]: unknown; // 추가 디버그 필드
   }; // 디버그 정보
 }
 

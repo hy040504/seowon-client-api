@@ -3,6 +3,7 @@
  * sugangh API가 form-urlencoded 대신 RS/US 구분 본문을 요구해서 사용한다.
  */
 
+import { escapeRegExp } from "../utils.js";
 import type {
   EncodeSsvDatasetOptions,
   SsvDataset,
@@ -228,12 +229,4 @@ function isSsvDocument(source: SsvDocument | SsvParams): source is SsvDocument {
   );
 }
 
-/**
- * 정규식 특수문자를 이스케이프한다
- * @param {string} value - 원본 문자열
- * @returns {string} 이스케이프된 문자열
- * @private
- */
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+

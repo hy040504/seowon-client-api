@@ -126,6 +126,7 @@ const SEARCH_COLUMNS = [
   "stuno",
   "asignDeprtCd",
   "subjtCd",
+  "subjtNm",
   "corseDvclsNo"
 ] as const;
 
@@ -931,10 +932,17 @@ export function parseSugangTimetableDetailListResponse(body: string): SugangTime
 }
 
 /**
- * 학년 코드를 비교 가능한 형태로 정규화한다 (앞자리 0 제거)
- * @param {string} value - 원본 학년/이수학년 코드
- * @returns {string} 정규화 코드
+ * 학년 코드 앞자리 0을 제거해 비교 가능한 형태로 만든다.
+ * @param value - 원본 학년/이수학년 코드
+ * @returns 정규화된 코드 (빈 입력은 빈 문자열)
  */
+function stripLeadingZerosFromGradeCode(value: string): string {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  const stripped = text.replace(/^0+/, "");
+  return stripped === "" ? "0" : stripped;
+}
+
 /**
  * 이수학년구분코드(SCUR0150) 또는 정규화된 학년 코드를 1~5단위의 학년 문자열로 변환한다
  * @param {string} courseYear - 과목 cmpsjHyDivCd
@@ -972,9 +980,8 @@ export function mapCourseYearToNumericGrade(courseYear: string): string {
       return "5";
   }
 
-  // 2) 매칭되지 않는 경우, 기존 방식대로 앞자리 0 제거 후 반환 (단일 숫자 등 대비)
-  const stripped = code.replace(/^0+/, "");
-  return stripped === "" ? "0" : stripped;
+  // 2) 매칭되지 않는 경우, 앞자리 0 제거 후 반환 (단일 숫자 등 대비)
+  return stripLeadingZerosFromGradeCode(code);
 }
 
 /**
@@ -983,10 +990,7 @@ export function mapCourseYearToNumericGrade(courseYear: string): string {
  * @returns {string} 정규화 코드
  */
 export function normalizeGradeYearCode(value: string): string {
-  const text = String(value ?? "").trim();
-  if (!text) return "";
-  const stripped = text.replace(/^0+/, "");
-  return stripped === "" ? "0" : stripped;
+  return stripLeadingZerosFromGradeCode(value);
 }
 
 /**
@@ -1131,6 +1135,7 @@ function createSearchStyleRequest(
     stuno: context.stuno ?? term.stuno ?? "",
     asignDeprtCd: fields.asignDeprtCd ?? "",
     subjtCd: fields.subjtCd ?? "",
+    subjtNm: fields.subjtNm ?? "",
     corseDvclsNo: fields.corseDvclsNo ?? ""
   };
 

@@ -93,8 +93,10 @@ async function main() {
       addSubjects(subjects, `교양-${domain.codeNm}`);
     }
 
-    // JSON 파일로 저장
-    const outPath = path.resolve(process.cwd(), "all-courses-enriched.json");
+    // JSON 파일로 저장 (대형 데이터는 data/ 아래에 둔다)
+    const outDir = path.resolve(process.cwd(), "data");
+    await fs.mkdir(outDir, { recursive: true });
+    const outPath = path.join(outDir, "all-courses-enriched.json");
     await fs.writeFile(outPath, JSON.stringify(allSubjects, null, 2), "utf-8");
     console.log(`\n🎉 성공적으로 속성 교차 반영하여 저장되었습니다! 총 ${allSubjects.length}개 과목 -> ${outPath}`);
 

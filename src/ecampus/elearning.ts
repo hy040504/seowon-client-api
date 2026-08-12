@@ -834,8 +834,9 @@ export async function getElearningMp4Url(
 
     if (mp4Url) return { success: true, mp4Url };
     return { success: false, message: "MP4 주소 도출 실패", debugInfo: { crsCreCd, lessonCntsId } };
-  } catch (err: any) {
-    return { success: false, message: err.message, debugInfo: { crsCreCd, lessonCntsId } };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { success: false, message, debugInfo: { crsCreCd, lessonCntsId } };
   }
 }
 

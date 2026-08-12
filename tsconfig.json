@@ -14,5 +14,5 @@
     "skipLibCheck": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["src", "test", "examples", "auto-manager.ts", "hope-basket-manager.ts"]
+  "include": ["src", "test", "examples", "cli"]
 }

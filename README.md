@@ -2,6 +2,8 @@
 
 서원대학교 e-campus(LMS), 수강**희망바구니**, 수강신청 **본신청** 화면 흐름·HTTP 요청을 코드로 다루기 위한 **비공식** TypeScript 클라이언트 및 CLI 모음입니다.
 
+상세 변경 이력은 [`CHANGELOG.md`](./CHANGELOG.md)를 참고하세요.
+
 ## 지원 범위
 
 | 영역                                    | 상태 | 비고 |
@@ -13,6 +15,34 @@
 > **희망바구니 ≠ 본신청.** 같은 서버(`sugangh.seowon.ac.kr`)를 쓰지만 menuId·API 경로·쿠키 파일이 다릅니다. 두 클라이언트를 혼용하지 마세요.
 
 > 이 프로젝트는 서원대학교 공식 SDK가 아닙니다. 계정·쿠키·세션·LMS 캡처·다운로드 파일은 공개 저장소에 올리지 마세요.
+
+## 최근 변경 요약
+
+### 수강신청 본신청 모듈
+
+- `src/course-registration/` 신규: 정식 수강신청(등록/취소/내 목록/연속 재시도)
+- 공개 API: `CourseRegistrationClient` / `createCourseRegistrationClient`
+- CLI: `npm run sugang:registration` (`course-reg:manager` 별칭)
+- 서버 구분: menuId `M100780` / pgmId `P001619`, 쿠키 `.seowon-sugang.cookies.json`
+- 단위 테스트 + 라이브 스모크(`npm run test:course-reg:smoke`, 등록/취소 미수행)
+
+### 코드 최적화
+
+- `src/utils.ts` 공통화: `normalizeBaseUrl`, `escapeRegExp`, `COMMON_AJAX_HEADERS`, `errorMessage`
+- 쿠키 저장 비동기화(`saveCookieJarToFile` → Promise) 및 `createDebouncedCookieSaver`
+- 타입 강화(`any` → `unknown`), 희망바구니 검색 `subjtNm` 컬럼 보정
+- 미사용 `ts-node` 제거, 실행은 `tsx` 유지
+
+### 프로젝트 루트 정리
+
+| 이전 (루트 혼재) | 이후 |
+| :--------------- | :--- |
+| `*-manager.ts`, `prompt-client.js` | `cli/` |
+| 구현 프롬프트·개선 메모·피드백 노트 | `docs/prompts/`, `docs/notes/`, `docs/feedback/` |
+| `SAZ/` 패킷 원본 | `research/saz/` (gitignore, 로컬 전용) |
+| 대형 `all-courses*.json` | `data/` (gitignore) |
+
+CLI는 `npm run …` 으로 실행하면 경로를 외울 필요 없습니다. 쿠키 파일 기본 위치는 계속 **프로젝트 루트**입니다.
 
 ## 주요 기능
 
@@ -66,6 +96,7 @@
 - Fiddler SAZ 패킷 분석 (classroom / elearning / score / hope-basket)
 - Puppeteer 기반 live traffic capture 보조 도구
 - Nexacro SSV 코덱 공유 (`src/hope-basket/ssv.ts` — 본신청도 동일 프로토콜)
+- 공통 유틸 (`src/utils.ts`): URL 정규화, 정규식 이스케이프, AJAX 공통 헤더, 에러 메시지 추출
 
 ## 요구 사항
 
@@ -103,14 +134,16 @@ DOWNLOAD_HIGH_WATER_MARK=1024
 
 ## CLI 도구
 
-| 도구                  | 실행 명령                          | 용도                                            |
-| :-------------------- | :--------------------------------- | :---------------------------------------------- |
-| `prompt-client`       | `npm run prompt:client`            | 기능별 API 응답/파싱 결과 확인                  |
-| `auto-manager`        | `npm run auto:manager`             | e-campus 다운로드·자동 시청·과제·성적 반복 작업 |
-| `hope-basket-manager` | `npm run hope-basket:manager`      | 수강희망바구니(예비 담기) 전용 CLI              |
-| `course-registration-manager` | `npm run sugang:registration` | **수강신청 본신청** 전용 CLI                    |
-| `db-generator`        | `npm run generate:db`              | 전체 개설 과목 수집 및 JSON 저장                |
-| `db-viewer`           | `npm run view:db`                  | 생성된 과목 DB 검색 및 페이지네이션 뷰어        |
+인터랙티브 CLI 소스는 `cli/` 아래에 있습니다. npm 스크립트로 실행하세요.
+
+| 도구 | 경로 | 실행 명령 | 용도 |
+| :--- | :--- | :--- | :--- |
+| `prompt-client` | `cli/prompt-client.js` | `npm run prompt:client` | 기능별 API 응답/파싱 결과 확인 |
+| `auto-manager` | `cli/auto-manager.ts` | `npm run auto:manager` | e-campus 다운로드·자동 시청·과제·성적 반복 작업 |
+| `hope-basket-manager` | `cli/hope-basket-manager.ts` | `npm run hope-basket:manager` | 수강희망바구니(예비 담기) 전용 CLI |
+| `course-registration-manager` | `cli/course-registration-manager.ts` | `npm run sugang:registration` | **수강신청 본신청** 전용 CLI |
+| `db-generator` | `db-generator/generate.ts` | `npm run generate:db` | 전체 개설 과목 수집 및 JSON 저장 |
+| `db-viewer` | `db-generator/viewer.ts` | `npm run view:db` | 생성된 과목 DB 검색 및 페이지네이션 뷰어 |
 
 `npm run sugang:manager`는 `hope-basket:manager`의 별칭입니다.  
 `npm run course-reg:manager`는 `sugang:registration`의 별칭입니다.
@@ -454,7 +487,8 @@ const scoreSummaries = parseEcampusScoreSummariesFromSaz(sazBuffer);
 const basketSummary = parseSugangBasketFromSaz(sazBuffer);
 ```
 
-SAZ·캡처 원본은 민감 데이터로 취급하며 기본적으로 Git에 넣지 않습니다.  
+SAZ·캡처 원본은 민감 데이터로 취급하며 Git에 넣지 않습니다.  
+로컬 보관 권장 경로: `research/saz/` (레거시 `SAZ/`, `files/` 도 테스트가 폴백 탐색).  
 e-campus 파서: `src/ecampus/saz.ts` · 희망바구니 파서: `src/hope-basket/saz.ts`
 
 ## 주요 공개 메서드
@@ -529,11 +563,12 @@ e-campus 파서: `src/ecampus/saz.ts` · 희망바구니 파서: `src/hope-baske
 ```text
 src/
   index.ts                     패키지 공개 API
+  utils.ts                     공통 유틸 (normalizeBaseUrl, escapeRegExp, 공통 헤더)
   cli-ui.ts                    CLI 색상·입력·도움말
   types/                       CLI/auto-manager 공용 타입
   ecampus/                     e-campus 연동
     login.ts                   EcampusClient
-    cookies.ts                 CookieJar 저장/복원
+    cookies.ts                 CookieJar 저장/복원 (비동기 write)
     crypto.ts                  로그인 encryptData
     courses.ts                 과목 목록 파싱
     classroom.ts               공지/자료/과제 HTML 파싱
@@ -556,20 +591,31 @@ src/
     registration.ts            create*/parse* 순수 함수
     client.ts                  CourseRegistrationClient
     types/registration.ts      CourseReg* 타입
+cli/
+  prompt-client.js             개별 API 진단 CLI
+  auto-manager.ts              e-campus 반복 작업 CLI
+  hope-basket-manager.ts       희망바구니 CLI
+  course-registration-manager.ts 수강신청 본신청 CLI
 scripts/
   build-legacy-crypto.cjs
   copy-legacy.cjs
-  register-ts-node.mjs
   analyze-saz.mjs
   capture-live.mjs
 db-generator/
   generate.ts                  전체 개설 과목 수집 → JSON DB
   viewer.ts                    생성된 DB 검색/필터 뷰어
   output/                      생성된 JSON DB 저장 디렉터리
-prompt-client.js               개별 API 진단 CLI
-auto-manager.ts                e-campus 반복 작업 CLI
-hope-basket-manager.ts         희망바구니 CLI
-course-registration-manager.ts 수강신청 본신청 CLI
+docs/
+  architecture.md              구조 메모
+  api-responses/               샘플 응답
+  notes/                       개선·최적화 메모
+  prompts/                     구현 프롬프트
+  feedback/                    추후 피드백 분석
+research/
+  saz/                         Fiddler SAZ·패킷 원본 (로컬 참고)
+data/                          대형 과목 DB 스냅샷 (gitignore)
+captures/                      live traffic 캡처 (gitignore)
+output/                        시간표 HTML/PNG 등 생성물 (gitignore)
 ```
 
 ## 개발 명령
@@ -624,16 +670,36 @@ files/ecam/ecamjs/nice.nuguya.oivs.msg.js
 .seowon-sugang.cookies.smoke.json
 .seowon-ecampus.session.json
 files/
+research/saz/
 downloads/
+data/
+data/all-courses.json
+data/all-courses-enriched.json
 *.saz
 *.mp4
 tmp-*.html
 captures/
+output/
 .puppeteer-user-data/
 ```
 
-푸시 전 계정·쿠키·세션·캡처·다운로드 포함 여부를 확인하세요.  
-`*.cookies.json` 은 `.gitignore`에 포함되어 있습니다.
+푸시 전 계정·쿠키·세션·캡처·다운로드·대형 과목 DB·SAZ 포함 여부를 확인하세요.  
+`.gitignore`에 `*.cookies.json`, `data/`, `research/saz/`, `captures/`, `output/` 등이 포함되어 있습니다.
+
+## 디렉터리 안내 (한눈에)
+
+| 경로 | 역할 |
+| :--- | :--- |
+| `src/` | 패키지 라이브러리 소스 (공개 API는 `src/index.ts`) |
+| `cli/` | 인터랙티브 CLI 진입점 |
+| `test/` | Vitest 단위·스모크 테스트 |
+| `scripts/` | 빌드·SAZ 분석·live capture 보조 스크립트 |
+| `docs/` | 아키텍처·샘플 응답·프롬프트·피드백 메모 |
+| `research/` | 로컬 역공학 자료 (`saz/` 등, 민감·gitignore) |
+| `db-generator/` | 전체 개설 과목 DB 수집/뷰어 |
+| `data/` | 대형 과목 DB 스냅샷 (gitignore) |
+| `examples/` | 사용 예시 |
+| `dist/` | 빌드 산출물 |
 
 ## 검증 메모
 

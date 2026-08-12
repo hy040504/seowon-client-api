@@ -137,10 +137,10 @@ export function colorizeJson(text: string): string {
 
 /**
  * 객체 또는 JSON 문자열을 터미널에 미려한 형식으로 출력한다.
- * @param {any} value - 출력할 데이터
+ * @param {unknown} value - 출력할 데이터
  * @returns {void} 반환값 없음
  */
-export function prettyPrint(value: any): void {
+export function prettyPrint(value: unknown): void {
   if (typeof value === "string") {
     try {
       console.log(colorizeJson(JSON.stringify(JSON.parse(value), null, 2)));

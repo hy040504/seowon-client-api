@@ -69,6 +69,7 @@ import axios, { type AxiosInstance, type AxiosResponse } from "axios";
 import { wrapper } from "axios-cookiejar-support";
 import { CookieJar } from "tough-cookie";
 import util from "node:util";
+import { COMMON_AJAX_HEADERS, DEFAULT_BROWSER_USER_AGENT, errorMessage, normalizeBaseUrl } from "../utils.js";
 import { isCookieJarUsable, loadCookieJarFromFile, saveCookieJarToFile } from "./cookies.js";
 import {
   createEmptyEcampusClassroomResources,
@@ -139,8 +140,8 @@ export class EcampusClient {
           jar: this.cookieJar,
           withCredentials: true,
           headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+            "User-Agent": DEFAULT_BROWSER_USER_AGENT,
+            ...COMMON_AJAX_HEADERS
           }
         })
       );
@@ -179,7 +180,7 @@ export class EcampusClient {
    */
   private async persistCookieJar(): Promise<void> {
     if (!this.cookieFilePath) return;
-    saveCookieJarToFile(this.cookieFilePath, this.cookieJar);
+    await saveCookieJarToFile(this.cookieFilePath, this.cookieJar);
   }
 
   /**
@@ -237,11 +238,11 @@ export class EcampusClient {
 
     const response = await this.http.post<EcampusLoginResponse>(LOGIN_API_PATH, params, {
       headers: {
+        ...COMMON_AJAX_HEADERS,
         Accept: "application/json, text/javascript, */*; q=0.01",
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         Origin: this.baseUrl.replace(/\/$/, ""),
-        Referer: new URL(LOGIN_PAGE_PATH, this.baseUrl).toString(),
-        "X-Requested-With": "XMLHttpRequest"
+        Referer: new URL(LOGIN_PAGE_PATH, this.baseUrl).toString()
       }
     });
 
@@ -394,7 +395,7 @@ export class EcampusClient {
         params: { crsCreCd: options.crsCreCd },
         headers: {
           Accept: "application/json, text/javascript, */*; q=0.01",
-          "X-Requested-With": "XMLHttpRequest"
+          ...COMMON_AJAX_HEADERS
         }
       }
     );
@@ -525,7 +526,7 @@ export class EcampusClient {
       headers: {
         Accept: "application/json, text/javascript, */*; q=0.01",
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "X-Requested-With": "XMLHttpRequest"
+        ...COMMON_AJAX_HEADERS
       }
     });
 
@@ -550,7 +551,7 @@ export class EcampusClient {
           Accept: "text/html, */*; q=0.01",
           "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
           Origin: this.baseUrl.replace(/\/$/, ""),
-          "X-Requested-With": "XMLHttpRequest"
+          ...COMMON_AJAX_HEADERS
         }
       }
     );
@@ -599,10 +600,10 @@ export class EcampusClient {
         };
       }
       return getElearningMp4Url(this.http, windowInfo.contentUrl, { crsCreCd, lessonCntsId });
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        message: `URL 분석 과정 중 예외 발생: ${error.message}`,
+        message: `URL 분석 과정 중 예외 발생: ${errorMessage(error)}`,
         debugInfo: { crsCreCd, lessonCntsId }
       };
     }
@@ -659,7 +660,7 @@ export class EcampusClient {
       params: request.query,
       headers: {
         Accept: "application/json, text/javascript, */*; q=0.01",
-        "X-Requested-With": "XMLHttpRequest"
+        ...COMMON_AJAX_HEADERS
       }
     });
     await this.persistCookieJar();
@@ -679,7 +680,7 @@ export class EcampusClient {
       params: request.query,
       headers: {
         Accept: "application/json, text/javascript, */*; q=0.01",
-        "X-Requested-With": "XMLHttpRequest"
+        ...COMMON_AJAX_HEADERS
       }
     });
     await this.persistCookieJar();
@@ -726,7 +727,7 @@ export class EcampusClient {
         Accept: "text/html, */*; q=0.01",
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         Origin: this.baseUrl.replace(/\/$/, ""),
-        "X-Requested-With": "XMLHttpRequest"
+        ...COMMON_AJAX_HEADERS
       }
     });
     await this.persistCookieJar();
@@ -750,7 +751,7 @@ export class EcampusClient {
           "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
           Origin: this.baseUrl.replace(/\/$/, ""),
           Referer: new URL(MAIN_PAGE_PATH, this.baseUrl).toString(),
-          "X-Requested-With": "XMLHttpRequest"
+          ...COMMON_AJAX_HEADERS
         }
       }
     );
@@ -774,7 +775,7 @@ export class EcampusClient {
         params: { scoreViewReschCd, crsCreCd },
         headers: {
           Accept: "application/json, text/javascript, */*; q=0.01",
-          "X-Requested-With": "XMLHttpRequest"
+          ...COMMON_AJAX_HEADERS
         }
       }
     );
@@ -793,7 +794,7 @@ export class EcampusClient {
       params: { crsCreCd },
       headers: {
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "X-Requested-With": "XMLHttpRequest"
+        ...COMMON_AJAX_HEADERS
       }
     });
     await this.persistCookieJar();
@@ -816,7 +817,7 @@ export class EcampusClient {
           Accept: "text/html, */*; q=0.01",
           "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
           Origin: this.baseUrl.replace(/\/$/, ""),
-          "X-Requested-With": "XMLHttpRequest"
+          ...COMMON_AJAX_HEADERS
         }
       }
     );
@@ -841,7 +842,7 @@ export class EcampusClient {
           "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
           Origin: this.baseUrl.replace(/\/$/, ""),
           Referer: this.baseUrl,
-          "X-Requested-With": "XMLHttpRequest"
+          ...COMMON_AJAX_HEADERS
         }
       }
     );
@@ -897,17 +898,6 @@ export function parseLoginResponse(data: EcampusLoginResponse): LoginResult {
     return { type: "redirect", data, url: url.toString() };
   }
   return { type: "reload", data };
-}
-
-/**
- * 기본 URL 경로를 클라이언트 내부 표준 형태로 정규화한다.
- * @param {string} baseUrl - 정규화할 기본 URL
- * @returns {string} 경로 끝 슬래시가 보장된 URL 문자열
- */
-function normalizeBaseUrl(baseUrl: string): string {
-  const url = new URL(baseUrl);
-  url.pathname = url.pathname.replace(/\/?$/, "/");
-  return url.toString();
 }
 
 import { getElearningMp4Url } from "./elearning.js";

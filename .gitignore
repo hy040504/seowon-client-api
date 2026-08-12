@@ -5,13 +5,17 @@ test/
 files/
 downloads/
 output/
+data/
 .puppeteer-user-data/
 .env
 .env.*
 !.env.example
 npm-debug.log*
 .seowon-ecampus.*.json
+.seowon-hope-basket.*.json
+.seowon-sugang.*.json
 *.cookies.json
+*.cookies.*.json
 *.session.json
 downloads/
 *.mp4
@@ -19,4 +23,10 @@ downloads/
 tmp-*.html
 captures/
 captures/live/
+research/saz/
 Microsoft/
+# 대형 과목 DB 스냅샷 (루트 레거시 경로 포함)
+all-courses.json
+all-courses-enriched.json
+data/all-courses.json
+data/all-courses-enriched.json

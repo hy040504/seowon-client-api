@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### 프로젝트 루트 파일 정리
+
+- CLI 진입점 → `cli/` (`auto-manager`, `hope-basket-manager`, `course-registration-manager`, `prompt-client`)
+- 구현 프롬프트 → `docs/prompts/`, 개선 메모 → `docs/notes/`, 피드백 분석 → `docs/feedback/`
+- Fiddler SAZ 원본·확장 분석 → `research/saz/` (gitignore)
+- `package.json` 스크립트 경로·`tsconfig` include·README 구조 문서 갱신
+
+### 코드 최적화 및 정리
+
+- `src/utils.ts` 신설: `normalizeBaseUrl`, `escapeRegExp`, `COMMON_AJAX_HEADERS`, `errorMessage` 공통화
+- `normalizeBaseUrl` 중복 제거 (index / ecampus / hope-basket / course-registration)
+- `escapeRegExp` 중복 제거 (hope-basket/ssv → 공통 utils)
+- 쿠키 저장 `writeFileSync` → 비동기 `writeFile` (`saveCookieJarToFile` Promise 반환)
+- `createDebouncedCookieSaver` 유틸 추가 (연속 요청 시 디스크 쓰기 완화용)
+- `any` → `unknown` 타입 강화 (cli-ui, elearning, login, hope-basket client, elearning types)
+- 학년 코드 0 제거 로직 `stripLeadingZerosFromGradeCode` 헬퍼로 일원화
+- 희망바구니 검색 SSV에 `subjtNm` 컬럼 누락 보정 (과목명 검색 타입 오류 해소)
+- 대형 `all-courses*.json` → `data/` 이동 및 `.gitignore` 등록
+- 미사용 `ts-node` devDependency 및 `register-ts-node.mjs` 제거
+
 ### 수강신청 본신청 모듈 추가
 
 - 정식 수강신청(**본신청**) 모듈 `src/course-registration/` 신규 추가

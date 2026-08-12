@@ -24,6 +24,11 @@ import {
 } from "../ecampus/cookies.js";
 import type { SugangStudentInfo, SugangSubject } from "../hope-basket/types/basket.js";
 import {
+  COMMON_AJAX_HEADERS,
+  DEFAULT_BROWSER_USER_AGENT,
+  normalizeBaseUrl
+} from "../utils.js";
+import {
   COURSE_REG_BASE_URL,
   COURSE_REG_DEFAULT_COOKIE_FILE,
   COURSE_REG_DEFAULT_DEPT_CD
@@ -139,12 +144,12 @@ export class CourseRegistrationClient {
           timeout: this.requestTimeoutMs,
           // keep-alive 소켓이 서버에서 먼저 닫히면 ECONNRESET이 나기 쉬워 요청마다 연결을 닫는다.
           headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+            "User-Agent": DEFAULT_BROWSER_USER_AGENT,
             "Accept-Language": "ko,ko-KR;q=0.9,en-US;q=0.8,en;q=0.7",
             Accept: "*/*",
             Connection: "close",
-            "Accept-Encoding": "gzip, deflate"
+            "Accept-Encoding": "gzip, deflate",
+            ...COMMON_AJAX_HEADERS
           },
           transitional: {
             clarifyTimeoutError: true
@@ -620,8 +625,8 @@ export class CourseRegistrationClient {
       method: "GET",
       url: request.url,
       headers: {
+        ...COMMON_AJAX_HEADERS,
         Accept: "application/xml, text/xml, */*",
-        "X-Requested-With": "XMLHttpRequest",
         Origin: this.baseUrl.replace(/\/$/, ""),
         Referer: new URL("/nx/", this.baseUrl).toString(),
         Connection: "close"
@@ -698,13 +703,11 @@ export class CourseRegistrationClient {
       url: request.url,
       data: request.body,
       headers: {
+        ...COMMON_AJAX_HEADERS,
         Accept: request.accept,
         "Content-Type": request.contentType,
-        "X-Requested-With": "XMLHttpRequest",
         Origin: this.baseUrl.replace(/\/$/, ""),
         Referer: new URL("/nx/", this.baseUrl).toString(),
-        "Cache-Control": "no-cache, no-store",
-        Pragma: "no-cache",
         Connection: "close"
       },
       responseType: "text",
@@ -755,7 +758,7 @@ export class CourseRegistrationClient {
    */
   private async persistCookieJar(): Promise<void> {
     if (!this.cookieFilePath) return;
-    saveCookieJarToFile(this.cookieFilePath, this.cookieJar);
+    await saveCookieJarToFile(this.cookieFilePath, this.cookieJar);
   }
 
   /**
@@ -781,12 +784,6 @@ export function createCourseRegistrationClient(
 // ---------------------------------------------------------------------------
 // private module helpers
 // ---------------------------------------------------------------------------
-
-function normalizeBaseUrl(baseUrl: string): string {
-  const url = new URL(baseUrl);
-  url.pathname = url.pathname.replace(/\/?$/, "/");
-  return url.toString();
-}
 
 /** 네트워크 오류 등 raw SSV 가 없을 때 빈 mutation 결과 생성 */
 function createEmptyMutationResult(

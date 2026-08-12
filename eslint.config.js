@@ -8,6 +8,7 @@ export default tseslint.config(
       "node_modules/**",
       "coverage/**",
       "files/**",
+      "research/**",
       "scripts/**",
       "src/ecampus/legacy/**"
     ]

@@ -8,6 +8,12 @@ import {
   saveCookieJarToFile
 } from "../ecampus/cookies.js";
 import {
+  COMMON_AJAX_HEADERS,
+  DEFAULT_BROWSER_USER_AGENT,
+  errorMessage,
+  normalizeBaseUrl
+} from "../utils.js";
+import {
   composeSugangLoginResult,
   createSugangAppcsScheduleListRequest,
   createSugangBasketAddRequest,
@@ -128,12 +134,12 @@ export class HopeBasketClient {
           timeout: this.requestTimeoutMs,
           // keep-alive 소켓이 서버에서 먼저 닫히면 ECONNRESET이 나기 쉬워 요청마다 연결을 닫는다.
           headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+            "User-Agent": DEFAULT_BROWSER_USER_AGENT,
             "Accept-Language": "ko,ko-KR;q=0.9,en-US;q=0.8,en;q=0.7",
             Accept: "*/*",
             Connection: "close",
-            "Accept-Encoding": "gzip, deflate"
+            "Accept-Encoding": "gzip, deflate",
+            ...COMMON_AJAX_HEADERS
           },
           transitional: {
             clarifyTimeoutError: true
@@ -673,12 +679,12 @@ export class HopeBasketClient {
             skipCheck: options.skipCheck
           });
           results.push({ subject, result });
-        } catch (err: any) {
+        } catch (err: unknown) {
           results.push({
             subject,
             result: {
               success: false,
-              message: err?.message || String(err),
+              message: errorMessage(err),
               action: "add",
               subjtCd: subject.subjtCd,
               corseDvclsNo: subject.corseDvclsNo,
@@ -773,13 +779,11 @@ export class HopeBasketClient {
       url: request.url,
       data: request.body,
       headers: {
+        ...COMMON_AJAX_HEADERS,
         Accept: request.accept,
         "Content-Type": request.contentType,
-        "X-Requested-With": "XMLHttpRequest",
         Origin: this.baseUrl.replace(/\/$/, ""),
         Referer: new URL("/nx/", this.baseUrl).toString(),
-        "Cache-Control": "no-cache, no-store",
-        Pragma: "no-cache",
         Connection: "close"
       },
       responseType: "text",
@@ -836,7 +840,7 @@ export class HopeBasketClient {
    */
   private async persistCookieJar(): Promise<void> {
     if (!this.cookieFilePath) return;
-    saveCookieJarToFile(this.cookieFilePath, this.cookieJar);
+    await saveCookieJarToFile(this.cookieFilePath, this.cookieJar);
   }
 
   /**
@@ -857,18 +861,6 @@ export class HopeBasketClient {
  */
 export function createHopeBasketClient(options: HopeBasketClientOptions = {}): HopeBasketClient {
   return new HopeBasketClient(options);
-}
-
-/**
- * baseURL 끝 슬래시를 라이브러리 관례에 맞춘다
- * @param {string} baseUrl - 원본 URL
- * @returns {string} 정규화된 baseURL
- * @private
- */
-function normalizeBaseUrl(baseUrl: string): string {
-  const url = new URL(baseUrl);
-  url.pathname = url.pathname.replace(/\/?$/, "/");
-  return url.toString();
 }
 
 /**
