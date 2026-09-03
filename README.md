@@ -62,6 +62,8 @@
 - 로그인용 `encryptData` 생성 및 쿠키 세션 저장/재사용
 - 교과/비교과 과목 목록·그룹 조회
 - 공지사항, 강의자료, 과제 목록 조회
+- 과제 상세(`asmntStuMain` + `asmntRightView`), 첨부 `fileDown` 파일명, `sendAsmnt` 제출
+- 과제 파일 업로드 후보: `/file/ajaxupload/`, `/file/upload`, `/comm/file/fileUpload`
 - 강의자료 첨부 파일 URL 추출 및 다운로드
 - 이러닝 주차/차시, 수강 기간, 출결 상태 파싱
 - MP4 URL 추출, 스트리밍 다운로드, 학습 기록 갱신
@@ -109,8 +111,8 @@
 희망바구니 검색으로 학기 전체 개설 목록을 JSON으로 모아 두고, 본신청 오픈 전·라이브 검색 실패 시 플랜 구성에 씁니다. 정원·실시간 잔여 좌석은 없습니다.
 
 ```bash
-npm run generate:db    # 수집 + latest.json 포인터 기록
-npm run view:db        # 검색/필터 뷰어 (파일명 자동 감지)
+npm run generate:db    # 수집(교양 영역 태깅 포함) + latest.json 포인터 기록
+npm run view:db        # 검색/학과·단과대·교양영역 필터 뷰어
 ```
 
 예약 매크로 과목 큐에서도 `g` 로 같은 수집을 돌릴 수 있습니다.
@@ -175,7 +177,7 @@ DOWNLOAD_HIGH_WATER_MARK=1024
 | `course-registration-manager` | `cli/course-registration-manager.ts` | `npm run sugang:registration` | **수강신청 본신청** 전용 CLI |
 | `scheduled-registration` | `cli/scheduled-registration.ts` | `npm run sugang:scheduled` | **예약** 수강신청 (시각·우선순위 큐) |
 | `db-generator` | `db-generator/generate.ts` | `npm run generate:db` | 전체 개설 과목 수집 및 JSON 저장 |
-| `db-viewer` | `db-generator/viewer.ts` | `npm run view:db` | 생성된 과목 DB 검색 및 페이지네이션 뷰어 |
+| `db-viewer` | `db-generator/viewer.ts` | `npm run view:db` | 과목 DB 검색·개설학과/단과대 필터 뷰어 |
 
 `npm run sugang:manager`는 `hope-basket:manager`의 별칭입니다.  
 `npm run course-reg:manager`는 `sugang:registration`의 별칭입니다.
@@ -589,6 +591,9 @@ e-campus 파서: `src/ecampus/saz.ts` · 희망바구니 파서: `src/hope-baske
 | `getMaterialList()`                 | 강의자료                  |
 | `getMaterialAttachments()`          | 강의자료 첨부 URL         |
 | `getAssignmentList()`               | 과제·제출 상태            |
+| `getAssignmentDetail()`             | 상세 본문·첨부·sendType·제출 가능 |
+| `submitAssignment()`                | 파일 업로드 후 `sendAsmnt` |
+| `downloadClassroomFile()`           | 첨부 버퍼. HTML 오류 페이지는 거절 |
 | `getClassroomResources()`           | 공지/자료/과제 통합       |
 | `getScoreOpenInfo()`                | 성적 공개 여부            |
 | `getScoreAccessInfo()`              | 공개 조건·설문 게이트     |
@@ -724,7 +729,7 @@ output/                        시간표 HTML/PNG 등 생성물 (gitignore)
 | `npm run sugang:scheduled`      | **예약** 수강신청 (시각·우선순위 큐)      |
 | `npm run course-reg:scheduled`  | `sugang:scheduled` 별칭                   |
 | `npm run generate:db`           | 전체 개설 과목 수집 → JSON + `latest.json` 포인터 |
-| `npm run view:db`               | 생성된 과목 DB 검색/필터 뷰어 (파일명 자동 감지) |
+| `npm run view:db`               | 과목 DB 검색·개설학과/단과대 필터 뷰어 |
 | `npm run analyze:saz`           | SAZ 패킷 분석                             |
 | `npm run capture:live`          | Chrome live traffic capture               |
 | `npm run typecheck`             | TypeScript 검사                           |

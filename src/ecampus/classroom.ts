@@ -1,4 +1,5 @@
 import type {
+  EcampusAssignmentSubmitForm,
   EcampusClassroomAttachment,
   EcampusClassroomItem,
   EcampusClassroomResourceOptions,
@@ -7,11 +8,14 @@ import type {
 } from "./types/classroom.js";
 
 export type {
+  EcampusAssignmentDetail,
+  EcampusAssignmentSubmitForm,
   EcampusClassroomAttachment,
   EcampusClassroomItem,
   EcampusClassroomResourceOptions,
   EcampusClassroomResources,
   EcampusClassroomSection,
+  EcampusDownloadedFile,
   EcampusPostRequest
 } from "./types/classroom.js";
 
@@ -22,6 +26,10 @@ const DEFAULT_BASE_URL = "https://ecampus.seowon.ac.kr";
 const VIEW_ATCL_PATH = "/bbs/bbsLect/Form/viewAtclForm";
 const VIEW_ATCL_CONTENT_PATH = "/bbs/bbsLect/viewAtcl";
 const VIEW_ASMNT_PATH = "/asmnt/asmntLect/Form/asmntStuMain";
+const VIEW_ASMNT_CONTENT_PATH = "/asmnt/asmntLect/asmntStuMain";
+const GENERIC_ATTACHMENT_TITLE = /^(다운로드|download|down|첨부|첨부파일|파일|보기|열기|file)$/i;
+const FILENAME_IN_TEXT =
+  /([\w가-힣()[\]{}.+\- ]+\.(pdf|hwp|hwpx|docx?|pptx?|xlsx?|zip|rar|7z|txt|jpg|jpeg|png|gif|mp4|hwpx?))/i;
 
 /**
  * 강의실 리소스 수집 결과의 기본 컨테이너를 만든다.
@@ -190,6 +198,337 @@ export function parseEcampusClassroomAttachmentsHtml(
 
   return attachments;
 }
+
+/**
+ * 과제 상세 HTML이 본문·첨부·제출 칸을 가졌는지 본다.
+ * Form 껍데기만 온 경우는 false 다.
+ * @param {string} html - 과제 화면 HTML
+ * @returns {boolean} 상세로 쓸 수 있으면 true
+ */
+/**
+ * 내려받은 본문이 HTML 오류 페이지인지 본다.
+ * @param {Buffer} data - 응답 본문
+ * @param {string} [contentType] - Content-Type 헤더
+ * @returns {boolean} HTML 이면 true
+ */
+export function isHtmlFileBody(data: Buffer, contentType = ""): boolean {
+  if (/text\/html/i.test(contentType)) return true;
+  const head = data.subarray(0, 256).toString("utf8").trimStart();
+  return /^<!DOCTYPE html/i.test(head) || /^<html/i.test(head);
+}
+
+/**
+ * 과제 상세 HTML이 본문·첨부·제출 칸을 가졌는지 본다.
+ * Form 껍데기만 온 경우는 false 다.
+ * @param {string} html - 과제 화면 HTML
+ * @returns {boolean} 상세로 쓸 수 있으면 true
+ */
+export function looksLikeAssignmentDetailHtml(html: string): boolean {
+  if (!html) return false;
+  return /fileDown|sendAsmnt|asmntSend|asmntListForm|sendType|과제내용|참고자료|제출하기|saveStu|asmntCnts|sbmsn|type\s*=\s*["']file["']|<textarea|input[^>]*type=["']file["']/i.test(
+    html
+  );
+}
+
+/**
+ * 과제 상세 요청 URL 후보를 만든다. /Form/ 껍데기와 AJAX 본문 경로를 같이 시도한다.
+ * @param {string} url - 목록 request.url
+ * @param {string} [baseUrl] - 상대 경로 보정
+ * @returns {string[]} 중복 없는 절대 URL 목록
+ */
+export function assignmentDetailCandidateUrls(url: string, baseUrl = DEFAULT_BASE_URL): string[] {
+  const abs = absoluteUrl(url || VIEW_ASMNT_PATH, baseUrl);
+  const parsed = new URL(abs);
+  const path = parsed.pathname;
+  const out: string[] = [abs];
+  if (path.includes("/Form/")) {
+    parsed.pathname = path.replace("/Form/", "/");
+    out.push(parsed.toString());
+  } else if (path.endsWith("/asmntStuMain")) {
+    parsed.pathname = path.replace(/\/asmntStuMain$/, "/Form/asmntStuMain");
+    out.push(parsed.toString());
+  }
+  const content = new URL(VIEW_ASMNT_CONTENT_PATH, baseUrl).toString();
+  const form = new URL(VIEW_ASMNT_PATH, baseUrl).toString();
+  for (const extra of [content, form]) {
+    if (!out.includes(extra)) out.push(extra);
+  }
+  return out;
+}
+
+/**
+ * 과제 상세 HTML에서 제출 폼 action·숨은 필드·파일 필드명을 읽는다.
+ * @param {string} html - 과제 화면 HTML
+ * @param {EcampusClassroomResourceOptions} [options] - baseUrl
+ * @returns {EcampusAssignmentSubmitForm | null} 제출 폼. 없으면 null
+ */
+export function parseEcampusAssignmentSubmitForm(
+  html: string,
+  options: EcampusClassroomResourceOptions = {}
+): EcampusAssignmentSubmitForm | null {
+  if (!html) return null;
+  const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
+  const $ = cheerio.load(html);
+  let best: EcampusAssignmentSubmitForm | null = null;
+
+  $("form").each((_, el) => {
+    const $form = $(el);
+    const actionAttr = $form.attr("action") || "";
+    const ident = `${actionAttr} ${$form.attr("id") || ""} ${$form.attr("name") || ""}`;
+    const hasFile = $form.find("input[type='file']").length > 0;
+    const hasText = $form.find("textarea").length > 0;
+    const looks = /asmnt|saveStu|submit|제출/i.test(ident) || hasFile || hasText;
+    if (!looks) return;
+
+    const fields: Record<string, string> = {};
+    $form.find("input[name]").each((__, input) => {
+      const $input = $(input);
+      const name = $input.attr("name");
+      if (!name) return;
+      const type = ($input.attr("type") || "text").toLowerCase();
+      if (type === "file" || type === "button" || type === "submit") return;
+      fields[name] = $input.attr("value") ?? "";
+    });
+
+    let textField = "";
+    $form.find("textarea[name]").each((__, area) => {
+      const name = $(area).attr("name");
+      if (!name) return;
+      if (!textField || /ans|cnts|content|desc|내용|sbmsn/i.test(name)) textField = name;
+      fields[name] = $(area).text();
+    });
+
+    const $file = $form.find("input[type='file'][name]").first();
+    const fileField = $file.attr("name") || "";
+    let actionAbs = "";
+    try {
+      if (actionAttr) actionAbs = new URL(actionAttr, baseUrl).toString();
+    } catch {
+      actionAbs = "";
+    }
+
+    const candidate: EcampusAssignmentSubmitForm = {
+      action: actionAbs,
+      fields,
+      textField,
+      fileField,
+      hasFile: Boolean(fileField || hasFile)
+    };
+    best = candidate;
+    if (hasFile || /save|submit/i.test(actionAttr)) return false;
+  });
+
+  if (!best) {
+    const $file = $("input[type='file'][name]").first();
+    const $area = $("textarea[name]").first();
+    if ($file.length || $area.length) {
+      const fields: Record<string, string> = {};
+      $("input[name]").each((_, input) => {
+        const $input = $(input);
+        const name = $input.attr("name");
+        if (!name) return;
+        const type = ($input.attr("type") || "text").toLowerCase();
+        if (type === "file" || type === "button" || type === "submit") return;
+        fields[name] = $input.attr("value") ?? "";
+      });
+      const textField = $area.attr("name") || "";
+      if (textField) fields[textField] = $area.text();
+      best = {
+        action: "",
+        fields,
+        textField,
+        fileField: $file.attr("name") || "",
+        hasFile: $file.length > 0
+      };
+    }
+  }
+
+  if (best && !best.action) {
+    const save =
+      html.match(/["'](\/asmnt\/[^"'\\\s<>]*(?:save|submit)[^"'\\\s<>]*)["']/i)?.[1] ||
+      html.match(/["'](\/asmnt\/[^"'\\\s<>]+)["']/i)?.[1] ||
+      "";
+    if (save) {
+      try {
+        best.action = new URL(save, baseUrl).toString();
+      } catch {
+        // 상대 경로 보정 실패 시 action 비움
+      }
+    }
+  }
+
+  return best;
+}
+
+const SEND_ASMNT_PATH = "/asmnt/asmntHome/sendAsmnt";
+const ASMNT_RIGHT_VIEW_PATH = "/asmnt/asmntHome/asmntRightView";
+const ASMNT_SEND_VIEW_PATH = "/asmnt/asmntHome/asmntSendView";
+
+/**
+ * 과제 HTML에서 제출 형식(F=파일, T=텍스트)을 읽는다.
+ * 패킷은 `"sendType" : "F"` 와 `if("F" == "T")` 둘 다 쓴다.
+ * @param {string} html - 상세 또는 우측 칸 HTML
+ * @returns {"F"|"T"|""} 제출 형식
+ */
+export function parseEcampusAssignmentSendType(html: string): "F" | "T" | "" {
+  if (!html) return "";
+  const patterns = [
+    /["']sendType["']\s*[:=]\s*["']([FT])["']/,
+    /if\s*\(\s*"([FT])"\s*==\s*"T"/,
+    /name\s*=\s*["']sendType["'][^>]*value\s*=\s*["']([FT])["']/i,
+    /value\s*=\s*["']([FT])["'][^>]*name\s*=\s*["']sendType["']/i
+  ];
+  for (const re of patterns) {
+    const v = html.match(re)?.[1];
+    if (v === "F" || v === "T") return v;
+  }
+  return "";
+}
+
+/**
+ * sendAsmnt 제출에 쓸 폼 정보를 만든다. e-campus 상세 화면에 file input 이 없다.
+ * @param {Record<string, string>} fields - hidden 필드
+ * @param {"F"|"T"|""} sendType - 제출 형식
+ * @param {string} [baseUrl]
+ * @returns {EcampusAssignmentSubmitForm} 제출 엔드포인트
+ */
+export function buildEcampusAssignmentSubmitForm(
+  fields: Record<string, string>,
+  sendType: "F" | "T" | "",
+  baseUrl = DEFAULT_BASE_URL
+): EcampusAssignmentSubmitForm {
+  const file = sendType !== "T";
+  return {
+    action: absoluteUrl(SEND_ASMNT_PATH, baseUrl),
+    fields,
+    textField: sendType === "T" ? "sendCts" : "",
+    fileField: file ? "attachFileSns" : "",
+    hasFile: file
+  };
+}
+
+/**
+ * 과제 상세·목록 HTML의 fileDown('TOKEN') 링크만 첨부 목록으로 읽는다.
+ * 링크 텍스트가 실제 파일명이다.
+ * @param {string} html - 과제 화면 HTML
+ * @param {EcampusClassroomResourceOptions} [options] - baseUrl
+ * @returns {EcampusClassroomAttachment[]} 참고자료 첨부
+ */
+export function parseEcampusAssignmentFileLinks(
+  html: string,
+  options: EcampusClassroomResourceOptions = {}
+): EcampusClassroomAttachment[] {
+  const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
+  const $ = cheerio.load(html);
+  const attachments: EcampusClassroomAttachment[] = [];
+  const seen = new Set<string>();
+
+  $("a[href*='fileDown'], a[onclick*='fileDown']").each((_, el) => {
+    const $el = $(el);
+    const call = `${$el.attr("href") || ""} ${$el.attr("onclick") || ""}`;
+    const args = parseFunctionArguments(call);
+    const token = args[0];
+    if (!token) return;
+    const url = absoluteUrl(`/file/download/${token}`, baseUrl);
+    $el.find("i, svg").remove();
+    const named = args.find((a, i) => i > 0 && FILENAME_IN_TEXT.test(a));
+    const title = normalizeSpace(named || $el.text()) || "첨부파일";
+    const key = `${title}::${url}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    attachments.push({ title, url });
+  });
+
+  return attachments;
+}
+
+/**
+ * 과제 상세 HTML에서 본문·제출형식·제출 엔드포인트를 읽는다.
+ * 실제 화면은 form 파일 필드가 없고 sendAsmnt AJAX 를 쓴다.
+ * @param {string} html - /asmnt/asmntLect/Form/asmntStuMain 응답
+ * @param {EcampusClassroomResourceOptions} [options] - baseUrl
+ * @returns 본문·첨부·제출 정보
+ */
+export function parseEcampusAssignmentDetailHtml(
+  html: string,
+  options: EcampusClassroomResourceOptions = {}
+): {
+  text: string;
+  sendType: "F" | "T" | "";
+  attachments: EcampusClassroomAttachment[];
+  submitForm: EcampusAssignmentSubmitForm | null;
+  canSubmit: boolean;
+} {
+  const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
+  const $ = cheerio.load(html);
+  const sendType = parseEcampusAssignmentSendType(html);
+
+  const content = normalizeSpace(
+    $("label.label-title")
+      .filter((_, el) => /과제내용/.test($(el).text()))
+      .first()
+      .closest(".inline.field, .field, div")
+      .find(".note-editable")
+      .text()
+  ) || normalizeSpace($(".note-editable").first().text());
+
+  const fields: Record<string, string> = {};
+  $("#asmntListForm input[name], form#asmntListForm input[name], input[name='asmntCd'], input[name='crsCreCd']").each(
+    (_, input) => {
+      const name = $(input).attr("name");
+      if (name && fields[name] === undefined) fields[name] = $(input).attr("value") ?? "";
+    }
+  );
+  const title = normalizeSpace($("h2.page-title").first().text() || $("#hiddenAsmntTitle").attr("value") || "");
+  if (title) fields.asmntTitle = title;
+
+  // e-campus 상세에는 file input 이 없다. 제출은 항상 sendAsmnt AJAX 다.
+  const submitForm = buildEcampusAssignmentSubmitForm(fields, sendType, baseUrl);
+  const canSubmit = true;
+
+  return {
+    text: content,
+    sendType,
+    attachments: parseEcampusAssignmentFileLinks(html, options),
+    submitForm,
+    canSubmit
+  };
+}
+
+/**
+ * 우측 제출 칸 HTML에 제출하기 버튼이 있는지 본다.
+ * @param {string} html - /asmnt/asmntHome/asmntRightView 응답
+ * @returns {boolean} 제출 가능
+ */
+export function parseEcampusAssignmentRightViewCanSubmit(html: string): boolean {
+  return /sendAsmnt\s*\(|id=["']sendAsmntBtn["']|제출하기/.test(html || "");
+}
+
+/**
+ * 제출 화면 HTML에서 파일 업로드 URL을 찾는다.
+ * @param {string} html - /asmnt/asmntHome/asmntSendView 응답
+ * @param {string} [baseUrl]
+ * @returns {string} 업로드 절대 URL. 없으면 빈 문자열
+ */
+export function parseEcampusAssignmentUploadUrl(html: string, baseUrl = DEFAULT_BASE_URL): string {
+  if (!html) return "";
+  const paths = [
+    html.match(/FILE_UPLOAD\s*[:=]\s*["']([^"']+)["']/i)?.[1],
+    html.match(/["'](\/[^"'\\\s<>]*(?:ajaxupload|fileUpload|uploadFile|file\/upload)[^"'\\\s<>]*)["']/i)?.[1],
+    html.match(/uploadUrl\s*[:=]\s*["']([^"']+)["']/i)?.[1],
+    html.match(/url\s*:\s*cUrl\(\s*["']([^"']+)["']\s*\)/i)?.[1]
+  ].filter((p): p is string => Boolean(p));
+  for (const path of paths) {
+    try {
+      return new URL(path, baseUrl).toString();
+    } catch {
+      // 다음 후보
+    }
+  }
+  return "";
+}
+
+export { SEND_ASMNT_PATH, ASMNT_RIGHT_VIEW_PATH, ASMNT_SEND_VIEW_PATH };
 
 /**
  * 일반적인 게시판(NOTICE, PDS) 형태의 HTML 리스트를 공통 파싱한다.
@@ -361,7 +700,7 @@ function extractUrlCandidate(source: string, baseUrl: string): string | undefine
   }
 
   // javascript:fileDown('TOKEN') 패턴 지원 (실제 브라우저 캡처에서 확인된 첨부 다운로드 트리거)
-  const fileDownMatch = trimmed.match(/fileDown\s*\(\s*['"]([^'"]+)['"]\s*\)/i);
+  const fileDownMatch = trimmed.match(/fileDown\s*\(\s*['"]([^'"]+)['"]/i);
   if (fileDownMatch?.[1]) {
     const token = fileDownMatch[1];
     return absoluteUrl(`/file/download/${token}`, baseUrl);
@@ -400,14 +739,29 @@ function extractUrlCandidate(source: string, baseUrl: string): string | undefine
  */
 function extractAttachmentTitle(node: cheerio.Cheerio<any>, url: string): string {
   const downloadAttr = node.attr("download");
-  if (downloadAttr && downloadAttr.trim() !== "true") {
+  if (downloadAttr && downloadAttr.trim() !== "true" && !GENERIC_ATTACHMENT_TITLE.test(downloadAttr.trim())) {
     return downloadAttr.trim();
   }
 
+  const call = `${node.attr("href") || ""} ${node.attr("onclick") || ""}`;
+  if (/fileDown/i.test(call)) {
+    const args = parseFunctionArguments(call);
+    const named = args.find((a) => FILENAME_IN_TEXT.test(a));
+    if (named) return named.trim();
+  }
+
   const text = normalizeSpace(node.text());
-  if (text && !/^(다운로드|download|첨부|보기|열기)$/i.test(text)) {
+  if (text && !GENERIC_ATTACHMENT_TITLE.test(text)) {
     return text;
   }
+
+  const nearby = normalizeSpace(
+    node
+      .closest(".inline.field, .file, .filebox, .attach, .attachment, .paperclip, li, tr, td, dd, p, div")
+      .text()
+  );
+  const fromNearby = nearby.match(FILENAME_IN_TEXT)?.[1];
+  if (fromNearby) return fromNearby.trim();
 
   try {
     const parsed = new URL(url);
@@ -418,10 +772,12 @@ function extractAttachmentTitle(node: cheerio.Cheerio<any>, url: string): string
     }
 
     const lastPath = parsed.pathname.split("/").filter(Boolean).pop();
-    if (lastPath) return decodeURIComponent(lastPath);
+    if (lastPath && lastPath !== "download" && !/^[A-Za-z0-9._~+=/-]{8,}$/.test(lastPath)) {
+      return decodeURIComponent(lastPath);
+    }
   } catch {}
 
-  return "attachment";
+  return "첨부파일";
 }
 
 /**

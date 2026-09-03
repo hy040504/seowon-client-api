@@ -851,6 +851,7 @@ async function runGenerateLocalDbMenu(
 ): Promise<void> {
   printSection("\n[로컬 과목 DB 생성]");
   printInfo("희망바구니 로그인 후 전체 개설 과목을 수집합니다 (수 분 소요).");
+  printInfo("교양 영역명(cltrDomnNm)도 같이 붙입니다.");
   printInfo("결과는 db-generator/output + latest.json — 이후 a/b 검색에 바로 사용됩니다.");
 
   const confirm = (await ask(rl, "지금 생성할까요? (y/n)", "y")).toLowerCase();

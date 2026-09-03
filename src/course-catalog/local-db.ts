@@ -74,9 +74,24 @@ export interface LocalCourseRecord {
   timtbNm?: string;
   chrgInstrEmpnm?: string;
   estblDeprtNm?: string;
+  /** 단과대/상위 조직명 */
+  univNm?: string;
   slesLessnItem?: string;
+  /** 교양 영역 코드. 여러 개면 쉼표 */
+  cltrDomnCd?: string;
+  /** 교양 영역명. 여러 개면 " / " */
+  cltrDomnNm?: string;
   _category?: string;
   [key: string]: unknown;
+}
+
+/** 로컬 DB에서 고를 수 있는 학과/단과대/교양영역 묶음 */
+export type LocalCourseFacetKind = "department" | "college" | "domain";
+
+export interface LocalCourseFacet {
+  kind: LocalCourseFacetKind;
+  name: string;
+  count: number;
 }
 
 export interface ResolveCourseDbOptions {
@@ -314,6 +329,9 @@ export function searchLocalCourses(
       c.subjtNm,
       c.chrgInstrEmpnm,
       c.estblDeprtNm,
+      c.univNm,
+      c.cltrDomnNm,
+      c.cltrDomnCd,
       c.timtbNm,
       c.slesLessnItem,
       c._category,
@@ -324,6 +342,146 @@ export function searchLocalCourses(
       .toLowerCase();
     return hay.includes(q);
   });
+}
+
+/** 빈 문자열을 제외하고 이름별 건수를 센다. */
+function countByName(values: Array<string | undefined>): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const raw of values) {
+    const name = (raw ?? "").trim();
+    if (!name) continue;
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/** 교양 영역 필드("의사소통 / 인성")를 개별 이름로 나눈다. */
+export function splitCultureDomainNames(raw?: string): string[] {
+  if (!raw?.trim()) return [];
+  return raw
+    .split(/\s*\/\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+/** 이름 오름차순 페셋 배열로 변환한다. */
+function facetsFromCounts(
+  counts: Map<string, number>,
+  kind: LocalCourseFacetKind
+): LocalCourseFacet[] {
+  return [...counts.entries()]
+    .map(([name, count]) => ({ kind, name, count }))
+    .sort((a, b) => a.name.localeCompare(b.name, "ko"));
+}
+
+/**
+ * 개설학과(estblDeprtNm) 목록과 건수.
+ * `_category`(수집 serchDiv 태그)가 아니라 실제 학과명이다.
+ */
+export function listLocalCourseDepartments(
+  courses: LocalCourseRecord[]
+): LocalCourseFacet[] {
+  return facetsFromCounts(
+    countByName(courses.map((c) => c.estblDeprtNm)),
+    "department"
+  );
+}
+
+/**
+ * 단과대(univNm) 목록과 건수.
+ */
+export function listLocalCourseColleges(courses: LocalCourseRecord[]): LocalCourseFacet[] {
+  return facetsFromCounts(countByName(courses.map((c) => c.univNm)), "college");
+}
+
+/**
+ * 교양 영역(cltrDomnNm) 목록과 건수.
+ * 한 과목에 영역이 여러 개면 각각 센다.
+ */
+export function listLocalCourseDomains(courses: LocalCourseRecord[]): LocalCourseFacet[] {
+  const counts = new Map<string, number>();
+  for (const course of courses) {
+    for (const name of splitCultureDomainNames(course.cltrDomnNm)) {
+      counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+  }
+  return facetsFromCounts(counts, "domain");
+}
+
+/**
+ * 학과/단과대/교양영역 이름 부분일치.
+ * 단과대·학과 이름이 같으면 학과를 남기고, 교양 영역은 별도 줄로 둔다.
+ */
+export function matchLocalCourseFacets(
+  courses: LocalCourseRecord[],
+  query: string
+): LocalCourseFacet[] {
+  const q = query.trim().toLowerCase();
+  const departments = listLocalCourseDepartments(courses);
+  const colleges = listLocalCourseColleges(courses);
+  const domains = listLocalCourseDomains(courses);
+  if (!q) {
+    return [...departments, ...colleges, ...domains];
+  }
+
+  const hit = (name: string) => name.toLowerCase().includes(q);
+  const seen = new Set<string>();
+  const matched: LocalCourseFacet[] = [];
+  for (const facet of [
+    ...departments.filter((f) => hit(f.name)),
+    ...colleges.filter((f) => hit(f.name)),
+    ...domains.filter((f) => hit(f.name))
+  ]) {
+    const key = facet.kind === "domain" ? `domain:${facet.name}` : facet.name;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    matched.push(facet);
+  }
+
+  matched.sort((a, b) => {
+    const aExact = a.name.toLowerCase() === q ? 0 : 1;
+    const bExact = b.name.toLowerCase() === q ? 0 : 1;
+    if (aExact !== bExact) return aExact - bExact;
+    return a.name.localeCompare(b.name, "ko");
+  });
+  return matched;
+}
+
+/**
+ * 고른 학과/단과대/교양영역에 해당하는 과목만 남긴다.
+ */
+export function filterLocalCoursesByFacet(
+  courses: LocalCourseRecord[],
+  facet: LocalCourseFacet
+): LocalCourseRecord[] {
+  const name = facet.name.trim();
+  if (!name) return [];
+  if (facet.kind === "college") {
+    return courses.filter((c) => (c.univNm || "").trim() === name);
+  }
+  if (facet.kind === "domain") {
+    return courses.filter((c) => splitCultureDomainNames(c.cltrDomnNm).includes(name));
+  }
+  return courses.filter((c) => (c.estblDeprtNm || "").trim() === name);
+}
+
+/**
+ * 여러 페셋의 합집합 (원본 배열 순서 유지).
+ */
+export function filterLocalCoursesByFacets(
+  courses: LocalCourseRecord[],
+  facets: LocalCourseFacet[]
+): LocalCourseRecord[] {
+  if (facets.length === 0) return [];
+  if (facets.length === 1) return filterLocalCoursesByFacet(courses, facets[0]!);
+
+  const allowed = new Set<LocalCourseRecord>();
+  for (const facet of facets) {
+    for (const course of filterLocalCoursesByFacet(courses, facet)) {
+      allowed.add(course);
+    }
+  }
+  return courses.filter((c) => allowed.has(c));
 }
 
 /**

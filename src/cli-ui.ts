@@ -266,12 +266,23 @@ export function printHelp(): void {
 `);
 }
 
+/** pickFromList 선택 동작 옵션 */
+export interface PickFromListOptions<T> {
+  /** true면 번호뿐 아니라 라벨 검색어로도 고를 수 있다 */
+  allowSearch?: boolean;
+  /** 검색 매칭. 없으면 라벨 부분일치(대소문자 무시) */
+  searcher?: (item: T, query: string) => boolean;
+  /** 검색 결과가 1건이면 다시 묻지 않고 바로 고른다 */
+  autoPickSingleSearch?: boolean;
+}
+
 /**
  * 제공된 배열 목록을 터미널에 출력하고 사용자가 번호로 하나를 선택하게 한다.
  * @param {readline.Interface} rl - 인터페이스 인스턴스
  * @param {string} title - 목록의 제목
  * @param {T[]} items - 선택할 항목 배열
  * @param {(item: T) => string} labelMapper - 각 항목을 문자열 라벨로 변환하는 함수
+ * @param {PickFromListOptions<T>} [options] - 검색 허용 등 선택 동작
  * @returns {Promise<T>} 선택된 항목 객체
  * @throws {Error} 범위를 벗어난 번호 선택 시 발생
  */
@@ -279,21 +290,54 @@ export async function pickFromList<T>(
   rl: readline.Interface,
   title: string,
   items: T[],
-  labelMapper: (item: T) => string
+  labelMapper: (item: T) => string,
+  options?: PickFromListOptions<T>
 ): Promise<T> {
-  console.log("");
-  printSection(`${title}:`);
-  items.forEach((item, i) => {
-    console.log(`${color(String(i + 1), ANSI.yellow)}. ${labelMapper(item)}`);
-  });
-
-  const answer = await rl.question(`${title} 번호를 선택하세요: `);
-  const index = parseInt(answer.trim()) - 1;
-  const selected = items[index];
-  if (!selected) {
-    throw new Error(`올바른 ${title} 번호를 선택하세요.`);
+  if (items.length === 0) {
+    throw new Error(`${title} 목록이 비어 있습니다.`);
   }
-  return selected;
+
+  let current = items;
+  const searcher =
+    options?.searcher ??
+    ((item: T, query: string) => labelMapper(item).toLowerCase().includes(query.toLowerCase()));
+
+  while (true) {
+    console.log("");
+    printSection(`${title}:`);
+    current.forEach((item, i) => {
+      console.log(`${color(String(i + 1), ANSI.yellow)}. ${labelMapper(item)}`);
+    });
+
+    const prompt = options?.allowSearch
+      ? `${title} 번호 또는 검색어를 입력하세요: `
+      : `${title} 번호를 선택하세요: `;
+    const answer = (await rl.question(prompt)).trim();
+    if (!answer) {
+      throw new Error(`${title}을(를) 선택하지 않았습니다.`);
+    }
+
+    if (/^\d+$/.test(answer)) {
+      const selected = current[Number(answer) - 1];
+      if (!selected) {
+        throw new Error(`올바른 ${title} 번호를 선택하세요.`);
+      }
+      return selected;
+    }
+
+    if (!options?.allowSearch) {
+      throw new Error(`올바른 ${title} 번호를 선택하세요.`);
+    }
+
+    const filtered = current.filter((item) => searcher(item, answer));
+    if (filtered.length === 0) {
+      throw new Error(`'${answer}'에 해당하는 ${title}이(가) 없습니다.`);
+    }
+    if (filtered.length === 1 && options.autoPickSingleSearch !== false) {
+      return filtered[0]!;
+    }
+    current = filtered;
+  }
 }
 
 /**

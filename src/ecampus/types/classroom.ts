@@ -39,3 +39,29 @@ export interface EcampusClassroomResourceOptions {
   crsCreCd?: string; // 과목/강의실 코드
   bbsId?: string; // 게시판 ID
 }
+
+/** 과제 상세 HTML에서 읽은 제출 폼 */
+export interface EcampusAssignmentSubmitForm {
+  action: string; // 제출 절대 URL
+  fields: Record<string, string>; // hidden·텍스트 필드
+  textField: string; // textarea name. 없으면 빈 문자열
+  fileField: string; // file input name. 없으면 빈 문자열
+  hasFile: boolean; // 파일 필드 존재 여부
+}
+
+/** 과제 상세 조회 결과 */
+export interface EcampusAssignmentDetail {
+  html: string; // 상세 화면 HTML
+  text: string; // 과제내용 본문
+  sendType: "F" | "T" | ""; // F=파일, T=텍스트
+  attachments: EcampusClassroomAttachment[]; // 참고자료 첨부
+  submitForm: EcampusAssignmentSubmitForm | null; // 제출 엔드포인트 정보
+  canSubmit: boolean; // 제출하기/sendAsmnt 존재
+}
+
+/** 첨부 파일 다운로드 결과 */
+export interface EcampusDownloadedFile {
+  data: Buffer; // 파일 본문
+  contentType: string; // Content-Type
+  disposition: string; // Content-Disposition
+}

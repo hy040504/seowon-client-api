@@ -1,7 +1,9 @@
 import type {
+  EcampusAssignmentDetail,
   EcampusClassroomAttachment,
   EcampusClassroomItem,
-  EcampusClassroomResources
+  EcampusClassroomResources,
+  EcampusDownloadedFile
 } from "./types/classroom.js";
 import type { EcampusCourseGroups, EcampusCourseListItem } from "./types/courses.js";
 import type { LoginEncryptOptions } from "./types/crypto.js";
@@ -72,8 +74,18 @@ import util from "node:util";
 import { COMMON_AJAX_HEADERS, DEFAULT_BROWSER_USER_AGENT, errorMessage, normalizeBaseUrl } from "../utils.js";
 import { isCookieJarUsable, loadCookieJarFromFile, saveCookieJarToFile } from "./cookies.js";
 import {
+  ASMNT_RIGHT_VIEW_PATH,
+  ASMNT_SEND_VIEW_PATH,
+  SEND_ASMNT_PATH,
+  assignmentDetailCandidateUrls,
+  buildEcampusAssignmentSubmitForm,
   createEmptyEcampusClassroomResources,
+  isHtmlFileBody,
+  looksLikeAssignmentDetailHtml,
+  parseEcampusAssignmentDetailHtml,
   parseEcampusAssignmentListHtml,
+  parseEcampusAssignmentSendType,
+  parseEcampusAssignmentUploadUrl,
   parseEcampusClassroomAttachmentsHtml,
   parseEcampusMaterialListHtml,
   parseEcampusNoticeListHtml,
@@ -862,6 +874,256 @@ export class EcampusClient {
     const html = await this.fetchClassroomDetailHtml(item);
     return parseEcampusClassroomAttachmentsHtml(html, { baseUrl: this.baseUrl });
   }
+
+  /**
+   * 과제 상세 HTML·첨부·제출 폼을 가져온다.
+   * 브라우저와 같이 Form/asmntStuMain 을 연 뒤 우측 asmntRightView 를 붙인다.
+   * @param {EcampusClassroomItem} item - getAssignmentList 항목
+   * @returns {Promise<EcampusAssignmentDetail>} 상세 HTML, 첨부, 제출 폼
+   */
+  async getAssignmentDetail(item: EcampusClassroomItem): Promise<EcampusAssignmentDetail> {
+    const body: Record<string, string> = {
+      goUrl: "0",
+      rltnCd: "",
+      stdRole: "",
+      teamCd: "",
+      ...item.request?.body,
+      asmntCd: item.id || item.request?.body?.asmntCd || "",
+      crsCreCd: item.request?.body?.crsCreCd || ""
+    };
+    const crsCreCd = body.crsCreCd;
+    if (crsCreCd) {
+      try {
+        await this.enterClassroomContext(crsCreCd);
+      } catch {
+        // 컨텍스트 실패해도 상세 요청은 시도한다
+      }
+    }
+
+    const urls = assignmentDetailCandidateUrls(item.request?.url || "", this.baseUrl);
+    let html = "";
+    let best = "";
+    for (const url of urls) {
+      html = await this.fetchClassroomDetailHtml({
+        ...item,
+        request: { method: "POST", url, body }
+      });
+      if (looksLikeAssignmentDetailHtml(html)) {
+        best = html;
+        break;
+      }
+      if ((html || "").length > (best || "").length) best = html;
+    }
+    html = best || html;
+    const parsed = parseEcampusAssignmentDetailHtml(html, { baseUrl: this.baseUrl });
+
+    let rightHtml = "";
+    try {
+      rightHtml = await this.postForm(ASMNT_RIGHT_VIEW_PATH, {
+        asmntCd: body.asmntCd || "",
+        crsCreCd: crsCreCd || "",
+        sendType: parsed.sendType || "F",
+        asmntCtgrCd: "NORMAL",
+        stdRole: body.stdRole || "",
+        teamCd: body.teamCd || ""
+      });
+    } catch {
+      rightHtml = "";
+    }
+
+    const sendType =
+      parsed.sendType || parseEcampusAssignmentSendType(rightHtml) || parseEcampusAssignmentSendType(html) || "F";
+    const fields = { ...body, ...(parsed.submitForm?.fields || {}) };
+    const submitForm = buildEcampusAssignmentSubmitForm(fields, sendType, this.baseUrl);
+    const attachments =
+      parsed.attachments.length > 0
+        ? parsed.attachments
+        : parseEcampusClassroomAttachmentsHtml(html, { baseUrl: this.baseUrl });
+
+    return {
+      html,
+      text: parsed.text,
+      sendType,
+      attachments,
+      submitForm,
+      canSubmit: Boolean(body.asmntCd)
+    };
+  }
+
+  /**
+   * 과제 파일을 올린 뒤 sendAsmnt 로 제출한다.
+   * @param {EcampusClassroomItem} item - 과제 항목
+   * @param {{ text?: string, file?: { filename: string, mime: string, data: Buffer } }} payload
+   * @returns {Promise<{ ok: true; status: number }>}
+   */
+  async submitAssignment(
+    item: EcampusClassroomItem,
+    payload: { text?: string; file?: { filename: string; mime: string; data: Buffer } }
+  ): Promise<{ ok: true; status: number }> {
+    const detail = await this.getAssignmentDetail(item);
+    const body = item.request?.body || {};
+    const asmntCd = item.id || body.asmntCd || "";
+    const crsCreCd = body.crsCreCd || "";
+    const sendType = detail.sendType || (payload.file ? "F" : "T");
+    let attachFileSns = "";
+    let sendCts = payload.text || "";
+
+    if (sendType === "F") {
+      if (!payload.file) throw new Error("과제 파일을 등록하세요.");
+      attachFileSns = await this.uploadAssignmentFile(item, payload.file);
+    } else if (!sendCts.trim()) {
+      throw new Error("과제 내용을 입력하세요.");
+    }
+
+    const data = {
+      asmntCd,
+      crsCreCd,
+      attachFileSns,
+      teamCd: body.teamCd || "",
+      sendCts,
+      sendCnt: "1",
+      asmntSubmitStatusCd: "Submit",
+      asmntTitle: detail.submitForm?.fields.asmntTitle || item.title || ""
+    };
+    const response = await this.http.post<{ result?: number }>(SEND_ASMNT_PATH, new URLSearchParams(data), {
+      headers: {
+        Accept: "application/json, text/javascript, */*; q=0.01",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        Origin: this.baseUrl.replace(/\/$/, ""),
+        Referer: item.request?.url || this.baseUrl,
+        ...COMMON_AJAX_HEADERS
+      },
+      validateStatus: () => true
+    });
+    await this.persistCookieJar();
+    const result = (response.data as { result?: number } | undefined)?.result;
+    if (response.status >= 400 || !(Number(result) > 0)) {
+      throw new Error("과제 제출에 실패하였습니다. e-campus 에서 확인하세요.");
+    }
+    return { ok: true, status: response.status };
+  }
+
+  /**
+   * 제출 화면을 연 뒤 파일을 올려 fileSn 을 받는다.
+   * @param {EcampusClassroomItem} item
+   * @param {{ filename: string, mime: string, data: Buffer }} file
+   * @returns {Promise<string>} attachFileSns
+   */
+  private async uploadAssignmentFile(
+    item: EcampusClassroomItem,
+    file: { filename: string; mime: string; data: Buffer }
+  ): Promise<string> {
+    const body = item.request?.body || {};
+    let sendView = "";
+    try {
+      sendView = await this.postForm(ASMNT_SEND_VIEW_PATH, {
+        asmntCd: item.id || body.asmntCd || "",
+        crsCreCd: body.crsCreCd || "",
+        teamCd: body.teamCd || "",
+        sendType: "F"
+      });
+    } catch {
+      sendView = "";
+    }
+    const parsedUrl = parseEcampusAssignmentUploadUrl(sendView, this.baseUrl);
+    const candidates = [
+      parsedUrl,
+      new URL("/file/ajaxupload/", this.baseUrl).toString(),
+      new URL("/file/upload", this.baseUrl).toString(),
+      new URL("/comm/file/fileUpload", this.baseUrl).toString(),
+      new URL("/file/fileUpload", this.baseUrl).toString()
+    ].filter((u, i, arr) => u && arr.indexOf(u) === i);
+
+    let lastError = "파일 업로드 주소를 찾지 못했습니다.";
+    for (const url of candidates) {
+      try {
+        const abs = new URL(url, this.baseUrl);
+        if (!abs.hostname.endsWith("seowon.ac.kr")) continue;
+        const fd = new FormData();
+        const blob = new Blob([new Uint8Array(file.data)], { type: file.mime || "application/octet-stream" });
+        fd.append("file", blob, file.filename || "upload.bin");
+        fd.append("uploadFile", blob, file.filename || "upload.bin");
+        const response = await this.http.post(abs.pathname + abs.search, fd, {
+          headers: {
+            Accept: "application/json, text/javascript, */*; q=0.01",
+            Origin: this.baseUrl.replace(/\/$/, ""),
+            Referer: item.request?.url || this.baseUrl,
+            ...COMMON_AJAX_HEADERS
+          },
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+          validateStatus: () => true
+        });
+        await this.persistCookieJar();
+        const sn = extractUploadFileSn(response.data);
+        if (sn) return sn;
+        lastError = "파일 업로드 응답에서 파일 번호를 읽지 못했습니다.";
+      } catch (err) {
+        lastError = errorMessage(err) || lastError;
+      }
+    }
+    throw new Error(lastError);
+  }
+
+  /**
+   * e-campus 첨부 URL을 받아 버퍼로 돌려준다.
+   * HTML 오류 페이지가 오면 실패로 본다.
+   * @param {string} url - 첨부 절대·상대 URL
+   * @returns {Promise<EcampusDownloadedFile>} 파일 본문과 헤더
+   */
+  async downloadClassroomFile(url: string): Promise<EcampusDownloadedFile> {
+    await this.ensureAuthenticated();
+    const abs = new URL(url, this.baseUrl);
+    if (!abs.hostname.endsWith("seowon.ac.kr")) {
+      throw new Error("허용되지 않은 주소입니다.");
+    }
+    const response = await this.http.get<ArrayBuffer>(abs.pathname + abs.search, {
+      responseType: "arraybuffer",
+      headers: {
+        Accept: "*/*",
+        Referer: this.baseUrl,
+        Origin: this.baseUrl.replace(/\/$/, "")
+      },
+      maxContentLength: 50 * 1024 * 1024,
+      validateStatus: () => true
+    });
+    await this.persistCookieJar();
+    const data = Buffer.from(response.data as ArrayBuffer);
+    const contentType = String(response.headers["content-type"] || "application/octet-stream");
+    const disposition = String(response.headers["content-disposition"] || "");
+    if (response.status >= 400 || isHtmlFileBody(data, contentType)) {
+      throw new Error("첨부 파일을 받지 못했습니다. e-campus 에서 다시 받아 보세요.");
+    }
+    return { data, contentType, disposition };
+  }
+}
+
+/**
+ * 파일 업로드 JSON에서 fileSn 값을 찾는다.
+ * @param {unknown} data - 업로드 응답
+ * @returns {string} fileSn. 없으면 빈 문자열
+ */
+function extractUploadFileSn(data: unknown): string {
+  if (data == null) return "";
+  if (typeof data === "string") {
+    const trimmed = data.trim();
+    if (!trimmed) return "";
+    try {
+      return extractUploadFileSn(JSON.parse(trimmed));
+    } catch {
+      return /fileSn["']?\s*[:=]\s*["']?([A-Za-z0-9_=-]+)/i.exec(trimmed)?.[1] || "";
+    }
+  }
+  if (typeof data === "number" && Number.isFinite(data)) return String(data);
+  if (typeof data !== "object") return "";
+  const rec = data as Record<string, unknown>;
+  for (const key of ["fileSn", "attachFileSn", "attachFileSns", "fileId"]) {
+    const val = rec[key];
+    if (val != null && String(val).trim()) return String(val);
+  }
+  if (rec.returnVO) return extractUploadFileSn(rec.returnVO);
+  if (rec.data) return extractUploadFileSn(rec.data);
+  return "";
 }
 
 /**

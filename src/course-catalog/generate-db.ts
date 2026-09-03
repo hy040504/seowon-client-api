@@ -32,8 +32,81 @@ export interface GenerateCourseDbOptions {
   cwd?: string;
   /** true면 학과 시간표 속성(e러닝 등) 교차 조회 생략 */
   skipTimetable?: boolean;
+  /** true면 교양 영역(cltrDomnNm) 교차 조회 생략 */
+  skipCultureDomains?: boolean;
   shouldStop?: () => boolean;
   onProgress?: (message: string) => void;
+}
+
+/** generate 가 JSON에 쓰는 한 행 */
+export type CourseCatalogRow = SugangSubject & {
+  _category: string;
+  cltrDomnCd?: string;
+  cltrDomnNm?: string;
+};
+
+/** 과목코드-분반 키. 카탈로그 중복 제거·영역 태깅에 쓴다. */
+export function catalogCourseKey(subjtCd: string, corseDvclsNo: string): string {
+  return `${subjtCd}-${corseDvclsNo}`;
+}
+
+/** 구분자로 이어 붙이되 같은 토큰은 한 번만 남긴다. */
+function appendUniqueToken(current: string | undefined, next: string, sep: string): string {
+  const token = next.trim();
+  if (!token) return (current ?? "").trim();
+  const parts = (current ?? "")
+    .split(sep)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (!parts.includes(token)) parts.push(token);
+  return parts.join(sep);
+}
+
+/**
+ * 교양 영역 검색 결과를 기존 카탈로그 행에 붙인다.
+ * 이미 있는 과목은 cltrDomnCd/cltrDomnNm 만 갱신하고, 없는 과목만 추가한다.
+ */
+export function mergeCultureDomainIntoCatalog(
+  courses: CourseCatalogRow[],
+  fetchedKeys: Set<string>,
+  domain: { code: string; codeNm: string },
+  subjects: SugangSubject[],
+  timetableProps?: Map<string, string>
+): { tagged: number; added: number } {
+  const code = domain.code.trim();
+  const name = domain.codeNm.trim();
+  const byKey = new Map(
+    courses.map((row) => [catalogCourseKey(row.subjtCd, row.corseDvclsNo), row])
+  );
+
+  let tagged = 0;
+  let added = 0;
+
+  for (const sub of subjects) {
+    const key = catalogCourseKey(sub.subjtCd, sub.corseDvclsNo);
+    let row = byKey.get(key);
+    if (!row) {
+      const sles = timetableProps?.get(key) ?? sub.slesLessnItem ?? "";
+      row = {
+        ...sub,
+        slesLessnItem: sles,
+        _category: `교양-${name || code || "?"}`
+      };
+      courses.push(row);
+      byKey.set(key, row);
+      fetchedKeys.add(key);
+      added += 1;
+    }
+
+    const nextCd = appendUniqueToken(row.cltrDomnCd, code, ",");
+    const nextNm = appendUniqueToken(row.cltrDomnNm, name, " / ");
+    if (row.cltrDomnCd === nextCd && row.cltrDomnNm === nextNm) continue;
+    row.cltrDomnCd = nextCd || undefined;
+    row.cltrDomnNm = nextNm || undefined;
+    tagged += 1;
+  }
+
+  return { tagged, added };
 }
 
 export interface GenerateCourseDbResult {
@@ -90,13 +163,13 @@ export async function generateCourseDb(
   const fileName = `${syy}학년도 ${smtName}학기 전체 강의 목록 DB (${dateString}).json`;
   const filePath = path.join(outputDir, fileName);
 
-  const allSubjects: Array<SugangSubject & { _category: string }> = [];
+  const allSubjects: CourseCatalogRow[] = [];
   const fetchedKeys = new Set<string>();
   const timetableProps = new Map<string, string>();
 
   const addSubjects = (subjects: SugangSubject[], category: string) => {
     for (const sub of subjects) {
-      const key = `${sub.subjtCd}-${sub.corseDvclsNo}`;
+      const key = catalogCourseKey(sub.subjtCd, sub.corseDvclsNo);
       if (timetableProps.has(key)) {
         sub.slesLessnItem = timetableProps.get(key);
       } else if (!sub.slesLessnItem) {
@@ -113,7 +186,7 @@ export async function generateCourseDb(
   emit(`[출력 폴더] ${outputDir}`);
 
   if (!options.skipTimetable) {
-    emit("[1/3] 학과별 시간표에서 수업 속성(e러닝 등) 수집 중…");
+    emit("[1/4] 학과별 시간표에서 수업 속성(e러닝 등) 수집 중…");
     const timetableDepts = await client.getTimetableDepartments();
     emit(`시간표 학과 ${timetableDepts.length}개`);
     let deptIndex = 0;
@@ -129,7 +202,7 @@ export async function generateCourseDb(
         });
         for (const ts of tSubjects) {
           if (ts.slesLessnItem) {
-            timetableProps.set(`${ts.subjtCd}-${ts.corseDvclsNo}`, ts.slesLessnItem);
+            timetableProps.set(catalogCourseKey(ts.subjtCd, ts.corseDvclsNo), ts.slesLessnItem);
           }
         }
       } catch {
@@ -138,10 +211,10 @@ export async function generateCourseDb(
     }
     emit(`수업 속성 매핑 ${timetableProps.size}건`);
   } else {
-    emit("[1/3] 시간표 속성 수집 생략");
+    emit("[1/4] 시간표 속성 수집 생략");
   }
 
-  emit("[2/3] 개설 과목 전체 조회 (구분 0~6)…");
+  emit("[2/4] 개설 과목 전체 조회 (구분 0~6)…");
   for (const d of SEARCH_DIVS) {
     if (options.shouldStop?.()) throw new Error("중단됨");
     emit(`구분 ${d} 조회 중…`);
@@ -154,10 +227,55 @@ export async function generateCourseDb(
     }
   }
 
+  if (!options.skipCultureDomains) {
+    emit("[3/4] 교양 영역별 과목 태깅…");
+    let domains: Awaited<ReturnType<typeof client.getCultureDomains>> = [];
+    try {
+      domains = await client.getCultureDomains();
+    } catch {
+      emit("교양 영역 목록 조회 실패 — 영역 태깅 생략");
+    }
+    emit(`교양 영역 ${domains.length}개`);
+    let taggedTotal = 0;
+    let addedTotal = 0;
+    let domainIndex = 0;
+    for (const domain of domains) {
+      if (options.shouldStop?.()) throw new Error("중단됨");
+      domainIndex += 1;
+      const label = domain.codeNm || domain.code || "?";
+      emit(`교양 영역 ${domainIndex}/${domains.length} ${label} 조회 중…`);
+      try {
+        // 화면 교양 탭은 serchDiv=1. 비면 기본 검색으로 한 번 더 시도한다.
+        let subjects = await client.searchSubjects({
+          serchDiv: "1",
+          cltrDomnCd: domain.code
+        });
+        if (subjects.length === 0) {
+          subjects = await client.searchSubjects({ cltrDomnCd: domain.code });
+        }
+        const { tagged, added } = mergeCultureDomainIntoCatalog(
+          allSubjects,
+          fetchedKeys,
+          domain,
+          subjects,
+          timetableProps
+        );
+        taggedTotal += tagged;
+        addedTotal += added;
+        emit(`교양 ${label}: ${subjects.length}건 (태깅 ${tagged}, 신규 ${added})`);
+      } catch {
+        emit(`교양 ${label}: 실패 또는 없음`);
+      }
+    }
+    emit(`교양 영역 태깅 완료 (태깅 ${taggedTotal}, 신규 ${addedTotal})`);
+  } else {
+    emit("[3/4] 교양 영역 태깅 생략");
+  }
+
   await fs.mkdir(outputDir, { recursive: true });
   await fs.writeFile(filePath, JSON.stringify(allSubjects, null, 2), "utf-8");
 
-  emit("[3/3] latest.json 포인터 갱신…");
+  emit("[4/4] latest.json 포인터 갱신…");
   const generatedAt = new Date().toISOString();
   const pointer: CourseDbPointer = {
     version: 1,

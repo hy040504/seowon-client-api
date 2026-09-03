@@ -112,18 +112,31 @@ export {
 } from "./ecampus/elearning.js";
 
 export {
+  assignmentDetailCandidateUrls,
   createEmptyEcampusClassroomResources,
+  isHtmlFileBody,
+  looksLikeAssignmentDetailHtml,
   parseEcampusClassroomAttachmentsHtml,
+  parseEcampusAssignmentDetailHtml,
+  parseEcampusAssignmentFileLinks,
   parseEcampusAssignmentListHtml,
+  parseEcampusAssignmentRightViewCanSubmit,
+  parseEcampusAssignmentSendType,
+  buildEcampusAssignmentSubmitForm,
+  parseEcampusAssignmentSubmitForm,
+  parseEcampusAssignmentUploadUrl,
   parseEcampusMaterialListHtml,
   parseEcampusNoticeListHtml,
   stringifyEcampusClassroomItems,
   stringifyEcampusClassroomResources,
+  type EcampusAssignmentDetail,
+  type EcampusAssignmentSubmitForm,
   type EcampusClassroomItem,
   type EcampusClassroomAttachment,
   type EcampusClassroomResources,
   type EcampusClassroomResourceOptions,
   type EcampusClassroomSection,
+  type EcampusDownloadedFile,
   type EcampusPostRequest
 } from "./ecampus/classroom.js";
 
@@ -391,16 +404,26 @@ export {
   resolveLatestCourseDb,
   searchLocalCourses,
   writeCourseDbPointer,
+  listLocalCourseColleges,
+  listLocalCourseDepartments,
+  listLocalCourseDomains,
+  matchLocalCourseFacets,
+  filterLocalCoursesByFacet,
   type CourseDbPointer,
   type CourseDbRef,
   type LoadCourseDbResult,
+  type LocalCourseFacet,
+  type LocalCourseFacetKind,
   type LocalCourseRecord,
   type ResolveCourseDbOptions
 } from "./course-catalog/local-db.js";
 
 export {
+  catalogCourseKey,
   generateCourseDb,
+  mergeCultureDomainIntoCatalog,
   HOPE_BASKET_COOKIE_FILE,
+  type CourseCatalogRow,
   type GenerateCourseDbOptions,
   type GenerateCourseDbResult
 } from "./course-catalog/generate-db.js";

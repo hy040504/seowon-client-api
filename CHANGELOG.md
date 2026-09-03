@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### 과제 상세·제출 (e-campus)
+
+- 상세는 `Form/asmntStuMain` 다음에 `asmntRightView` 를 붙임
+- 첨부는 `fileDown('TOKEN')` 링크 텍스트를 파일명으로 파싱, `/file/download/{token}`
+- 제출은 네이티브 file form 이 아니라 `sendAsmnt` JSON (`attachFileSns`, `sendCts`)
+- 파일 업로드 후보에 `/file/ajaxupload/`, `/file/upload` 추가
+- `downloadClassroomFile` 은 HTML 오류 페이지를 파일로 저장하지 않음
+
+### 로컬 DB 뷰어 학과/단과대/교양영역 필터
+
+- `view:db` 메뉴 3이 `_category`(구분-0 등 수집 태그) 대신 개설학과·단과대·교양영역 실명으로 필터
+- 학과/단과대/영역명 부분검색, 목록 번호 선택, 검색 결과 전부 보기 지원
+- 결과 줄에 `estblDeprtNm`·`cltrDomnNm` 표시
+- `generate:db`가 교양 영역 목록을 조회해 `cltrDomnCd`/`cltrDomnNm`을 과목에 붙임
+  - 기존 카탈로그는 `npm run generate:db` 한 번 더 돌려야 영역 필터가 채워짐
+
 ### 본신청 확정 시간표 이미지
 
 - 희망바구니와 **같은** `timtbNm` → SVG/HTML/PNG 렌더러를 본신청에 재사용
